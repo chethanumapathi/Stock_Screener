@@ -1,0 +1,9 @@
+# Ignore database files and caches
+data/consolidated_data.csv
+data/bhavcopies/
+data/splits_cache.json
+
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
