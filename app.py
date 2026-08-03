@@ -282,6 +282,7 @@ def update_consolidated_database(cleaned_df):
     # Save to file
     try:
         DB_DF.to_csv(CONSOLIDATED_FILE, index=False)
+        ADJUSTED_DF_CACHE.clear()  # Clear cache to invalidate stale adjusted DataFrames
         logger.info(f"Database updated in-memory and saved. Total records: {len(DB_DF)}")
     except Exception as e:
         logger.error(f"Failed to write database file: {e}")
@@ -296,87 +297,214 @@ def home():
 def download_data():
     req_data = request.json or {}
     date_str = req_data.get('date') # Format YYYY-MM-DD
+    from_date_str = req_data.get('from_date')
+    to_date_str = req_data.get('to_date')
     fallback = req_data.get('fallback', True)
     
-    if date_str:
+    if from_date_str and to_date_str:
         try:
-            target_date = datetime.strptime(date_str, "%Y-%m-%d")
+            from_date = datetime.strptime(from_date_str, "%Y-%m-%d")
+            to_date = datetime.strptime(to_date_str, "%Y-%m-%d")
         except ValueError:
             return jsonify({"status": "error", "message": "Invalid date format. Use YYYY-MM-DD"}), 400
     else:
-        # Default to current date (local time)
-        target_date = datetime.now()
-        
-    # Limit downloading future dates
-    if target_date.date() > datetime.now().date():
+        if date_str:
+            try:
+                target_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                return jsonify({"status": "error", "message": "Invalid date format. Use YYYY-MM-DD"}), 400
+        else:
+            target_date = datetime.now()
+        from_date = target_date
+        to_date = target_date
+
+    # Limit future dates
+    if from_date.date() > datetime.now().date():
         return jsonify({"status": "error", "message": "Cannot download data for future dates."}), 400
+    if to_date.date() > datetime.now().date():
+        to_date = datetime.now() # Caps at today
         
-    current_attempt_date = target_date
-    raw_data = None
-    attempts = 0
-    max_attempts = 7 if fallback else 1
+    if from_date > to_date:
+        return jsonify({"status": "error", "message": "From Date cannot be after To Date."}), 400
+        
+    # Get existing dates in DB
+    existing_dates = set()
+    if DB_DF is not None and not DB_DF.empty:
+        existing_dates = set(DB_DF['Date'].unique())
+        
+    # If downloading a range (from_date != to_date)
+    is_range = (from_date.date() != to_date.date())
     
-    # Attempt to download, backtracking if we get 404s
-    while attempts < max_attempts:
-        raw_data = download_bhavcopy_from_nse(current_attempt_date)
-        if raw_data:
-            break
-        # Go back 1 day
-        current_attempt_date -= timedelta(days=1)
-        attempts += 1
+    if is_range:
+        # Generate target weekdays in range
+        curr = from_date
+        target_dates = []
+        while curr <= to_date:
+            if curr.date() <= datetime.now().date() and curr.weekday() < 5:
+                target_dates.append(curr)
+            curr += timedelta(days=1)
+            
+        if not target_dates:
+            return jsonify({"status": "error", "message": "No trading days (weekdays) found in the selected range."}), 400
+            
+        # Check if all target dates are already in DB
+        missing_dates = [d for d in target_dates if d.strftime('%Y-%m-%d') not in existing_dates]
         
-    if not raw_data:
-        formatted_target = target_date.strftime('%Y-%m-%d')
+        if not missing_dates:
+            return jsonify({
+                "status": "already_exists",
+                "message": "Data for the selected date range is already available in the database."
+            })
+            
+        # Download missing dates
+        all_cleaned_dfs = []
+        downloaded_dates = []
+        for d in missing_dates:
+            date_url_str = format_date_for_url(d)
+            filename = f"sec_bhavdata_full_{date_url_str}.csv"
+            filepath = os.path.join(BHAV_DIR, filename)
+            
+            raw_data = None
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        raw_data = f.read()
+                except Exception as e:
+                    logger.error(f"Error reading local file: {e}")
+                    
+            if not raw_data:
+                raw_data = download_bhavcopy_from_nse(d)
+                if raw_data:
+                    save_daily_bhav(d, raw_data)
+                    
+            if raw_data:
+                try:
+                    raw_df = pd.read_csv(io.StringIO(raw_data))
+                    cleaned_df = clean_bhavcopy(raw_df)
+                    if not cleaned_df.empty:
+                        all_cleaned_dfs.append(cleaned_df)
+                        downloaded_dates.append(d.strftime('%Y-%m-%d'))
+                except Exception as e:
+                    logger.error(f"Error parsing data for {d.strftime('%Y-%m-%d')}: {e}")
+                    
+        if not all_cleaned_dfs:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to download data for any of the missing dates. Markets might be closed or NSE is unavailable."
+            }), 404
+            
+        concatenated_df = pd.concat(all_cleaned_dfs, ignore_index=True)
+        total_db_records = update_consolidated_database(concatenated_df)
+        
+        # Take stats of the latest downloaded date in the range
+        latest_df = all_cleaned_dfs[-1]
+        latest_date_str = downloaded_dates[-1]
+        
+        gains = []
+        losses = []
+        high_volume = []
+        if not latest_df.empty:
+            df_stats = latest_df.copy()
+            df_stats['Pct_Change'] = ((df_stats['Close'] - df_stats['Prev_Close']) / df_stats['Prev_Close'] * 100).round(2)
+            df_valid_price = df_stats[df_stats['Prev_Close'] > 0]
+            top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
+            top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
+            top_vol = df_stats.sort_values(by='Volume', ascending=False).head(5)
+            gains = top_gainers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
+            losses = top_losers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
+            high_volume = top_vol[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
+            
         return jsonify({
-            "status": "error", 
-            "message": f"Could not find any trading data for {formatted_target} or the preceding week. Market might be closed or NSE archives are currently unavailable."
-        }), 404
+            "status": "success",
+            "date": latest_date_str,
+            "records_downloaded": sum(len(df) for df in all_cleaned_dfs),
+            "total_database_records": total_db_records,
+            "downloaded_dates": downloaded_dates,
+            "stats": {
+                "top_gainers": gains,
+                "top_losers": losses,
+                "high_volume": high_volume
+            }
+        })
         
-    # Save raw file
-    save_daily_bhav(current_attempt_date, raw_data)
-    
-    # Clean and parse data
-    try:
-        raw_df = pd.read_csv(io.StringIO(raw_data))
-        cleaned_df = clean_bhavcopy(raw_df)
-        total_db_records = update_consolidated_database(cleaned_df)
-    except Exception as e:
-        logger.error(f"Error parsing downloaded data: {e}")
-        return jsonify({"status": "error", "message": f"Error parsing data: {str(e)}"}), 500
+    else:
+        # Single date download logic (supports backtracking)
+        current_attempt_date = from_date
+        raw_data = None
+        attempts = 0
+        max_attempts = 7 if fallback else 1
         
-    # Get some quick stats for the day
-    gains = []
-    losses = []
-    high_volume = []
-    
-    if not cleaned_df.empty:
-        # Calculate % Change
-        df_stats = cleaned_df.copy()
-        df_stats['Pct_Change'] = ((df_stats['Close'] - df_stats['Prev_Close']) / df_stats['Prev_Close'] * 100).round(2)
-        
-        # Sort and filter
-        df_valid_price = df_stats[df_stats['Prev_Close'] > 0]
-        
-        top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
-        top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
-        top_vol = df_stats.sort_values(by='Volume', ascending=False).head(5)
-        
-        gains = top_gainers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-        losses = top_losers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-        high_volume = top_vol[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
-        
-    return jsonify({
-        "status": "success",
-        "date": current_attempt_date.strftime("%Y-%m-%d"),
-        "records_downloaded": len(cleaned_df),
-        "total_database_records": total_db_records,
-        "backtracked_days": attempts,
-        "stats": {
-            "top_gainers": gains,
-            "top_losers": losses,
-            "high_volume": high_volume
-        }
-    })
+        while attempts < max_attempts:
+            if current_attempt_date.weekday() < 5:
+                attempt_str = current_attempt_date.strftime('%Y-%m-%d')
+                if attempt_str in existing_dates:
+                    return jsonify({
+                        "status": "already_exists",
+                        "message": f"Data for {attempt_str} is already available."
+                    })
+                
+                date_url_str = format_date_for_url(current_attempt_date)
+                filename = f"sec_bhavdata_full_{date_url_str}.csv"
+                filepath = os.path.join(BHAV_DIR, filename)
+                
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            raw_data = f.read()
+                    except Exception as e:
+                        logger.error(f"Error reading local file: {e}")
+                
+                if not raw_data:
+                    raw_data = download_bhavcopy_from_nse(current_attempt_date)
+                    if raw_data:
+                        save_daily_bhav(current_attempt_date, raw_data)
+                        
+                if raw_data:
+                    break
+            current_attempt_date -= timedelta(days=1)
+            attempts += 1
+            
+        if not raw_data:
+            formatted_target = from_date.strftime('%Y-%m-%d')
+            return jsonify({
+                "status": "error",
+                "message": f"Could not find any trading data for {formatted_target} or the preceding week."
+            }), 404
+            
+        try:
+            raw_df = pd.read_csv(io.StringIO(raw_data))
+            cleaned_df = clean_bhavcopy(raw_df)
+            total_db_records = update_consolidated_database(cleaned_df)
+        except Exception as e:
+            logger.error(f"Error parsing downloaded data: {e}")
+            return jsonify({"status": "error", "message": f"Error parsing data: {str(e)}"}), 500
+            
+        gains = []
+        losses = []
+        high_volume = []
+        if not cleaned_df.empty:
+            df_stats = cleaned_df.copy()
+            df_stats['Pct_Change'] = ((df_stats['Close'] - df_stats['Prev_Close']) / df_stats['Prev_Close'] * 100).round(2)
+            df_valid_price = df_stats[df_stats['Prev_Close'] > 0]
+            top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
+            top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
+            top_vol = df_stats.sort_values(by='Volume', ascending=False).head(5)
+            gains = top_gainers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
+            losses = top_losers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
+            high_volume = top_vol[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
+            
+        return jsonify({
+            "status": "success",
+            "date": current_attempt_date.strftime("%Y-%m-%d"),
+            "records_downloaded": len(cleaned_df),
+            "total_database_records": total_db_records,
+            "backtracked_days": attempts,
+            "stats": {
+                "top_gainers": gains,
+                "top_losers": losses,
+                "high_volume": high_volume
+            }
+        })
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -646,6 +774,7 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
         restricted_globals = {
             '__builtins__': __builtins__,
             'pd': pd,
+            'np': np,
             'yf': yf,
         }
         exec(code_str, restricted_globals, local_env)
@@ -673,11 +802,15 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
             custom_series = {}
             
             if isinstance(res, pd.Series):
-                signal_series = res
+                signal_series = res.copy()
+                if len(signal_series) == len(df_symbol):
+                    signal_series.index = df_symbol.index
             elif isinstance(res, dict):
                 sig = res.get('signal')
                 if isinstance(sig, pd.Series):
-                    signal_series = sig
+                    signal_series = sig.copy()
+                    if len(signal_series) == len(df_symbol):
+                        signal_series.index = df_symbol.index
                 else:
                     # Broadcast single value (standard Python bool) to the last element
                     signal_series = pd.Series([False] * len(df_symbol), index=df_symbol.index)
@@ -687,7 +820,10 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
                 for k, v in res.items():
                     if k != 'signal':
                         if isinstance(v, pd.Series):
-                            custom_series[k] = v
+                            v_copy = v.copy()
+                            if len(v_copy) == len(df_symbol):
+                                v_copy.index = df_symbol.index
+                            custom_series[k] = v_copy
                         else:
                             # Broadcast single value
                             custom_series[k] = pd.Series([v] * len(df_symbol), index=df_symbol.index)
@@ -793,6 +929,202 @@ def run_screener():
         return jsonify(res)
     except Exception as e:
         return jsonify({"status": "error", "message": f"Screener execution error: {str(e)}"}), 500
+
+STRATEGIES_FILE = os.path.join(DATA_DIR, 'strategies.json')
+
+DEFAULT_STRATEGIES = [
+    {
+        "name": "EMA Crossover with Volume Filter",
+        "code": """import pandas as pd
+
+def screen(df):
+    df = df.copy()
+    
+    # 1. Compute Indicators
+    df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
+    df['SMA20'] = df['Close'].rolling(window=20).mean()
+    
+    # 2. Generate Crossover Signals
+    # Close crosses above SMA20
+    prev_close = df['Close'].shift(1)
+    prev_sma20 = df['SMA20'].shift(1)
+    crossover = (prev_close <= prev_sma20) & (df['Close'] > df['SMA20'])
+    
+    # Close is above EMA50
+    above_ema = df['Close'] > df['EMA50']
+    
+    # 3. Return Boolean Series for historical backtesting
+    signal = crossover & above_ema
+    return {
+        "signal": signal,
+        "EMA50": df['EMA50'].round(2),
+        "SMA20": df['SMA20'].round(2)
+    }"""
+    },
+    {
+        "name": "Monthly Pivot R2 Breakout",
+        "code": """import pandas as pd
+
+def screen(df):
+    df = df.copy()
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Month'] = df['Date'].dt.to_period('M')
+
+    # --- Step 1: Compute previous month's High, Low, Close for pivot calc ---
+    monthly = df.groupby('Month').agg(
+        High=('High', 'max'),
+        Low=('Low', 'min'),
+        Close=('Close', 'last')
+    ).reset_index()
+
+    # Shift by 1 so each month uses PREVIOUS month's H/L/C (standard pivot convention)
+    monthly['Prev_High'] = monthly['High'].shift(1)
+    monthly['Prev_Low'] = monthly['Low'].shift(1)
+    monthly['Prev_Close'] = monthly['Close'].shift(1)
+
+    # --- Step 2: Standard pivot formulas ---
+    monthly['Pivot'] = (monthly['Prev_High'] + monthly['Prev_Low'] + monthly['Prev_Close']) / 3
+    monthly['R1'] = 2 * monthly['Pivot'] - monthly['Prev_Low']
+    monthly['R2'] = monthly['Pivot'] + (monthly['Prev_High'] - monthly['Prev_Low'])
+
+    # --- Step 3: Map monthly pivot levels back onto each daily row ---
+    df = df.merge(monthly[['Month', 'Pivot', 'R1', 'R2']], on='Month', how='left')
+
+    # --- Step 4: Detect Close crossing above R2 ---
+    prev_close = df['Close'].shift(1)
+    crossed_above_r2 = (prev_close <= df['R2']) & (df['Close'] > df['R2'])
+
+    # --- Step 5: High volume filter (volume > 1.5x its 20-day average) ---
+    avg_volume_20 = df['Volume'].rolling(window=20, min_periods=1).mean()
+    high_volume = df['Volume'] > (1.5 * avg_volume_20)
+
+    # --- Step 6: Combine conditions ---
+    signal = crossed_above_r2 & high_volume
+
+    return {
+        "signal": signal,
+        "Monthly_R2": df['R2'],
+        "Close": df['Close'],
+        "Volume": df['Volume'],
+        "Avg_Volume_20": avg_volume_20,
+        "Volume_Ratio": (df['Volume'] / avg_volume_20).round(2)
+    }"""
+    }
+]
+
+def load_strategies_from_file():
+    if os.path.exists(STRATEGIES_FILE) and os.path.getsize(STRATEGIES_FILE) > 0:
+        try:
+            with open(STRATEGIES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading strategies: {e}")
+    # Write default templates if not exist
+    try:
+        with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(DEFAULT_STRATEGIES, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving default strategies: {e}")
+    return DEFAULT_STRATEGIES
+
+@app.route('/api/screener/strategies', methods=['GET'])
+def get_strategies():
+    strategies = load_strategies_from_file()
+    return jsonify({"status": "success", "strategies": strategies})
+
+@app.route('/api/screener/strategies', methods=['POST'])
+def save_strategy():
+    data = request.get_json() or {}
+    name = data.get('name', '').strip()
+    code = data.get('code', '')
+    
+    if not name or not code:
+        return jsonify({"status": "error", "message": "Name and code are required."}), 400
+        
+    strategies = load_strategies_from_file()
+    # Check if exists and update, or append new
+    found = False
+    for s in strategies:
+        if s['name'].lower() == name.lower():
+            s['name'] = name # Preserve casing
+            s['code'] = code
+            found = True
+            break
+            
+    if not found:
+        strategies.append({"name": name, "code": code})
+        
+    try:
+        with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(strategies, f, indent=4)
+        return jsonify({"status": "success", "message": f"Strategy '{name}' saved successfully."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to save strategy: {str(e)}"}), 500
+
+@app.route('/api/screener/strategies/<name>', methods=['DELETE'])
+def delete_strategy(name):
+    strategies = load_strategies_from_file()
+    updated = [s for s in strategies if s['name'].lower() != name.lower()]
+    
+    if len(updated) == len(strategies):
+        return jsonify({"status": "error", "message": f"Strategy '{name}' not found."}), 404
+        
+    try:
+        with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(updated, f, indent=4)
+        return jsonify({"status": "success", "message": f"Strategy '{name}' deleted successfully."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to delete strategy: {str(e)}"}), 500
+
+@app.route('/api/screener/export', methods=['POST'])
+def export_screener_results():
+    try:
+        req_data = request.json or {}
+        date_str = req_data.get('date', 'all')
+        results = req_data.get('results', [])
+        
+        if not results:
+            return jsonify({"status": "error", "message": "No results to export"}), 400
+            
+        df = pd.DataFrame(results)
+        
+        # Order columns logically
+        base_cols = ['Symbol', 'Close', 'Pct_Change', 'Volume']
+        existing_base_cols = [c for c in base_cols if c in df.columns]
+        other_cols = [c for c in df.columns if c not in existing_base_cols]
+        df = df[existing_base_cols + other_cols]
+        
+        output = io.BytesIO()
+        mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        filename = f"screener_results_{date_str}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        try:
+            # Attempt to use openpyxl / xlsxwriter for standard Excel
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Screener Results')
+            output.seek(0)
+        except Exception:
+            try:
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Screener Results')
+                output.seek(0)
+            except Exception:
+                # Fallback to CSV
+                csv_str = df.to_csv(index=False)
+                output.write(csv_str.encode('utf-8'))
+                output.seek(0)
+                mimetype = 'text/csv'
+                filename = f"screener_results_{date_str}_{datetime.now().strftime('%Y%m%d')}.csv"
+                
+        return send_file(
+            output,
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        logger.error(f"Screener export error: {e}")
+        return jsonify({"status": "error", "message": f"Export failed: {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Initialize folder structures double check
