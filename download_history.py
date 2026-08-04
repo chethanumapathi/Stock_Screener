@@ -25,9 +25,9 @@ def main():
     print("NSE HISTORICAL DATA DOWNLOADER (2 YEARS)")
     print("=" * 60)
 
-    # 1. Establish start and end dates (August 1, 2024 to August 1, 2026)
+    # 1. Establish start and end dates (August 1, 2024 to today)
     start_date = datetime(2024, 8, 1)
-    end_date = datetime(2026, 8, 1)
+    end_date = datetime.now()
     
     print(f"Target date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 

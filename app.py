@@ -539,8 +539,10 @@ def get_history():
     return jsonify({
         "total_records": total_records,
         "last_updated": last_updated,
-        "downloaded_dates": combined_dates
+        "downloaded_dates": combined_dates,
+        "database_dates": history_dates
     })
+
 
 @app.route('/api/view_data', methods=['GET'])
 def view_data():

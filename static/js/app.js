@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSymbol = null;
     let activeStockData = [];
     let downloadedDatesList = []; // Kept up-to-date with downloaded dates
+    let databaseDatesList = []; // Kept up-to-date with database dates (actually consolidated)
 
     // Drawing & Indicators State
     let activeTool = 'cursor'; // 'cursor', 'trendline', 'measure'
@@ -846,6 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/history');
             const data = await response.json();
             downloadedDatesList = data.downloaded_dates || [];
+            databaseDatesList = data.database_dates || [];
 
             // Update stats indicators
             if (data.total_records > 0) {
@@ -1034,11 +1036,11 @@ document.addEventListener('DOMContentLoaded', () => {
             curr.setDate(curr.getDate() + 1);
         }
 
-        // Check if all weekdays are already present in downloadedDatesList
-        const allAlreadyDownloaded = targetDates.length > 0 && targetDates.every(d => downloadedDatesList.includes(d));
+        // Check if all weekdays are already present in databaseDatesList
+        const allAlreadyDownloaded = targetDates.length > 0 && targetDates.every(d => databaseDatesList.includes(d));
         if (allAlreadyDownloaded) {
-            logToConsole('Download skipped: selected date range is already available.', 'info');
-            alert('Data is already available.');
+            logToConsole('Download skipped: selected date range is already available in the database.', 'info');
+            alert('Data is already available in the database.');
             return;
         }
 
@@ -1076,6 +1078,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeDate = result.date;
                 await loadDashboardStats(false);
                 await viewDateData(activeDate);
+                
+                // If a stock chart is currently open, automatically reload it to show the fresh data
+                if (currentSymbol) {
+                    logToConsole(`Reloading chart for ${currentSymbol} with fresh data...`, 'info');
+                    await loadStockChart(currentSymbol);
+                }
             } else {
                 logToConsole(`FAILED: ${result.message || 'Unknown backend error'}`, 'error');
                 alert(`Download Failed: ${result.message}`);
