@@ -9,144 +9,21 @@ import requests
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from flask import Flask, jsonify, request, render_template, send_file
+import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-app = Flask(__name__)
 
 # Constants
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 BHAV_DIR = os.path.join(DATA_DIR, 'bhavcopies')
 CONSOLIDATED_FILE = os.path.join(DATA_DIR, 'consolidated_data.csv')
-
-# Global DataFrame Cache
-DB_DF = None
-ADJUSTED_DF_CACHE = {}
-
-def load_database_into_memory():
-    global DB_DF
-    if os.path.exists(CONSOLIDATED_FILE) and os.path.getsize(CONSOLIDATED_FILE) > 0:
-        try:
-            logger.info("Loading consolidated database into memory...")
-            start_time = time.time()
-            df = pd.read_csv(CONSOLIDATED_FILE)
-            df['Date'] = df['Date'].astype(str)
-            df['Symbol'] = df['Symbol'].astype(str)
-            # Ensure sorting
-            df = df.sort_values(by=['Date', 'Symbol'], ascending=[False, True])
-            DB_DF = df
-            ADJUSTED_DF_CACHE.clear()
-            logger.info(f"Loaded {len(DB_DF)} records in {time.time() - start_time:.2f} seconds.")
-        except Exception as e:
-            logger.error(f"Error loading database into memory: {e}")
-            DB_DF = pd.DataFrame()
-    else:
-        DB_DF = pd.DataFrame()
-
-# Load database on startup
-load_database_into_memory()
-
-# Splits Cache Constants and Helpers
 SPLITS_CACHE_FILE = os.path.join(DATA_DIR, 'splits_cache.json')
-SPLITS_CACHE = {}
-
-def load_splits_cache():
-    global SPLITS_CACHE
-    if os.path.exists(SPLITS_CACHE_FILE) and os.path.getsize(SPLITS_CACHE_FILE) > 0:
-        try:
-            with open(SPLITS_CACHE_FILE, 'r') as f:
-                SPLITS_CACHE = json.load(f)
-            logger.info(f"Loaded splits cache with {len(SPLITS_CACHE)} symbols.")
-        except Exception as e:
-            logger.error(f"Error loading splits cache: {e}")
-            SPLITS_CACHE = {}
-    else:
-        SPLITS_CACHE = {}
-
-def get_splits_for_stock(symbol, fetch_online=True):
-    global SPLITS_CACHE
-    symbol = symbol.upper()
-    if symbol in SPLITS_CACHE:
-        return SPLITS_CACHE[symbol]
-        
-    if not fetch_online:
-        return {}
-        
-    splits_dict = {}
-    try:
-        logger.info(f"Fetching corporate actions splits from yfinance for {symbol}...")
-        ticker = yf.Ticker(f"{symbol}.NS")
-        splits = ticker.splits
-        if not splits.empty:
-            for dt, ratio in splits.items():
-                date_str = dt.strftime('%Y-%m-%d')
-                splits_dict[date_str] = float(ratio)
-        SPLITS_CACHE[symbol] = splits_dict
-        # Save cache file
-        with open(SPLITS_CACHE_FILE, 'w') as f:
-            json.dump(SPLITS_CACHE, f)
-    except Exception as e:
-        logger.error(f"Error fetching splits for {symbol}: {e}")
-        # Return empty but don't cache permanently to allow retrying
-        return {}
-    return splits_dict
-
-def adjust_for_splits(df_symbol, splits_dict):
-    if not splits_dict or df_symbol.empty:
-        return df_symbol
-        
-    df_adj = df_symbol.copy()
-    # Sort splits by date ascending
-    sorted_splits = sorted(splits_dict.items(), key=lambda x: x[0])
-    
-    for split_date, ratio in sorted_splits:
-        if ratio <= 0 or ratio == 1.0:
-            continue
-        # Apply adjustment to all rows before split_date
-        mask = df_adj['Date'] < split_date
-        if mask.any():
-            for col in ['Open', 'High', 'Low', 'Close', 'Prev_Close', 'Avg_Price']:
-                if col in df_adj.columns:
-                    df_adj.loc[mask, col] = (df_adj.loc[mask, col] / ratio).round(2)
-            if 'Volume' in df_adj.columns:
-                df_adj.loc[mask, 'Volume'] = (df_adj.loc[mask, 'Volume'] * ratio).round(0)
-                
-    return df_adj
-
-def get_adjusted_df_for_symbol(symbol):
-    global ADJUSTED_DF_CACHE, DB_DF
-    symbol = symbol.upper()
-    if symbol in ADJUSTED_DF_CACHE:
-        return ADJUSTED_DF_CACHE[symbol]
-        
-    if DB_DF is None or DB_DF.empty:
-        return pd.DataFrame()
-        
-    df_symbol = DB_DF[DB_DF['Symbol'] == symbol]
-    if df_symbol.empty:
-        return pd.DataFrame()
-        
-    df_symbol = df_symbol.copy()
-    if 'Series' in df_symbol.columns:
-        df_eq = df_symbol[df_symbol['Series'] == 'EQ']
-        if not df_eq.empty:
-            df_symbol = df_eq.copy()
-            
-    df_symbol = df_symbol.drop_duplicates(subset=['Date'])
-    df_symbol = df_symbol.sort_values(by='Date', ascending=True)
-    
-    splits_dict = get_splits_for_stock(symbol, fetch_online=False)
-    df_symbol = adjust_for_splits(df_symbol, splits_dict)
-    
-    ADJUSTED_DF_CACHE[symbol] = df_symbol
-    return df_symbol
-
-# Load splits cache on startup
-load_splits_cache()
+STRATEGIES_FILE = os.path.join(DATA_DIR, 'strategies.json')
 
 # Column mapping from raw NSE to cleaned dashboard columns
 COLUMN_MAP = {
@@ -167,12 +44,117 @@ COLUMN_MAP = {
     'DELIV_PER': 'Deliv_Per'
 }
 
+# --- Database & Cache Loading (Streamlit cached) ---
+
+@st.cache_data
+def load_database():
+    if os.path.exists(CONSOLIDATED_FILE) and os.path.getsize(CONSOLIDATED_FILE) > 0:
+        try:
+            logger.info("Loading consolidated database into memory...")
+            start_time = time.time()
+            df = pd.read_csv(CONSOLIDATED_FILE)
+            df['Date'] = df['Date'].astype(str)
+            df['Symbol'] = df['Symbol'].astype(str)
+            df = df.sort_values(by=['Date', 'Symbol'], ascending=[False, True])
+            logger.info(f"Loaded {len(df)} records in {time.time() - start_time:.2f} seconds.")
+            return df
+        except Exception as e:
+            logger.error(f"Error loading database into memory: {e}")
+    return pd.DataFrame()
+
+# Load splits cache
+def load_splits_cache():
+    if os.path.exists(SPLITS_CACHE_FILE) and os.path.getsize(SPLITS_CACHE_FILE) > 0:
+        try:
+            with open(SPLITS_CACHE_FILE, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading splits cache: {e}")
+    return {}
+
+# Helper to save splits cache
+def save_splits_cache(cache):
+    try:
+        with open(SPLITS_CACHE_FILE, 'w') as f:
+            json.dump(cache, f)
+    except Exception as e:
+        logger.error(f"Error saving splits cache: {e}")
+
+def get_splits_for_stock(symbol, fetch_online=True):
+    splits_cache = load_splits_cache()
+    symbol = symbol.upper()
+    if symbol in splits_cache:
+        return splits_cache[symbol]
+        
+    if not fetch_online:
+        return {}
+        
+    splits_dict = {}
+    try:
+        logger.info(f"Fetching corporate actions splits from yfinance for {symbol}...")
+        ticker = yf.Ticker(f"{symbol}.NS")
+        splits = ticker.splits
+        if not splits.empty:
+            for dt, ratio in splits.items():
+                date_str = dt.strftime('%Y-%m-%d')
+                splits_dict[date_str] = float(ratio)
+        splits_cache[symbol] = splits_dict
+        save_splits_cache(splits_cache)
+    except Exception as e:
+        logger.error(f"Error fetching splits for {symbol}: {e}")
+        return {}
+    return splits_dict
+
+def adjust_for_splits(df_symbol, splits_dict):
+    if not splits_dict or df_symbol.empty:
+        return df_symbol
+        
+    df_adj = df_symbol.copy()
+    sorted_splits = sorted(splits_dict.items(), key=lambda x: x[0])
+    
+    for split_date, ratio in sorted_splits:
+        if ratio <= 0 or ratio == 1.0:
+            continue
+        mask = df_adj['Date'] < split_date
+        if mask.any():
+            for col in ['Open', 'High', 'Low', 'Close', 'Prev_Close', 'Avg_Price']:
+                if col in df_adj.columns:
+                    df_adj.loc[mask, col] = (df_adj.loc[mask, col] / ratio).round(2)
+            if 'Volume' in df_adj.columns:
+                df_adj.loc[mask, 'Volume'] = (df_adj.loc[mask, 'Volume'] * ratio).round(0)
+                
+    return df_adj
+
+@st.cache_data
+def get_adjusted_df_for_symbol(db_df, symbol):
+    symbol = symbol.upper()
+    if db_df.empty:
+        return pd.DataFrame()
+        
+    df_symbol = db_df[db_df['Symbol'] == symbol]
+    if df_symbol.empty:
+        return pd.DataFrame()
+        
+    df_symbol = df_symbol.copy()
+    if 'Series' in df_symbol.columns:
+        df_eq = df_symbol[df_symbol['Series'] == 'EQ']
+        if not df_eq.empty:
+            df_symbol = df_eq.copy()
+            
+    df_symbol = df_symbol.drop_duplicates(subset=['Date'])
+    df_symbol = df_symbol.sort_values(by='Date', ascending=True)
+    
+    splits_dict = get_splits_for_stock(symbol, fetch_online=False)
+    df_symbol = adjust_for_splits(df_symbol, splits_dict)
+    
+    return df_symbol
+
+# --- NSE Bhavcopy download helpers ---
+
 def format_date_for_url(date_obj):
     return date_obj.strftime("%d%m%Y")
 
 def format_date_to_db(date_str):
-    # Converts '31-Jul-2026' or '31-JUL-2026' to '2026-07-31'
-    # Or returns raw if already YYYY-MM-DD
     try:
         date_str = date_str.strip()
         if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
@@ -184,10 +166,7 @@ def format_date_to_db(date_str):
         return date_str
 
 def clean_bhavcopy(df):
-    # Strip whitespace from column names
     df.columns = df.columns.str.strip()
-    
-    # Check if required columns exist, mapping them
     mapped_cols = {}
     for raw_col, clean_col in COLUMN_MAP.items():
         if raw_col in df.columns:
@@ -195,29 +174,23 @@ def clean_bhavcopy(df):
             
     df = df.rename(columns=mapped_cols)
     
-    # Strip string values
     for col in df.select_dtypes(include=['object']).columns:
         df[col] = df[col].astype(str).str.strip()
         
-    # Standardize series
     if 'Series' in df.columns:
         df = df[df['Series'].isin(['EQ', 'BE', 'SM'])]
         
-    # Parse dates to YYYY-MM-DD
     if 'Date' in df.columns:
         df['Date'] = df['Date'].apply(format_date_to_db)
         
-    # Standardize numeric columns
     numeric_cols = ['Prev_Close', 'Open', 'High', 'Low', 'Last', 'Close', 'Avg_Price', 
                     'Volume', 'Turnover_Lacs', 'No_Of_Trades', 'Deliv_Qty', 'Deliv_Per']
     
     for col in numeric_cols:
         if col in df.columns:
-            # Clean non-numeric characters like spaces or '-'
             df[col] = df[col].astype(str).str.replace(r'[^\d\.\-]', '', regex=True)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
             
-    # Reorder columns to a clean layout
     final_cols = [c for c in COLUMN_MAP.values() if c in df.columns]
     return df[final_cols]
 
@@ -233,7 +206,6 @@ def download_bhavcopy_from_nse(date_obj):
     
     logger.info(f"Attempting to download Bhavcopy for {date_obj.strftime('%Y-%m-%d')} from: {url}")
     session = requests.Session()
-    # Establish session cookies
     try:
         session.get("https://www.nseindia.com", headers=headers, timeout=5)
     except Exception as e:
@@ -254,7 +226,7 @@ def download_bhavcopy_from_nse(date_obj):
         return None
 
 def save_daily_bhav(date_obj, raw_csv_text):
-    # Save the raw file for history
+    os.makedirs(BHAV_DIR, exist_ok=True)
     filename = f"sec_bhavdata_full_{format_date_for_url(date_obj)}.csv"
     filepath = os.path.join(BHAV_DIR, filename)
     with open(filepath, 'w', encoding='utf-8') as f:
@@ -262,409 +234,33 @@ def save_daily_bhav(date_obj, raw_csv_text):
     logger.info(f"Saved daily raw file to {filepath}")
     return filepath
 
-def update_consolidated_database(cleaned_df):
-    global DB_DF
+def update_consolidated_database(cleaned_df, current_db_df):
     if cleaned_df.empty:
-        return len(DB_DF) if DB_DF is not None else 0
+        return current_db_df
         
     new_dates = cleaned_df['Date'].unique()
     
-    if DB_DF is not None and not DB_DF.empty:
-        # Filter out existing data for these dates
-        DB_DF = DB_DF[~DB_DF['Date'].isin(new_dates)]
+    if not current_db_df.empty:
+        updated_db = current_db_df[~current_db_df['Date'].isin(new_dates)]
     else:
-        DB_DF = pd.DataFrame(columns=cleaned_df.columns)
+        updated_db = pd.DataFrame(columns=cleaned_df.columns)
         
-    # Append new data
-    DB_DF = pd.concat([DB_DF, cleaned_df], ignore_index=True)
-    DB_DF = DB_DF.sort_values(by=['Date', 'Symbol'], ascending=[False, True])
+    updated_db = pd.concat([updated_db, cleaned_df], ignore_index=True)
+    updated_db = updated_db.sort_values(by=['Date', 'Symbol'], ascending=[False, True])
     
-    # Save to file
     try:
-        DB_DF.to_csv(CONSOLIDATED_FILE, index=False)
-        ADJUSTED_DF_CACHE.clear()  # Clear cache to invalidate stale adjusted DataFrames
-        logger.info(f"Database updated in-memory and saved. Total records: {len(DB_DF)}")
+        os.makedirs(DATA_DIR, exist_ok=True)
+        updated_db.to_csv(CONSOLIDATED_FILE, index=False)
+        load_database.clear()  # Invalidate Streamlit's data cache
+        get_adjusted_df_for_symbol.clear()  # Invalidate stock-adjusted dataframes cache
+        logger.info(f"Database updated and saved. Total records: {len(updated_db)}")
     except Exception as e:
         logger.error(f"Failed to write database file: {e}")
         
-    return len(DB_DF)
+    return updated_db
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# --- Stock lists ---
 
-@app.route('/api/download', methods=['POST'])
-def download_data():
-    req_data = request.json or {}
-    date_str = req_data.get('date') # Format YYYY-MM-DD
-    from_date_str = req_data.get('from_date')
-    to_date_str = req_data.get('to_date')
-    fallback = req_data.get('fallback', True)
-    
-    if from_date_str and to_date_str:
-        try:
-            from_date = datetime.strptime(from_date_str, "%Y-%m-%d")
-            to_date = datetime.strptime(to_date_str, "%Y-%m-%d")
-        except ValueError:
-            return jsonify({"status": "error", "message": "Invalid date format. Use YYYY-MM-DD"}), 400
-    else:
-        if date_str:
-            try:
-                target_date = datetime.strptime(date_str, "%Y-%m-%d")
-            except ValueError:
-                return jsonify({"status": "error", "message": "Invalid date format. Use YYYY-MM-DD"}), 400
-        else:
-            target_date = datetime.now()
-        from_date = target_date
-        to_date = target_date
-
-    # Limit future dates
-    if from_date.date() > datetime.now().date():
-        return jsonify({"status": "error", "message": "Cannot download data for future dates."}), 400
-    if to_date.date() > datetime.now().date():
-        to_date = datetime.now() # Caps at today
-        
-    if from_date > to_date:
-        return jsonify({"status": "error", "message": "From Date cannot be after To Date."}), 400
-        
-    # Get existing dates in DB
-    existing_dates = set()
-    if DB_DF is not None and not DB_DF.empty:
-        existing_dates = set(DB_DF['Date'].unique())
-        
-    # If downloading a range (from_date != to_date)
-    is_range = (from_date.date() != to_date.date())
-    
-    if is_range:
-        # Generate target weekdays in range
-        curr = from_date
-        target_dates = []
-        while curr <= to_date:
-            if curr.date() <= datetime.now().date() and curr.weekday() < 5:
-                target_dates.append(curr)
-            curr += timedelta(days=1)
-            
-        if not target_dates:
-            return jsonify({"status": "error", "message": "No trading days (weekdays) found in the selected range."}), 400
-            
-        # Check if all target dates are already in DB
-        missing_dates = [d for d in target_dates if d.strftime('%Y-%m-%d') not in existing_dates]
-        
-        if not missing_dates:
-            return jsonify({
-                "status": "already_exists",
-                "message": "Data for the selected date range is already available in the database."
-            })
-            
-        # Download missing dates
-        all_cleaned_dfs = []
-        downloaded_dates = []
-        for d in missing_dates:
-            date_url_str = format_date_for_url(d)
-            filename = f"sec_bhavdata_full_{date_url_str}.csv"
-            filepath = os.path.join(BHAV_DIR, filename)
-            
-            raw_data = None
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        raw_data = f.read()
-                except Exception as e:
-                    logger.error(f"Error reading local file: {e}")
-                    
-            if not raw_data:
-                raw_data = download_bhavcopy_from_nse(d)
-                if raw_data:
-                    save_daily_bhav(d, raw_data)
-                    
-            if raw_data:
-                try:
-                    raw_df = pd.read_csv(io.StringIO(raw_data))
-                    cleaned_df = clean_bhavcopy(raw_df)
-                    if not cleaned_df.empty:
-                        all_cleaned_dfs.append(cleaned_df)
-                        downloaded_dates.append(d.strftime('%Y-%m-%d'))
-                except Exception as e:
-                    logger.error(f"Error parsing data for {d.strftime('%Y-%m-%d')}: {e}")
-                    
-        if not all_cleaned_dfs:
-            return jsonify({
-                "status": "error",
-                "message": "Failed to download data for any of the missing dates. Markets might be closed or NSE is unavailable."
-            }), 404
-            
-        concatenated_df = pd.concat(all_cleaned_dfs, ignore_index=True)
-        total_db_records = update_consolidated_database(concatenated_df)
-        
-        # Take stats of the latest downloaded date in the range
-        latest_df = all_cleaned_dfs[-1]
-        latest_date_str = downloaded_dates[-1]
-        
-        gains = []
-        losses = []
-        high_volume = []
-        if not latest_df.empty:
-            df_stats = latest_df.copy()
-            df_stats['Pct_Change'] = ((df_stats['Close'] - df_stats['Prev_Close']) / df_stats['Prev_Close'] * 100).round(2)
-            df_valid_price = df_stats[df_stats['Prev_Close'] > 0]
-            top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
-            top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
-            top_vol = df_stats.sort_values(by='Volume', ascending=False).head(5)
-            gains = top_gainers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            losses = top_losers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            high_volume = top_vol[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
-            
-        return jsonify({
-            "status": "success",
-            "date": latest_date_str,
-            "records_downloaded": sum(len(df) for df in all_cleaned_dfs),
-            "total_database_records": total_db_records,
-            "downloaded_dates": downloaded_dates,
-            "stats": {
-                "top_gainers": gains,
-                "top_losers": losses,
-                "high_volume": high_volume
-            }
-        })
-        
-    else:
-        # Single date download logic (supports backtracking)
-        current_attempt_date = from_date
-        raw_data = None
-        attempts = 0
-        max_attempts = 7 if fallback else 1
-        
-        while attempts < max_attempts:
-            if current_attempt_date.weekday() < 5:
-                attempt_str = current_attempt_date.strftime('%Y-%m-%d')
-                if attempt_str in existing_dates:
-                    return jsonify({
-                        "status": "already_exists",
-                        "message": f"Data for {attempt_str} is already available."
-                    })
-                
-                date_url_str = format_date_for_url(current_attempt_date)
-                filename = f"sec_bhavdata_full_{date_url_str}.csv"
-                filepath = os.path.join(BHAV_DIR, filename)
-                
-                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                    try:
-                        with open(filepath, 'r', encoding='utf-8') as f:
-                            raw_data = f.read()
-                    except Exception as e:
-                        logger.error(f"Error reading local file: {e}")
-                
-                if not raw_data:
-                    raw_data = download_bhavcopy_from_nse(current_attempt_date)
-                    if raw_data:
-                        save_daily_bhav(current_attempt_date, raw_data)
-                        
-                if raw_data:
-                    break
-            current_attempt_date -= timedelta(days=1)
-            attempts += 1
-            
-        if not raw_data:
-            formatted_target = from_date.strftime('%Y-%m-%d')
-            return jsonify({
-                "status": "error",
-                "message": f"Could not find any trading data for {formatted_target} or the preceding week."
-            }), 404
-            
-        try:
-            raw_df = pd.read_csv(io.StringIO(raw_data))
-            cleaned_df = clean_bhavcopy(raw_df)
-            total_db_records = update_consolidated_database(cleaned_df)
-        except Exception as e:
-            logger.error(f"Error parsing downloaded data: {e}")
-            return jsonify({"status": "error", "message": f"Error parsing data: {str(e)}"}), 500
-            
-        gains = []
-        losses = []
-        high_volume = []
-        if not cleaned_df.empty:
-            df_stats = cleaned_df.copy()
-            df_stats['Pct_Change'] = ((df_stats['Close'] - df_stats['Prev_Close']) / df_stats['Prev_Close'] * 100).round(2)
-            df_valid_price = df_stats[df_stats['Prev_Close'] > 0]
-            top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
-            top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
-            top_vol = df_stats.sort_values(by='Volume', ascending=False).head(5)
-            gains = top_gainers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            losses = top_losers[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            high_volume = top_vol[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
-            
-        return jsonify({
-            "status": "success",
-            "date": current_attempt_date.strftime("%Y-%m-%d"),
-            "records_downloaded": len(cleaned_df),
-            "total_database_records": total_db_records,
-            "backtracked_days": attempts,
-            "stats": {
-                "top_gainers": gains,
-                "top_losers": losses,
-                "high_volume": high_volume
-            }
-        })
-
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    global DB_DF
-    history_dates = []
-    total_records = 0
-    last_updated = "Never"
-    
-    if DB_DF is not None and not DB_DF.empty:
-        total_records = len(DB_DF)
-        unique_dates = DB_DF['Date'].unique().tolist()
-        history_dates = sorted(unique_dates, reverse=True)
-        if history_dates:
-            last_updated = history_dates[0]
-            
-    # Also find files in directory to cross reference
-    files = []
-    if os.path.exists(BHAV_DIR):
-        for f in os.listdir(BHAV_DIR):
-            if f.startswith("sec_bhavdata_full_") and f.endswith(".csv"):
-                # Extract date
-                match = re.search(r'sec_bhavdata_full_(\d{2})(\d{2})(\d{4})\.csv', f)
-                if match:
-                    d, m, y = match.groups()
-                    db_date = f"{y}-{m}-{d}"
-                    if db_date not in files:
-                        files.append(db_date)
-                        
-    # Combine lists and clean
-    combined_dates = sorted(list(set(history_dates + files)), reverse=True)
-    
-    return jsonify({
-        "total_records": total_records,
-        "last_updated": last_updated,
-        "downloaded_dates": combined_dates,
-        "database_dates": history_dates
-    })
-
-
-@app.route('/api/view_data', methods=['GET'])
-def view_data():
-    global DB_DF
-    date_str = request.args.get('date')
-    if not date_str:
-        return jsonify({"status": "error", "message": "Missing date parameter"}), 400
-        
-    # Read from in-memory cache
-    if DB_DF is not None and not DB_DF.empty:
-        try:
-            df_date = DB_DF[DB_DF['Date'] == date_str]
-            if not df_date.empty:
-                # Calculate percent change on the fly for preview
-                df_date = df_date.copy()
-                df_date['Pct_Change'] = ((df_date['Close'] - df_date['Prev_Close']) / df_date['Prev_Close'] * 100).round(2)
-                
-                # Fetch preview (top 100 records for speed)
-                preview_data = df_date.head(100).to_dict(orient='records')
-                total_records = len(df_date)
-                
-                # Top performers for stats
-                df_valid_price = df_date[df_date['Prev_Close'] > 0]
-                gains = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-                losses = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-                high_volume = df_date.sort_values(by='Volume', ascending=False).head(5)[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
-                
-                return jsonify({
-                    "status": "success",
-                    "date": date_str,
-                    "total_records": total_records,
-                    "data": preview_data,
-                    "stats": {
-                        "top_gainers": gains,
-                        "top_losers": losses,
-                        "high_volume": high_volume
-                    }
-                })
-        except Exception as e:
-            logger.error(f"Error reading from database: {e}")
-            
-    # Try reading from daily file as backup
-    filename = f"sec_bhavdata_full_{date_str[8:10]}{date_str[5:7]}{date_str[0:4]}.csv"
-    filepath = os.path.join(BHAV_DIR, filename)
-    if os.path.exists(filepath):
-        try:
-            raw_df = pd.read_csv(filepath)
-            cleaned_df = clean_bhavcopy(raw_df)
-            cleaned_df['Pct_Change'] = ((cleaned_df['Close'] - cleaned_df['Prev_Close']) / cleaned_df['Prev_Close'] * 100).round(2)
-            preview_data = cleaned_df.head(100).to_dict(orient='records')
-            
-            df_valid_price = cleaned_df[cleaned_df['Prev_Close'] > 0]
-            gains = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            losses = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)[['Symbol', 'Close', 'Pct_Change']].to_dict(orient='records')
-            high_volume = cleaned_df.sort_values(by='Volume', ascending=False).head(5)[['Symbol', 'Close', 'Volume']].to_dict(orient='records')
-            
-            return jsonify({
-                "status": "success",
-                "date": date_str,
-                "total_records": len(cleaned_df),
-                "data": preview_data,
-                "stats": {
-                    "top_gainers": gains,
-                    "top_losers": losses,
-                    "high_volume": high_volume
-                }
-            })
-        except Exception as e:
-            return jsonify({"status": "error", "message": f"Error reading daily file: {str(e)}"}), 500
-            
-    return jsonify({"status": "error", "message": "No data found for this date."}), 404
-
-@app.route('/api/stocks', methods=['GET'])
-def get_stocks():
-    global DB_DF
-    if DB_DF is not None and not DB_DF.empty:
-        # Get sorted list of unique symbols
-        symbols = sorted(DB_DF['Symbol'].dropna().unique().tolist())
-        return jsonify({"status": "success", "symbols": symbols})
-    return jsonify({"status": "success", "symbols": []})
-
-@app.route('/api/stock/<symbol>', methods=['GET'])
-def get_stock_data(symbol):
-    global DB_DF
-    if DB_DF is not None and not DB_DF.empty:
-        # Pre-fetch splits online for single stock charts
-        get_splits_for_stock(symbol, fetch_online=True)
-        df_symbol = get_adjusted_df_for_symbol(symbol)
-        if not df_symbol.empty:
-            chart_data = []
-            for _, r in df_symbol.iterrows():
-                chart_data.append({
-                    'time': r['Date'],
-                    'open': float(r['Open']),
-                    'high': float(r['High']),
-                    'low': float(r['Low']),
-                    'close': float(r['Close']),
-                    'volume': float(r['Volume'])
-                })
-            return jsonify({
-                "status": "success",
-                "symbol": symbol.upper(),
-                "data": chart_data
-            })
-    return jsonify({"status": "error", "message": f"No data found for symbol {symbol}"}), 404
-
-@app.route('/api/export', methods=['GET'])
-def export_database():
-    if os.path.exists(CONSOLIDATED_FILE) and os.path.getsize(CONSOLIDATED_FILE) > 0:
-        try:
-            return send_file(
-                CONSOLIDATED_FILE,
-                mimetype='text/csv',
-                as_attachment=True,
-                download_name=f"nse_all_stocks_data_{datetime.now().strftime('%Y%m%d')}.csv"
-            )
-        except Exception as e:
-            return jsonify({"status": "error", "message": f"Export error: {str(e)}"}), 500
-    else:
-        return jsonify({"status": "error", "message": "Database is empty. Please download data first."}), 404
-
-# --- Stock Screener Logic and Routes ---
 NIFTY50_FILE = os.path.join(DATA_DIR, 'nifty50.csv')
 NIFTY500_FILE = os.path.join(DATA_DIR, 'nifty500.csv')
 FNO_FILE = os.path.join(DATA_DIR, 'fno.csv')
@@ -677,7 +273,6 @@ def fetch_nifty50_symbols():
         except Exception as e:
             logger.error(f"Error reading local Nifty 50 file: {e}")
             
-    # Download and cache
     try:
         logger.info("Downloading Nifty 50 constituents list...")
         url = "https://niftyindices.com/IndexConstituent/ind_nifty50list.csv"
@@ -690,7 +285,6 @@ def fetch_nifty50_symbols():
     except Exception as e:
         logger.error(f"Failed to fetch Nifty 50 online: {e}")
         
-    # Hardcoded fallback
     return ['ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK', 'BAJAJ-AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BHARTIARTL', 'BPCL', 'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY', 'EICHERMOT', 'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE', 'HEROMOTOCO', 'HINDALCO', 'HINDUNILVR', 'ICICIBANK', 'INDUSINDBK', 'INFY', 'ITC', 'JSWSTEEL', 'KOTAKBANK', 'LT', 'LTIM', 'M&M', 'MARUTI', 'NESTLEIND', 'NTPC', 'ONGC', 'POWERGRID', 'RELIANCE', 'SBILIFE', 'SBIN', 'SUNPHARMA', 'TATACONSUM', 'TATAMOTORS', 'TATASTEEL', 'TCS', 'TECHM', 'TITAN', 'ULTRACEMCO', 'WIPRO']
 
 def fetch_nifty500_symbols():
@@ -701,7 +295,6 @@ def fetch_nifty500_symbols():
         except Exception as e:
             logger.error(f"Error reading local Nifty 500 file: {e}")
             
-    # Download and cache
     try:
         logger.info("Downloading Nifty 500 constituents list...")
         url = "https://niftyindices.com/IndexConstituent/ind_nifty500list.csv"
@@ -724,7 +317,6 @@ def fetch_fno_symbols():
         except Exception as e:
             logger.error(f"Error reading local FnO file: {e}")
             
-    # Download and cache
     try:
         logger.info("Downloading FnO constituents list...")
         url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
@@ -732,7 +324,6 @@ def fetch_fno_symbols():
         if r.status_code == 200:
             df = pd.read_csv(io.StringIO(r.text))
             df.columns = df.columns.str.strip()
-            # Find UNDERLYING col
             symbol_col = None
             for col in df.columns:
                 if 'UNDERLYING' in col.upper() or 'SYMBOL' in col.upper():
@@ -748,8 +339,9 @@ def fetch_fno_symbols():
         
     return []
 
-def run_screener_logic(code_str, segment, watchlist_symbols=None):
-    # Segment symbol filter
+# --- Custom Stock Screener Logic ---
+
+def run_screener_logic(db_df, code_str, segment, watchlist_symbols=None):
     symbols = []
     if segment == 'nifty50':
         symbols = fetch_nifty50_symbols()
@@ -759,18 +351,16 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
         symbols = fetch_fno_symbols()
     elif segment == 'watchlist' and watchlist_symbols:
         symbols = watchlist_symbols
-    else: # cash/all segment
-        if DB_DF is not None and not DB_DF.empty:
-            symbols = DB_DF['Symbol'].dropna().unique().tolist()
+    else:
+        if not db_df.empty:
+            symbols = db_df['Symbol'].dropna().unique().tolist()
             
-    # Filter symbols by what is actually present in DB_DF
-    if DB_DF is not None and not DB_DF.empty:
-        db_symbols = set(DB_DF['Symbol'].unique())
+    if not db_df.empty:
+        db_symbols = set(db_df['Symbol'].unique())
         symbols = [s for s in symbols if s in db_symbols]
         
     results = []
     
-    # Compile the code
     local_env = {}
     try:
         restricted_globals = {
@@ -791,15 +381,21 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
     
     historical_results = {}
     
-    for symbol in symbols:
-        df_symbol = get_adjusted_df_for_symbol(symbol)
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for i, symbol in enumerate(symbols):
+        if i % 10 == 0:
+            progress_bar.progress((i + 1) / len(symbols))
+            status_text.text(f"Screening stock {i+1}/{len(symbols)}: {symbol}...")
+            
+        df_symbol = get_adjusted_df_for_symbol(db_df, symbol)
         if df_symbol.empty:
             continue
         
         try:
             res = screen_func(df_symbol)
             
-            # Determine if res is a Series or a dictionary of Series
             signal_series = None
             custom_series = {}
             
@@ -814,7 +410,6 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
                     if len(signal_series) == len(df_symbol):
                         signal_series.index = df_symbol.index
                 else:
-                    # Broadcast single value (standard Python bool) to the last element
                     signal_series = pd.Series([False] * len(df_symbol), index=df_symbol.index)
                     if len(df_symbol) > 0:
                         signal_series.iloc[-1] = bool(sig)
@@ -827,10 +422,8 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
                                 v_copy.index = df_symbol.index
                             custom_series[k] = v_copy
                         else:
-                            # Broadcast single value
                             custom_series[k] = pd.Series([v] * len(df_symbol), index=df_symbol.index)
             elif isinstance(res, (bool, np.bool_)):
-                # Single boolean: evaluate on the last element only
                 signal_series = pd.Series([False] * len(df_symbol), index=df_symbol.index)
                 if len(df_symbol) > 0:
                     signal_series.iloc[-1] = bool(res)
@@ -844,7 +437,6 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
             else:
                 continue
                 
-            # Find indices where signal is True
             match_indices = df_symbol.index[signal_series == True]
             for idx in match_indices:
                 row = df_symbol.loc[idx]
@@ -853,11 +445,9 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
                 custom_data = {}
                 for k, s_val in custom_series.items():
                     custom_data[k] = s_val.loc[idx]
-                    # Handle NumPy conversions
                     if hasattr(custom_data[k], 'item'):
                         custom_data[k] = custom_data[k].item()
                 
-                # Compute Pct_Change relative to previous chronological session
                 idx_pos = df_symbol.index.get_loc(idx)
                 pct_change = 0.0
                 if idx_pos > 0:
@@ -879,60 +469,14 @@ def run_screener_logic(code_str, segment, watchlist_symbols=None):
         except Exception as e:
             logger.error(f"Error screening symbol {symbol}: {e}")
             
-    # Count total matches across history
+    progress_bar.empty()
+    status_text.empty()
+    
     total_matches = sum(len(v) for v in historical_results.values())
-    logger.info(f"Screening complete. Found {total_matches} matches across {len(historical_results)} dates in {time.time() - start_time:.2f} seconds.")
+    logger.info(f"Screening complete. Found {total_matches} matches in {time.time() - start_time:.2f} seconds.")
     return {"status": "success", "historical_results": historical_results}
 
-@app.route('/api/screener/parse_watchlist', methods=['POST'])
-def parse_watchlist():
-    if 'file' not in request.files:
-        return jsonify({"status": "error", "message": "No file uploaded"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"status": "error", "message": "Empty file name"}), 400
-        
-    try:
-        filename = file.filename.lower()
-        if filename.endswith('.csv'):
-            df = pd.read_csv(file)
-        elif filename.endswith(('.xls', '.xlsx')):
-            df = pd.read_excel(file)
-        else:
-            return jsonify({"status": "error", "message": "Unsupported file format. Please upload Excel (.xls, .xlsx) or CSV."}), 400
-            
-        # Find Symbol column case-insensitive
-        symbol_col = None
-        for col in df.columns:
-            if 'SYMBOL' in str(col).upper() or 'TICKER' in str(col).upper():
-                symbol_col = col
-                break
-        if symbol_col is None:
-            symbol_col = df.columns[0]
-            
-        symbols = df[symbol_col].dropna().astype(str).str.strip().str.upper().unique().tolist()
-        symbols = [s for s in symbols if s]
-        return jsonify({"status": "success", "symbols": symbols})
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Error parsing watchlist: {str(e)}"}), 500
-
-@app.route('/api/screener/run', methods=['POST'])
-def run_screener():
-    try:
-        data = request.get_json() or {}
-        code_str = data.get('code', '')
-        segment = data.get('segment', 'all')
-        watchlist_symbols = data.get('watchlist', None)
-        
-        if not code_str:
-            return jsonify({"status": "error", "message": "No code provided"}), 400
-            
-        res = run_screener_logic(code_str, segment, watchlist_symbols)
-        return jsonify(res)
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Screener execution error: {str(e)}"}), 500
-
-STRATEGIES_FILE = os.path.join(DATA_DIR, 'strategies.json')
+# --- Strategies Storage ---
 
 DEFAULT_STRATEGIES = [
     {
@@ -1021,34 +565,24 @@ def load_strategies_from_file():
                 return json.load(f)
         except Exception as e:
             logger.error(f"Error loading strategies: {e}")
-    # Write default templates if not exist
     try:
+        os.makedirs(DATA_DIR, exist_ok=True)
         with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
             json.dump(DEFAULT_STRATEGIES, f, indent=4)
     except Exception as e:
         logger.error(f"Error saving default strategies: {e}")
     return DEFAULT_STRATEGIES
 
-@app.route('/api/screener/strategies', methods=['GET'])
-def get_strategies():
-    strategies = load_strategies_from_file()
-    return jsonify({"status": "success", "strategies": strategies})
-
-@app.route('/api/screener/strategies', methods=['POST'])
-def save_strategy():
-    data = request.get_json() or {}
-    name = data.get('name', '').strip()
-    code = data.get('code', '')
-    
+def save_strategy(name, code):
+    name = name.strip()
     if not name or not code:
-        return jsonify({"status": "error", "message": "Name and code are required."}), 400
+        return False
         
     strategies = load_strategies_from_file()
-    # Check if exists and update, or append new
     found = False
     for s in strategies:
         if s['name'].lower() == name.lower():
-            s['name'] = name # Preserve casing
+            s['name'] = name
             s['code'] = code
             found = True
             break
@@ -1059,83 +593,560 @@ def save_strategy():
     try:
         with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
             json.dump(strategies, f, indent=4)
-        return jsonify({"status": "success", "message": f"Strategy '{name}' saved successfully."})
+        return True
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to save strategy: {str(e)}"}), 500
+        logger.error(f"Failed to save strategy: {e}")
+        return False
 
-@app.route('/api/screener/strategies/<name>', methods=['DELETE'])
 def delete_strategy(name):
     strategies = load_strategies_from_file()
     updated = [s for s in strategies if s['name'].lower() != name.lower()]
-    
     if len(updated) == len(strategies):
-        return jsonify({"status": "error", "message": f"Strategy '{name}' not found."}), 404
-        
+        return False
     try:
         with open(STRATEGIES_FILE, 'w', encoding='utf-8') as f:
             json.dump(updated, f, indent=4)
-        return jsonify({"status": "success", "message": f"Strategy '{name}' deleted successfully."})
+        return True
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to delete strategy: {str(e)}"}), 500
+        logger.error(f"Failed to delete strategy: {e}")
+        return False
 
-@app.route('/api/screener/export', methods=['POST'])
-def export_screener_results():
-    try:
-        req_data = request.json or {}
-        date_str = req_data.get('date', 'all')
-        results = req_data.get('results', [])
+# --- Streamlit Presentation Layer ---
+
+st.set_page_config(page_title="NSE Stock Screener & Backtester", page_icon="📈", layout="wide")
+
+# Inject premium CSS styles
+st.markdown("""
+<style>
+    /* Import modern typography */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+    
+    /* Global font override */
+    html, body, [class*="css"], .stApp {
+        font-family: 'Outfit', sans-serif !important;
+    }
+    
+    /* Premium glassmorphic background & glow */
+    .stApp {
+        background-color: #0b0813;
+        background-image: radial-gradient(at 0% 0%, rgba(121, 40, 202, 0.08) 0px, transparent 50%),
+                          radial-gradient(at 100% 100%, rgba(0, 210, 255, 0.04) 0px, transparent 50%);
+    }
+    
+    /* Metric styling */
+    [data-testid="stMetricValue"] {
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #00d2ff, #7928ca);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Glass cards for metrics and forms */
+    div[data-testid="metric-container"], .stForm, div[class*="stSelectbox"] {
+        background: rgba(24, 20, 44, 0.6) !important;
+        border: 1px solid rgba(121, 40, 202, 0.15) !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
+    }
+    
+    /* Styled Headers with Gradients */
+    h1, h2, h3 {
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #ffffff 40%, #a0aec0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+    }
+    
+    /* Buttons customization */
+    .stButton>button {
+        background: linear-gradient(135deg, #7928ca 0%, #4b0082 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 24px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        box-shadow: 0 4px 15px rgba(121, 40, 202, 0.3) !important;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(121, 40, 202, 0.5) !important;
+        background: linear-gradient(135deg, #8a3cd8 0%, #5c00a3 100%) !important;
+    }
+    
+    /* Tab custom styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px !important;
+        background-color: transparent !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(24, 20, 44, 0.4) !important;
+        border: 1px solid rgba(121, 40, 202, 0.08) !important;
+        border-radius: 8px !important;
+        color: #a0aec0 !important;
+        padding: 8px 16px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: rgba(121, 40, 202, 0.22) !important;
+        border-color: rgba(121, 40, 202, 0.8) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    
+    /* File uploader glass */
+    div[data-testid="stFileUploader"] {
+        border: 1.5px dashed rgba(121, 40, 202, 0.3) !important;
+        background-color: rgba(24, 20, 44, 0.4) !important;
+        border-radius: 12px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Load DB into memory cache
+db_df = load_database()
+
+# Sidebar: General Status Info
+st.sidebar.title("📈 Stock Screener")
+st.sidebar.markdown("---")
+
+if not db_df.empty:
+    unique_dates = db_df['Date'].unique().tolist()
+    db_dates = sorted(unique_dates, reverse=True)
+    st.sidebar.success(f"Database Loaded!")
+    st.sidebar.metric("Total Records", f"{len(db_df):,}")
+    st.sidebar.metric("Latest Session Date", db_dates[0])
+    st.sidebar.metric("Historical Sessions", f"{len(db_dates)}")
+else:
+    st.sidebar.warning("No data in database. Please download data first!")
+    db_dates = []
+
+st.sidebar.markdown("---")
+st.sidebar.caption("Data source: NSE India Archives / Bhavcopies")
+
+# Main Title & Subtitle
+st.title("📈 NSE India Stock Screener & Backtester")
+st.subheader("Explore, analyze, and run custom quantitative screens on historical stock data")
+
+# Set up tabs
+tab_dash, tab_screen, tab_charts = st.tabs([
+    "📊 Dashboard & Data Manager", 
+    "🔍 Custom Quantitative Screener", 
+    "📈 Ticker Interactive Chart"
+])
+
+# ----------------- TAB 1: DASHBOARD & DATA MANAGER -----------------
+with tab_dash:
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        st.markdown("### 📥 Download & Sync Data")
+        st.write("Fetch standard NSE Bhavcopies to build your database.")
         
-        if not results:
-            return jsonify({"status": "error", "message": "No results to export"}), 400
+        down_type = st.radio("Download Mode", ["Single Date", "Date Range"], index=0)
+        
+        # Prevent downloading future dates
+        max_date = datetime.now()
+        
+        if down_type == "Single Date":
+            target_date = st.date_input("Target Date", max_date - timedelta(days=1), max_value=max_date)
+            fallback = st.checkbox("Fallback to preceding dates if market was closed", value=True)
             
-        df = pd.DataFrame(results)
-        
-        # Order columns logically
-        base_cols = ['Symbol', 'Close', 'Pct_Change', 'Volume']
-        existing_base_cols = [c for c in base_cols if c in df.columns]
-        other_cols = [c for c in df.columns if c not in existing_base_cols]
-        df = df[existing_base_cols + other_cols]
-        
-        output = io.BytesIO()
-        mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        filename = f"screener_results_{date_str}_{datetime.now().strftime('%Y%m%d')}.xlsx"
-        
-        try:
-            # Attempt to use openpyxl / xlsxwriter for standard Excel
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Screener Results')
-            output.seek(0)
-        except Exception:
-            try:
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False, sheet_name='Screener Results')
-                output.seek(0)
-            except Exception:
-                # Fallback to CSV
-                csv_str = df.to_csv(index=False)
-                output.write(csv_str.encode('utf-8'))
-                output.seek(0)
-                mimetype = 'text/csv'
-                filename = f"screener_results_{date_str}_{datetime.now().strftime('%Y%m%d')}.csv"
+            if st.button("Download Date", use_container_width=True):
+                target_date_dt = datetime.combine(target_date, datetime.min.time())
                 
-        return send_file(
-            output,
-            mimetype=mimetype,
-            as_attachment=True,
-            download_name=filename
-        )
-    except Exception as e:
-        logger.error(f"Screener export error: {e}")
-        return jsonify({"status": "error", "message": f"Export failed: {str(e)}"}), 500
+                with st.spinner(f"Attempting to download for {target_date_dt.strftime('%Y-%m-%d')}..."):
+                    existing_dates = set(db_df['Date'].unique()) if not db_df.empty else set()
+                    
+                    current_attempt_date = target_date_dt
+                    raw_data = None
+                    attempts = 0
+                    max_attempts = 7 if fallback else 1
+                    
+                    while attempts < max_attempts:
+                        if current_attempt_date.weekday() < 5:
+                            attempt_str = current_attempt_date.strftime('%Y-%m-%d')
+                            if attempt_str in existing_dates:
+                                st.info(f"Data for {attempt_str} is already available.")
+                                break
+                            
+                            raw_data = download_bhavcopy_from_nse(current_attempt_date)
+                            if raw_data:
+                                save_daily_bhav(current_attempt_date, raw_data)
+                                break
+                        current_attempt_date -= timedelta(days=1)
+                        attempts += 1
+                        
+                    if raw_data:
+                        try:
+                            raw_df = pd.read_csv(io.StringIO(raw_data))
+                            cleaned_df = clean_bhavcopy(raw_df)
+                            db_df = update_consolidated_database(cleaned_df, db_df)
+                            st.success(f"Successfully sync'd {len(cleaned_df)} rows for {current_attempt_date.strftime('%Y-%m-%d')}!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error parsing downloaded data: {e}")
+                    elif attempt_str in existing_dates:
+                        pass
+                    else:
+                        st.error(f"Could not download trading data for {target_date.strftime('%Y-%m-%d')}. Check NSE status or internet connection.")
+                        
+        else:
+            c_start, c_end = st.columns(2)
+            with c_start:
+                start_d = st.date_input("Start Date", max_value=max_date)
+            with c_end:
+                end_d = st.date_input("End Date", max_value=max_date)
+                
+            if st.button("Sync Date Range", use_container_width=True):
+                start_dt = datetime.combine(start_d, datetime.min.time())
+                end_dt = datetime.combine(end_d, datetime.min.time())
+                
+                if start_dt > end_dt:
+                    st.error("Start Date cannot be after End Date.")
+                else:
+                    curr = start_dt
+                    target_dates = []
+                    existing_dates = set(db_df['Date'].unique()) if not db_df.empty else set()
+                    
+                    while curr <= end_dt:
+                        if curr.date() <= datetime.now().date() and curr.weekday() < 5:
+                            if curr.strftime('%Y-%m-%d') not in existing_dates:
+                                target_dates.append(curr)
+                        curr += timedelta(days=1)
+                        
+                    if not target_dates:
+                        st.info("No missing trading days (weekdays) found in the selected range.")
+                    else:
+                        st.write(f"Found {len(target_dates)} missing dates. Syncing...")
+                        
+                        all_cleaned = []
+                        prog_bar = st.progress(0)
+                        
+                        for i, d in enumerate(target_dates):
+                            prog_bar.progress((i) / len(target_dates))
+                            
+                            # Check if local file already exists
+                            date_url_str = format_date_for_url(d)
+                            filename = f"sec_bhavdata_full_{date_url_str}.csv"
+                            filepath = os.path.join(BHAV_DIR, filename)
+                            raw_data = None
+                            
+                            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                                try:
+                                    with open(filepath, 'r', encoding='utf-8') as f:
+                                        raw_data = f.read()
+                                except Exception as e:
+                                    logger.error(f"Error reading local file: {e}")
+                                    
+                            if not raw_data:
+                                raw_data = download_bhavcopy_from_nse(d)
+                                if raw_data:
+                                    save_daily_bhav(d, raw_data)
+                                    
+                            if raw_data:
+                                try:
+                                    raw_df = pd.read_csv(io.StringIO(raw_data))
+                                    cleaned = clean_bhavcopy(raw_df)
+                                    if not cleaned.empty:
+                                        all_cleaned.append(cleaned)
+                                except Exception as e:
+                                    logger.error(f"Error parsing data for {d.strftime('%Y-%m-%d')}: {e}")
+                                    
+                        prog_bar.progress(1.0)
+                        
+                        if all_cleaned:
+                            concatenated = pd.concat(all_cleaned, ignore_index=True)
+                            db_df = update_consolidated_database(concatenated, db_df)
+                            st.success(f"Range sync complete! Added {len(all_cleaned)} days of data.")
+                            st.rerun()
+                        else:
+                            st.error("Failed to download any new dates in range.")
+                            
+        st.markdown("### 📤 Export Database")
+        if not db_df.empty:
+            # We can read the full CSV as a download button stream
+            with open(CONSOLIDATED_FILE, 'rb') as f:
+                st.download_button(
+                    label="Download Consolidated CSV Database",
+                    data=f,
+                    file_name=f"nse_all_stocks_data_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        else:
+            st.button("Database Empty - Nothing to Export", disabled=True, use_container_width=True)
+            
+    with col2:
+        st.markdown("### 🔍 View & Browse Historical Data")
+        if not db_df.empty and db_dates:
+            selected_view_date = st.selectbox("Select Historical Session Date", db_dates)
+            
+            df_date = db_df[db_df['Date'] == selected_view_date].copy()
+            df_date['Pct_Change'] = ((df_date['Close'] - df_date['Prev_Close']) / df_date['Prev_Close'] * 100).round(2)
+            
+            st.write(f"Showing session details for: **{selected_view_date}** ({len(df_date):,} stocks found)")
+            
+            # Quick Stats
+            df_valid_price = df_date[df_date['Prev_Close'] > 0]
+            top_gainers = df_valid_price.sort_values(by='Pct_Change', ascending=False).head(5)
+            top_losers = df_valid_price.sort_values(by='Pct_Change', ascending=True).head(5)
+            top_volume = df_date.sort_values(by='Volume', ascending=False).head(5)
+            
+            # Use inner tabs for each performance category to avoid horizontal squishing
+            tab_gain, tab_lose, tab_vol = st.tabs(["🚀 Top Gainers", "🔻 Top Losers", "📊 Top Volume Traded"])
+            
+            with tab_gain:
+                st.dataframe(top_gainers[['Symbol', 'Close', 'Pct_Change']], hide_index=True, use_container_width=True)
+            with tab_lose:
+                st.dataframe(top_losers[['Symbol', 'Close', 'Pct_Change']], hide_index=True, use_container_width=True)
+            with tab_vol:
+                st.dataframe(top_volume[['Symbol', 'Close', 'Volume']], hide_index=True, use_container_width=True)
+                
+            # Table Search and Filter section removed as requested
+        else:
+            st.info("No data downloaded yet. Download a date to preview records.")
 
-if __name__ == '__main__':
-    # Initialize folder structures double check
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(BHAV_DIR, exist_ok=True)
+# ----------------- TAB 2: STOCK SCREENER -----------------
+with tab_screen:
+    st.markdown("### 🔍 Custom Quantitative Stock Screener")
+    st.write("Write custom Python screen logic inside the text box below. The script will evaluate historical daily data for all selected tickers and register matches where the screen returns `True` or a matching boolean Series.")
     
-    # Disable reloader if running in a non-main thread (e.g. under Streamlit or background runners)
-    import threading
-    is_main_thread = threading.current_thread() is threading.main_thread()
+    # Left editor, Right controller
+    sc1, sc2 = st.columns([2, 1])
     
-    logger.info("Starting Flask application on port 5000...")
-    app.run(debug=True, use_reloader=is_main_thread, host='0.0.0.0', port=5000)
+    # Load strategies
+    saved_strategies = load_strategies_from_file()
+    strategy_names = [s['name'] for s in saved_strategies]
+    
+    with sc2:
+        st.markdown("#### Configuration & Controls")
+        
+        # Segment Selection
+        segment = st.selectbox(
+            "Target Stock Segment",
+            ["All Cash Stocks", "Nifty 50", "Nifty 500", "FnO Stocks", "Custom Watchlist (Upload)"],
+            index=1
+        )
+        
+        segment_code = "all"
+        watchlist_symbols = []
+        
+        if segment == "Nifty 50":
+            segment_code = "nifty50"
+        elif segment == "Nifty 500":
+            segment_code = "nifty500"
+        elif segment == "FnO Stocks":
+            segment_code = "fno"
+        elif segment == "Custom Watchlist (Upload)":
+            segment_code = "watchlist"
+            uploaded_file = st.file_uploader("Upload Tickers File (CSV/Excel)", type=["csv", "xls", "xlsx"])
+            if uploaded_file:
+                try:
+                    filename = uploaded_file.name.lower()
+                    if filename.endswith('.csv'):
+                        up_df = pd.read_csv(uploaded_file)
+                    else:
+                        up_df = pd.read_excel(uploaded_file)
+                        
+                    symbol_col = None
+                    for col in up_df.columns:
+                        if 'SYMBOL' in str(col).upper() or 'TICKER' in str(col).upper():
+                            symbol_col = col
+                            break
+                    if symbol_col is None:
+                        symbol_col = up_df.columns[0]
+                        
+                    watchlist_symbols = up_df[symbol_col].dropna().astype(str).str.strip().str.upper().unique().tolist()
+                    watchlist_symbols = [s for s in watchlist_symbols if s]
+                    st.success(f"Parsed {len(watchlist_symbols)} unique symbols from watchlist!")
+                except Exception as e:
+                    st.error(f"Error parsing watchlist: {e}")
+                    
+        # Strategy selection
+        selected_strat_name = st.selectbox("Load Saved Strategy Template", strategy_names)
+        selected_strategy = next((s for s in saved_strategies if s['name'] == selected_strat_name), saved_strategies[0])
+        
+        # Input to save a new strategy
+        st.markdown("---")
+        st.markdown("##### Save/Update Custom Strategy")
+        new_strat_name = st.text_input("Strategy Name", selected_strat_name)
+        
+    with sc1:
+        # Update text area state directly if strategy selection changed
+        if st.session_state.get("prev_selected_strat") != selected_strat_name:
+            st.session_state["strategy_code_area"] = selected_strategy["code"]
+            st.session_state["prev_selected_strat"] = selected_strat_name
+            
+        code_input = st.text_area(
+            "Write screen(df) function code",
+            height=400,
+            key="strategy_code_area"
+        )
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("Save/Update Strategy Template", use_container_width=True):
+                if new_strat_name.strip() and code_input:
+                    if save_strategy(new_strat_name, code_input):
+                        st.success(f"Strategy '{new_strat_name}' saved successfully!")
+                        st.rerun()
+                    else:
+                        st.error("Failed to save strategy.")
+                else:
+                    st.error("Name and code are required.")
+                    
+        with col_btn2:
+            if st.button("🗑️ Delete Selected Strategy Template", use_container_width=True):
+                if delete_strategy(selected_strat_name):
+                    st.success(f"Strategy '{selected_strat_name}' deleted!")
+                    st.rerun()
+                else:
+                    st.error("Failed to delete strategy.")
+                    
+    st.markdown("---")
+    
+    # Run Screener Action
+    if st.button("🚀 Run Screener", use_container_width=True, type="primary"):
+        if db_df.empty:
+            st.error("Database is empty. Please load data first on the Dashboard tab.")
+        else:
+            with st.spinner("Executing quant screening code across historical database..."):
+                res = run_screener_logic(db_df, code_input, segment_code, watchlist_symbols)
+                
+                if res.get('status') == 'error':
+                    st.error(res.get('message'))
+                else:
+                    hist_res = res.get('historical_results', {})
+                    total_matches = sum(len(v) for v in hist_res.values())
+                    
+                    if total_matches == 0:
+                        st.info("Screener execution complete. No stocks matched your strategy criteria.")
+                    else:
+                        st.success(f"Screening complete! Found **{total_matches}** matching events across **{len(hist_res)}** dates.")
+                        
+                        # Flat structure for export/dataframe
+                        flat_results = []
+                        for date_str, items in hist_res.items():
+                            for item in items:
+                                row = {
+                                    "Date": date_str,
+                                    "Symbol": item["Symbol"],
+                                    "Close": item["Close"],
+                                    "Volume": item["Volume"]
+                                }
+                                flat_results.append(row)
+                                
+                        df_results = pd.DataFrame(flat_results)
+                        df_results = df_results.sort_values(by=["Date", "Symbol"], ascending=[False, True])
+                        
+                        # Show grouped results in a neat format
+                        st.markdown("### 🏆 Screener Matches")
+                        
+                        # Export Options
+                        excel_buffer = io.BytesIO()
+                        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                            df_results.to_excel(writer, index=False, sheet_name='Screener Results')
+                        excel_data = excel_buffer.getvalue()
+                        
+                        st.download_button(
+                            label="📥 Export Matches to Excel",
+                            data=excel_data,
+                            file_name=f"screener_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                        
+                        st.dataframe(df_results, use_container_width=True, hide_index=True)
+
+# ----------------- TAB 3: TICKER TECHNICAL CHART -----------------
+with tab_charts:
+    st.markdown("### 📈 Interactive Split-Adjusted Historical Stock Chart")
+    
+    if not db_df.empty:
+        all_symbols = sorted(db_df['Symbol'].dropna().unique().tolist())
+        selected_symbol = st.selectbox("Search & Select Symbol", all_symbols, index=0)
+        
+        if selected_symbol:
+            # Check splits cache
+            splits = get_splits_for_stock(selected_symbol, fetch_online=True)
+            
+            # Get adjusted stock history
+            df_symbol = get_adjusted_df_for_symbol(db_df, selected_symbol)
+            
+            if df_symbol.empty:
+                st.warning(f"No pricing data found for ticker '{selected_symbol}' in the local database.")
+            else:
+                st.write(f"Displaying adjusted history for **{selected_symbol}** ({len(df_symbol)} sessions)")
+                
+                # Check for corporate action / split logs
+                if splits:
+                    st.markdown("##### 📢 Corporate Action: Splits History")
+                    split_details = [f"**{dt}**: Ratio {ratio}" for dt, ratio in splits.items()]
+                    st.write(", ".join(split_details))
+                    
+                # Create advanced Plotly Candlestick and Volume subplots
+                fig = make_subplots(
+                    rows=2, cols=1, 
+                    shared_xaxes=True, 
+                    vertical_spacing=0.08, 
+                    row_heights=[0.7, 0.3]
+                )
+                
+                # Add Candlestick trace
+                fig.add_trace(
+                    go.Candlestick(
+                        x=df_symbol['Date'],
+                        open=df_symbol['Open'],
+                        high=df_symbol['High'],
+                        low=df_symbol['Low'],
+                        close=df_symbol['Close'],
+                        name="Price",
+                        increasing_line_color='#26a69a', 
+                        decreasing_line_color='#ef5350'
+                    ),
+                    row=1, col=1
+                )
+                
+                # Color volume bar based on positive/negative close change
+                colors = []
+                for idx, row in df_symbol.iterrows():
+                    prev_close = row['Prev_Close']
+                    colors.append('#26a69a' if row['Close'] >= prev_close else '#ef5350')
+                    
+                # Add Volume trace
+                fig.add_trace(
+                    go.Bar(
+                        x=df_symbol['Date'],
+                        y=df_symbol['Volume'],
+                        name="Volume",
+                        marker_color=colors,
+                        opacity=0.8
+                    ),
+                    row=2, col=1
+                )
+                
+                fig.update_layout(
+                    xaxis_rangeslider_visible=False,
+                    height=600,
+                    margin=dict(t=20, b=20, l=10, r=10),
+                    template="plotly_dark",
+                    hovermode="x unified"
+                )
+                
+                fig.update_yaxes(title_text="Price (INR)", row=1, col=1)
+                fig.update_yaxes(title_text="Volume", row=2, col=1)
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Raw Table view
+                with st.expander("View Raw Adjusted Data Table"):
+                    st.dataframe(df_symbol.sort_values(by="Date", ascending=False), use_container_width=True, hide_index=True)
+    else:
+        st.info("No data available in database to plot charts. Please download data first.")
