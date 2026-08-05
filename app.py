@@ -1133,5 +1133,9 @@ if __name__ == '__main__':
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(BHAV_DIR, exist_ok=True)
     
+    # Disable reloader if running in a non-main thread (e.g. under Streamlit or background runners)
+    import threading
+    is_main_thread = threading.current_thread() is threading.main_thread()
+    
     logger.info("Starting Flask application on port 5000...")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, use_reloader=is_main_thread, host='0.0.0.0', port=5000)
