@@ -80,7 +80,7 @@
   <!-- Main App Container -->
   <main class="container">
     
-    <!-- Clean Hero Header (Metrics Boxes Removed as Requested) -->
+    <!-- Clean Hero Header -->
     <section class="hero-banner">
       <div class="hero-title-group">
         <h1 class="page-title">
@@ -111,6 +111,19 @@
         </button>
       </div>
 
+      <!-- Saved Screeners Links Bar (Positioned under the tab) -->
+      <div class="saved-strategies-bar" id="saved-strategies-bar">
+        <div class="saved-strategies-label">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Saved Screeners:</span>
+        </div>
+        <div class="saved-strategies-list" id="saved-strategies-list">
+          <!-- Dynamically populated links -->
+        </div>
+      </div>
+
       <!-- Subtab 1: Stock Screener Content -->
       <div class="quant-subtab-content" id="subtab-stock-screener">
         <div class="screener-grid">
@@ -130,7 +143,16 @@
             <textarea class="code-editor-area" id="code-editor" spellcheck="false"></textarea>
 
             <div class="editor-actions">
-              <button class="btn btn-primary" id="btn-run-screener" style="padding: 0.8rem 2rem; font-size: 1rem;">
+              <div class="strategy-save-inline">
+                <input type="text" class="form-control strategy-name-field" id="strategy-name-input" placeholder="Strategy Name to Save / Update...">
+                <button class="btn btn-secondary btn-sm" id="btn-save-strategy" title="Save or update current strategy template">
+                  💾 Save Template
+                </button>
+                <button class="btn btn-danger btn-sm" id="btn-delete-strategy" title="Delete current strategy template">
+                  🗑️
+                </button>
+              </div>
+              <button class="btn btn-primary btn-run-large" id="btn-run-screener">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Run Screener
               </button>
@@ -196,22 +218,6 @@
                 </div>
               </div>
 
-              <!-- Save/Update Strategy -->
-              <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1rem; margin-top: 1rem;">
-                <label class="form-label" for="strategy-name-input">Save / Update Strategy Template</label>
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <input type="text" class="form-control" id="strategy-name-input" placeholder="Strategy Name">
-                </div>
-                <div style="display: flex; gap: 0.5rem;">
-                  <button class="btn btn-secondary btn-sm" id="btn-save-strategy" style="flex: 1;">
-                    💾 Save Template
-                  </button>
-                  <button class="btn btn-danger btn-sm" id="btn-delete-strategy">
-                    🗑️ Delete
-                  </button>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -272,7 +278,16 @@
             <textarea class="code-editor-area" id="bt-code-editor" spellcheck="false"></textarea>
 
             <div class="editor-actions">
-              <button class="btn btn-primary" id="bt-btn-run-screener" style="padding: 0.8rem 2rem; font-size: 1rem;">
+              <div class="strategy-save-inline">
+                <input type="text" class="form-control strategy-name-field" id="bt-strategy-name-input" placeholder="Strategy Name to Save / Update...">
+                <button class="btn btn-secondary btn-sm" id="bt-btn-save-strategy" title="Save or update current strategy template">
+                  💾 Save Template
+                </button>
+                <button class="btn btn-danger btn-sm" id="bt-btn-delete-strategy" title="Delete current strategy template">
+                  🗑️
+                </button>
+              </div>
+              <button class="btn btn-primary btn-run-large" id="bt-btn-run-screener">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Run Backtest
               </button>
@@ -335,22 +350,6 @@
                     <span style="font-size: 0.75rem; color: var(--text-dark);">End</span>
                     <input type="date" class="form-control" id="bt-screen-end-date">
                   </div>
-                </div>
-              </div>
-
-              <!-- Save/Update Strategy -->
-              <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1rem; margin-top: 1rem;">
-                <label class="form-label" for="bt-strategy-name-input">Save / Update Strategy Template</label>
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-                  <input type="text" class="form-control" id="bt-strategy-name-input" placeholder="Strategy Name">
-                </div>
-                <div style="display: flex; gap: 0.5rem;">
-                  <button class="btn btn-secondary btn-sm" id="bt-btn-save-strategy" style="flex: 1;">
-                    💾 Save Template
-                  </button>
-                  <button class="btn btn-danger btn-sm" id="bt-btn-delete-strategy">
-                    🗑️ Delete
-                  </button>
                 </div>
               </div>
 

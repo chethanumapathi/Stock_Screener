@@ -505,7 +505,69 @@ def fetch_fno_symbols():
 
     return []
 
-# --- Multi-Timeframe Quantitative Screener Logic ---
+def compute_r2_cross_date_fallback(df_symbol, match_dt):
+    """
+    Finds the date when the initial candle crossed above monthly R2
+    prior to or on match_dt.
+    """
+    try:
+        df = df_symbol.copy()
+        if df.empty:
+            return "-"
+        
+        if not isinstance(df.index, pd.DatetimeIndex):
+            dt_col = 'date' if 'date' in df.columns else ('Date' if 'Date' in df.columns else None)
+            if dt_col:
+                df.index = pd.to_datetime(df[dt_col])
+            else:
+                return "-"
+            
+        daily = df.resample('1D').agg({
+            'open': 'first' if 'open' in df.columns else 'Open',
+            'high': 'max' if 'high' in df.columns else 'High',
+            'low': 'min' if 'low' in df.columns else 'Low',
+            'close': 'last' if 'close' in df.columns else 'Close',
+            'volume': 'sum' if 'volume' in df.columns else 'Volume'
+        }).dropna(subset=['close'])
+        
+        if daily.empty:
+            return "-"
+
+        daily['Month'] = daily.index.to_period('M')
+        monthly = daily.groupby('Month').agg({
+            'high': 'max',
+            'low': 'min',
+            'close': 'last'
+        }).shift(1)
+        
+        monthly['Pivot'] = (monthly['high'] + monthly['low'] + monthly['close']) / 3
+        monthly['R2'] = monthly['Pivot'] + (monthly['high'] - monthly['low'])
+        
+        daily['R2'] = daily['Month'].map(monthly['R2'])
+        
+        raw_cross = (daily['high'] >= daily['R2'])
+        had_recent = (
+            raw_cross.shift(1)
+            .rolling('62D', min_periods=1)
+            .max()
+            .fillna(0)
+            .astype(bool)
+        )
+        vol_ok = daily['volume'] >= 500_000 if 'volume' in daily.columns else True
+        stage1_events = daily[raw_cross & (~had_recent) & vol_ok]
+        
+        match_dt_parsed = pd.to_datetime(match_dt)
+        prior_events = stage1_events[stage1_events.index <= match_dt_parsed]
+        if not prior_events.empty:
+            return prior_events.index[-1].strftime('%Y-%m-%d')
+            
+        any_cross = daily[(daily['high'] >= daily['R2']) & (daily.index <= match_dt_parsed)]
+        if not any_cross.empty:
+            return any_cross.index[-1].strftime('%Y-%m-%d')
+            
+    except Exception as e:
+        logger.error(f"Error computing fallback R2 date: {e}")
+    return "-"
 
 def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None, start_date=None, end_date=None):
     """
@@ -640,6 +702,9 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                         if prev_row['Close'] > 0:
                             pct_change = ((row['Close'] - prev_row['Close']) / prev_row['Close'] * 100)
 
+                    if not custom_data.get("R2_Cross_Date") or custom_data.get("R2_Cross_Date") == '-':
+                        custom_data["R2_Cross_Date"] = compute_r2_cross_date_fallback(df_symbol, date_str)
+
                     res_item = {
                         "Date": date_str,
                         "Symbol": symbol,
@@ -689,6 +754,9 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                         prev_row = matched_slice.iloc[idx_pos - 1]
                         if prev_row['Close'] > 0:
                             pct_change = ((row['Close'] - prev_row['Close']) / prev_row['Close'] * 100)
+
+                    if not custom_data.get("R2_Cross_Date") or custom_data.get("R2_Cross_Date") == '-':
+                        custom_data["R2_Cross_Date"] = compute_r2_cross_date_fallback(df_symbol, date_str)
 
                     res_item = {
                         "Date": date_str,
@@ -1247,18 +1315,25 @@ def api_export_results():
     if not results:
         return jsonify({"status": "error", "message": "No results to export"}), 400
 
-    unwanted_cols = {'Avg_Volume_20', 'Close', 'Monthly_R2', 'Volume', 'Volume_Ratio'}
+    unwanted_cols = {
+        'avg_volume_20', 'close', 'monthly_r2', 'volume', 'volume_ratio',
+        'in_trade', 'stage', 'stop_loss', 'entries', 'signal'
+    }
     flat_rows = []
     for item in results:
         row = {
-            "Date": item.get("Date", ""),
+            "Date / Time": item.get("Date", ""),
             "Symbol": item.get("Symbol", ""),
-            "Close": item.get("Close", 0.0),
-            "Pct_Change": item.get("Pct_Change", 0.0)
+            "Close Price": item.get("Close", 0.0),
+            "Change (%)": item.get("Pct_Change", 0.0)
         }
-        for k, v in item.get("custom_data", {}).items():
-            if k not in unwanted_cols:
-                row[k] = v
+        custom_dict = item.get("custom_data", {})
+        if "R2_Cross_Date" in custom_dict:
+            row["R2 Cross Date"] = custom_dict["R2_Cross_Date"]
+        for k, v in custom_dict.items():
+            if k != "R2_Cross_Date" and k.lower() not in unwanted_cols:
+                col_name = k.replace('_', ' ')
+                row[col_name] = v
         flat_rows.append(row)
 
     df_export = pd.DataFrame(flat_rows)

@@ -17,6 +17,7 @@ const AppState = {
     screenerResults: [],
     currentChartSymbol: 'RELIANCE',
     activeTab: 'screener',
+    currentStrategyIdx: 0,
     allSymbols: []
 };
 
@@ -42,6 +43,8 @@ const elements = {
     volumeTableBody: document.getElementById('volume-table-body'),
     
     // Screener controls
+    savedStrategiesBar: document.getElementById('saved-strategies-bar'),
+    savedStrategiesList: document.getElementById('saved-strategies-list'),
     timeframeSelect: document.getElementById('timeframe-select'),
     strategySelect: document.getElementById('strategy-select'),
     strategyNameInput: document.getElementById('strategy-name-input'),
@@ -339,50 +342,111 @@ function renderLeaderboards(data) {
 }
 
 // Strategies Management
-async function loadStrategies() {
+function populateStrategySelects() {
+    if (elements.strategySelect) elements.strategySelect.innerHTML = '';
+    if (elements.btStrategySelect) elements.btStrategySelect.innerHTML = '';
+    
+    AppState.strategies.forEach((strat, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = strat.name;
+        if (elements.strategySelect) elements.strategySelect.appendChild(opt);
+        
+        if (elements.btStrategySelect) {
+            const optBt = document.createElement('option');
+            optBt.value = idx;
+            optBt.textContent = strat.name;
+            elements.btStrategySelect.appendChild(optBt);
+        }
+    });
+}
+
+async function loadStrategies(targetStrategyName = null) {
     try {
         const res = await fetch('/api/strategies');
         const data = await res.json();
         AppState.strategies = data.strategies || [];
         
-        if (elements.strategySelect) elements.strategySelect.innerHTML = '';
-        if (elements.btStrategySelect) elements.btStrategySelect.innerHTML = '';
-        
-        AppState.strategies.forEach((strat, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.textContent = strat.name;
-            if (elements.strategySelect) elements.strategySelect.appendChild(opt);
-            
-            if (elements.btStrategySelect) {
-                const optBt = document.createElement('option');
-                optBt.value = idx;
-                optBt.textContent = strat.name;
-                elements.btStrategySelect.appendChild(optBt);
-            }
-        });
+        populateStrategySelects();
+        renderSavedStrategiesLinks();
         
         if (AppState.strategies.length > 0) {
-            if (elements.strategySelect) elements.strategySelect.value = 0;
-            if (elements.btStrategySelect) elements.btStrategySelect.value = 0;
-            selectStrategy(0, 'both');
+            let selectIdx = 0;
+            if (targetStrategyName) {
+                const foundIdx = AppState.strategies.findIndex(s => 
+                    s.name.trim().toLowerCase() === targetStrategyName.trim().toLowerCase()
+                );
+                if (foundIdx >= 0) selectIdx = foundIdx;
+            } else if (AppState.currentStrategyIdx >= 0 && AppState.currentStrategyIdx < AppState.strategies.length) {
+                selectIdx = AppState.currentStrategyIdx;
+            }
+            AppState.currentStrategyIdx = selectIdx;
+            if (elements.strategySelect) elements.strategySelect.value = selectIdx;
+            if (elements.btStrategySelect) elements.btStrategySelect.value = selectIdx;
+            selectStrategy(selectIdx, 'both');
         }
     } catch (err) {
         console.error('Error fetching strategies:', err);
     }
 }
 
+function renderSavedStrategiesLinks() {
+    if (!elements.savedStrategiesList) return;
+    elements.savedStrategiesList.innerHTML = '';
+    
+    if (AppState.strategies.length === 0) {
+        elements.savedStrategiesList.innerHTML = '<span style="font-size: 0.8rem; color: var(--text-dark);">No saved screeners found</span>';
+        return;
+    }
+    
+    AppState.strategies.forEach((strat, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `saved-strategy-link ${idx === AppState.currentStrategyIdx ? 'active' : ''}`;
+        btn.setAttribute('data-idx', idx);
+        btn.innerHTML = `<span class="strategy-link-icon">⚡</span><span>${strat.name}</span>`;
+        btn.title = `Click to load "${strat.name}" into sandbox`;
+        
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Switch to screener tab if user is on charts or manager
+            if (AppState.activeTab !== 'screener') {
+                switchTab('screener');
+            }
+            selectStrategy(idx, 'both');
+            showToast(`Loaded "${strat.name}" into sandbox`, 'info');
+            if (elements.codeEditor) {
+                elements.codeEditor.focus();
+            }
+        });
+        
+        elements.savedStrategiesList.appendChild(btn);
+    });
+}
+
+function updateActiveStrategyLink(index) {
+    if (!elements.savedStrategiesList) return;
+    const links = elements.savedStrategiesList.querySelectorAll('.saved-strategy-link');
+    links.forEach((link, idx) => {
+        link.classList.toggle('active', idx === index);
+    });
+}
+
 function selectStrategy(index, target = 'screener') {
+    AppState.currentStrategyIdx = index;
     const strat = AppState.strategies[index];
     if (strat) {
         if (target === 'screener' || target === 'both') {
             if (elements.codeEditor) elements.codeEditor.value = strat.code;
             if (elements.strategyNameInput) elements.strategyNameInput.value = strat.name;
+            if (elements.strategySelect) elements.strategySelect.value = index;
         }
         if (target === 'backtest' || target === 'both') {
             if (elements.btCodeEditor) elements.btCodeEditor.value = strat.code;
             if (elements.btStrategyNameInput) elements.btStrategyNameInput.value = strat.name;
+            if (elements.btStrategySelect) elements.btStrategySelect.value = index;
         }
+        updateActiveStrategyLink(index);
     }
 }
 
@@ -468,19 +532,26 @@ function renderScreenerResults(data, isBacktest = false) {
     if (btnExportExcel) btnExportExcel.disabled = false;
     if (elements.btnExportCsv) elements.btnExportCsv.disabled = false;
     
-    // Dynamic custom data columns (filtering out unwanted columns: Avg_Volume_20, Close, Monthly_R2, Volume, Volume_Ratio)
-    const unwantedCols = new Set(['Avg_Volume_20', 'Close', 'Monthly_R2', 'Volume', 'Volume_Ratio']);
+    // Dynamic custom data columns (filtering out unwanted columns: Avg_Volume_20, Close, Monthly_R2, Volume, Volume_Ratio, in_trade, stage, stop_loss)
+    const unwantedCols = new Set([
+        'avg_volume_20', 'close', 'monthly_r2', 'volume', 'volume_ratio',
+        'in_trade', 'stage', 'stop_loss', 'entries', 'signal'
+    ]);
     const customKeys = new Set();
     matches.forEach(m => {
         if (m.custom_data) {
             Object.keys(m.custom_data).forEach(k => {
-                if (!unwantedCols.has(k)) {
+                if (!unwantedCols.has(k.toLowerCase())) {
                     customKeys.add(k);
                 }
             });
         }
     });
-    const customKeysArr = Array.from(customKeys);
+    const customKeysArr = Array.from(customKeys).sort((a, b) => {
+        if (a.toLowerCase() === 'r2_cross_date') return -1;
+        if (b.toLowerCase() === 'r2_cross_date') return 1;
+        return a.localeCompare(b);
+    });
     
     // Render thead
     let thHtml = `
@@ -491,7 +562,8 @@ function renderScreenerResults(data, isBacktest = false) {
             <th>Change (%)</th>
     `;
     customKeysArr.forEach(k => {
-        thHtml += `<th>${k}</th>`;
+        const headerName = k.replace(/_/g, ' ');
+        thHtml += `<th>${headerName}</th>`;
     });
     thHtml += `<th>Action</th></tr>`;
     if (thead) thead.innerHTML = thHtml;
@@ -592,7 +664,7 @@ async function saveCurrentStrategy(isBacktest = false) {
         const data = await res.json();
         if (data.status === 'ok') {
             showToast(data.message, 'success');
-            await loadStrategies();
+            await loadStrategies(name);
         } else {
             showToast(data.message, 'error');
         }
@@ -615,6 +687,7 @@ async function deleteCurrentStrategy(isBacktest = false) {
         const data = await res.json();
         if (data.status === 'ok') {
             showToast(data.message, 'success');
+            AppState.currentStrategyIdx = 0;
             await loadStrategies();
         } else {
             showToast(data.message, 'error');
