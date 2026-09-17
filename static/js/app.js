@@ -464,7 +464,7 @@ function renderLeaderboards(data) {
     (data.top_gainers || []).forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><span class="stock-pill" onclick="openChartForSymbol('${item.Symbol}')">${item.Symbol}</span></td>
+            <td><span class="stock-pill stock-copy" title="View ${item.Symbol} Fundamentals" onclick="openFundamentalsModal('${item.Symbol}')">${item.Symbol}</span></td>
             <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(item.Close).toFixed(2)}</td>
             <td><span class="badge-green">+${Number(item.Pct_Change).toFixed(2)}%</span></td>
             <td style="color: var(--text-muted);">${formatNumber(item.Volume)}</td>
@@ -477,7 +477,7 @@ function renderLeaderboards(data) {
     (data.top_losers || []).forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><span class="stock-pill" onclick="openChartForSymbol('${item.Symbol}')">${item.Symbol}</span></td>
+            <td><span class="stock-pill stock-copy" title="View ${item.Symbol} Fundamentals" onclick="openFundamentalsModal('${item.Symbol}')">${item.Symbol}</span></td>
             <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(item.Close).toFixed(2)}</td>
             <td><span class="badge-red">${Number(item.Pct_Change).toFixed(2)}%</span></td>
             <td style="color: var(--text-muted);">${formatNumber(item.Volume)}</td>
@@ -490,7 +490,7 @@ function renderLeaderboards(data) {
     (data.top_volume || []).forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><span class="stock-pill" onclick="openChartForSymbol('${item.Symbol}')">${item.Symbol}</span></td>
+            <td><span class="stock-pill stock-copy" title="View ${item.Symbol} Fundamentals" onclick="openFundamentalsModal('${item.Symbol}')">${item.Symbol}</span></td>
             <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(item.Close).toFixed(2)}</td>
             <td style="font-weight: 600; color: #a5b4fc;">${formatNumber(item.Volume)}</td>
         `;
@@ -1689,9 +1689,9 @@ async function exportBacktestPdf() {
     }
 }
 
-// Technical Chart View Across Timeframes
+// Technical Chart View Across Timeframes (Fallback / Safe Guard)
 async function loadChartForSymbol(symbol, timeframe = null) {
-    if (!symbol) return;
+    if (!symbol || !elements.chartSymbolInput || !document.getElementById('plotly-chart-container')) return;
     symbol = symbol.trim().toUpperCase();
     AppState.currentChartSymbol = symbol;
     elements.chartSymbolInput.value = symbol;
@@ -1849,10 +1849,9 @@ function renderRawDataTable(data) {
     }
 }
 
-// Global function to jump directly to chart
+// Global function to jump directly to chart / fundamentals
 window.openChartForSymbol = function(symbol, timeframe = null) {
-    switchTab('chart');
-    loadChartForSymbol(symbol, timeframe);
+    openFundamentalsModal(symbol);
 };
 
 // Global function to copy stock symbol to clipboard
@@ -2869,6 +2868,114 @@ function startFundamentalsSyncPolling() {
     }, 1500);
 }
 
+// --- Pre-Adjusted Daily Parquet Cache Management ---
+
+function initDailyCacheSystem() {
+    const btnNifty50 = document.getElementById('btn-build-cache-nifty50');
+    const btnNifty500 = document.getElementById('btn-build-cache-nifty500');
+    const btnAll = document.getElementById('btn-build-cache-all');
+    const forceCheck = document.getElementById('daily-cache-force-refresh');
+
+    const triggerBuild = async (segment) => {
+        const force = forceCheck ? forceCheck.checked : false;
+        try {
+            showToast(`Initiating Daily Cache build for ${segment.toUpperCase()}...`, 'info');
+            const res = await fetch('/api/daily-cache/build', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ segment, force })
+            });
+            const data = await res.json();
+            if (res.status === 409) {
+                showToast(data.message || 'Build job already running', 'warning');
+            } else if (data.status === 'ok') {
+                showToast(data.message, 'success');
+                startDailyCachePolling();
+            } else {
+                showToast(data.message || 'Build failed', 'error');
+            }
+        } catch (err) {
+            showToast(`Build error: ${err.message}`, 'error');
+        }
+    };
+
+    if (btnNifty50) btnNifty50.addEventListener('click', () => triggerBuild('nifty50'));
+    if (btnNifty500) btnNifty500.addEventListener('click', () => triggerBuild('nifty500'));
+    if (btnAll) btnAll.addEventListener('click', () => triggerBuild('all'));
+
+    loadDailyCacheStatus();
+}
+
+let _dailyCachePollInterval = null;
+
+async function loadDailyCacheStatus() {
+    try {
+        const res = await fetch('/api/daily-cache/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'ok') {
+            const cache = data.cache || {};
+            const countEl = document.getElementById('daily-cache-count');
+            const syncEl = document.getElementById('daily-cache-last-time');
+            if (countEl) countEl.textContent = `${cache.total_cached || 0} / ${cache.total_available || 0} Stocks`;
+            if (syncEl) syncEl.textContent = cache.last_updated || 'Never';
+
+            if (data.sync_job && data.sync_job.is_running) {
+                startDailyCachePolling();
+            }
+        }
+    } catch (err) {
+        console.warn('Error loading daily cache status:', err);
+    }
+}
+
+function startDailyCachePolling() {
+    if (_dailyCachePollInterval) return;
+
+    const progressWrap = document.getElementById('daily-cache-progress-wrap');
+    const progressBar = document.getElementById('daily-cache-progress-bar');
+    const statusText = document.getElementById('daily-cache-status-text');
+    const percentText = document.getElementById('daily-cache-percent-text');
+    if (progressWrap) progressWrap.style.display = 'block';
+
+    _dailyCachePollInterval = setInterval(async () => {
+        try {
+            const res = await fetch('/api/daily-cache/status');
+            if (!res.ok) return;
+            const data = await res.json();
+            const job = data.sync_job;
+            const cache = data.cache || {};
+
+            const countEl = document.getElementById('daily-cache-count');
+            const syncEl = document.getElementById('daily-cache-last-time');
+            if (countEl) countEl.textContent = `${cache.total_cached || 0} / ${cache.total_available || 0} Stocks`;
+            if (syncEl) syncEl.textContent = cache.last_updated || 'Never';
+
+            if (job) {
+                const pct = Math.min(100, Math.max(0, job.progress || 0));
+                if (progressBar) progressBar.style.width = `${pct}%`;
+                if (percentText) percentText.textContent = `${pct}%`;
+                if (statusText) statusText.textContent = job.message || `Processing ${job.symbol || ''}...`;
+
+                if (!job.is_running) {
+                    clearInterval(_dailyCachePollInterval);
+                    _dailyCachePollInterval = null;
+                    if (progressWrap) {
+                        setTimeout(() => { progressWrap.style.display = 'none'; }, 2500);
+                    }
+                    if (job.status === 'complete') {
+                        showToast(job.message || 'Daily cache build complete!', 'success');
+                    } else if (job.status === 'error') {
+                        showToast(job.message || 'Daily cache build failed.', 'error');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error polling daily cache status:', err);
+        }
+    }, 1200);
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
@@ -2876,6 +2983,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initEventListeners();
     initGenAITemplateModal();
     initFundamentalsSystem();
+    initDailyCacheSystem();
     
     // Pre-cache all tickers in background for instant autosuggest
     loadAllSymbols();
@@ -2889,7 +2997,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Ensure default view is Quant Screener tab
     switchTab('screener');
-    
-    // Load default chart in background
-    loadChartForSymbol('RELIANCE', '1d');
 });

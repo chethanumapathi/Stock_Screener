@@ -44,12 +44,14 @@ FNO_FILE = os.path.join(DATA_DIR, 'fno.csv')
 
 # Zerodha Historical Minute Parquet Directory
 ZERODHA_MINUTE_DIR = r"C:\Zerodha Historical Data\data\minute"
+ADJUSTED_DAILY_DIR = os.path.join(DATA_DIR, 'adjusted_daily')
 
 # Ensure local directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(BHAV_DIR, exist_ok=True)
 os.makedirs(FUNDAMENTALS_DIR, exist_ok=True)
 os.makedirs(STATEMENTS_DIR, exist_ok=True)
+os.makedirs(ADJUSTED_DAILY_DIR, exist_ok=True)
 
 # Column mapping from raw NSE to cleaned dashboard columns
 COLUMN_MAP = {
@@ -334,6 +336,68 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
     Applies corporate actions / splits auto-adjustment.
     """
     symbol = symbol.upper().strip()
+    timeframe = timeframe.lower()
+
+    # -------------------------------------------------------------------------
+    # Fast Path: Pre-Adjusted Daily Parquet Cache (10x Faster EOD Execution)
+    # Reads directly from data/adjusted_daily/{SYMBOL}.parquet, bypassing heavy
+    # 1-minute aggregation and on-the-fly split recalculation.
+    # -------------------------------------------------------------------------
+    if timeframe in ['1d', 'daily', 'day']:
+        adj_daily_path = os.path.join(ADJUSTED_DAILY_DIR, f"{symbol}.parquet")
+        if os.path.exists(adj_daily_path):
+            try:
+                con = get_duckdb_connection()
+                time_filter = ""
+                params = [adj_daily_path.replace('\\', '/')]
+                if start_date:
+                    start_str = start_date.strftime('%Y-%m-%d') if isinstance(start_date, (datetime, pd.Timestamp)) else str(start_date)[:10]
+                    time_filter += " AND date >= ?"
+                    params.append(start_str)
+                if end_date:
+                    end_str = end_date.strftime('%Y-%m-%d') if isinstance(end_date, (datetime, pd.Timestamp)) else str(end_date)[:10]
+                    time_filter += " AND date <= ?"
+                    params.append(end_str)
+
+                sql = f"""
+                    SELECT date, open, high, low, close, volume, prev_close
+                    FROM read_parquet(?)
+                    WHERE 1=1 {time_filter}
+                    ORDER BY date ASC
+                """
+                df = con.execute(sql, params).fetchdf()
+                if not df.empty:
+                    df['Date'] = df['date'].astype(str)
+                    df['Open'] = df['open'].round(2)
+                    df['High'] = df['high'].round(2)
+                    df['Low'] = df['low'].round(2)
+                    df['Close'] = df['close'].round(2)
+                    df['Volume'] = df['volume'].round(0).astype('int64', errors='ignore')
+                    df['Prev_Close'] = df['prev_close'].round(2)
+                    df['Symbol'] = symbol
+
+                    mcap_val = get_market_cap_cr(symbol, fetch_online=False)
+                    fund = get_stock_fundamentals(symbol, fetch_online=False)
+                    if (not mcap_val or mcap_val == 0.0) and fund and fund.get('marketCapCr'):
+                        mcap_val = fund['marketCapCr']
+                    df['Market_Cap_Cr'] = mcap_val
+
+                    if fund:
+                        df['PE'] = fund.get('pe')
+                        df['Forward_PE'] = fund.get('forwardPE')
+                        df['PB'] = fund.get('pb')
+                        df['ROE'] = fund.get('roe')
+                        df['ROA'] = fund.get('roa')
+                        df['Debt_To_Equity'] = fund.get('debtToEquity')
+                        df['Operating_Margin'] = fund.get('operatingMargin')
+                        df['Profit_Margin'] = fund.get('profitMargin')
+                        df['Dividend_Yield'] = fund.get('dividendYield')
+
+                    df.index = pd.to_datetime(df['date']).astype('datetime64[ns]')
+                    return df
+            except Exception as e:
+                logger.warning(f"Error querying adjusted daily cache for {symbol}: {e}. Falling back to 1-minute aggregation.")
+
     parquet_path = get_ticker_parquet_path(symbol)
     if not parquet_path:
         return pd.DataFrame()
@@ -341,7 +405,6 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
     con = get_duckdb_connection()
 
     # Timeframe SQL generation
-    timeframe = timeframe.lower()
     time_filter = ""
     params = [parquet_path.replace('\\', '/')]
 
@@ -2064,7 +2127,9 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
         if df_symbol.empty:
             continue
 
-        df_symbol = adjust_parquet_splits(df_symbol, symbol)
+        # df_symbol is already corporate action adjusted (via pre-adjusted daily cache or get_ticker_data_duckdb)
+        if timeframe not in ['1d', 'daily', 'day']:
+            df_symbol = adjust_parquet_splits(df_symbol, symbol)
         if len(df_symbol) < 5:
             continue
 
@@ -2880,23 +2945,123 @@ def api_zerodha_status():
 @app.route('/api/zerodha/sync-splits', methods=['POST'])
 def api_zerodha_sync_splits():
     """
-    Refreshes corporate action splits cache from Yahoo Finance for top constituents.
+    Refreshes corporate action splits cache from Yahoo Finance for constituents,
+    and invalidates affected daily cache files.
     """
     symbols = fetch_nifty50_symbols()
     splits_cache = load_splits_cache()
     updated = 0
-    for sym in symbols[:15]:
+    affected_syms = []
+    for sym in symbols[:25]:
         try:
+            old_sp = splits_cache.get(sym, {})
             sp = get_splits_for_stock(sym, fetch_online=True)
-            if sp:
+            if sp != old_sp:
                 updated += 1
+                affected_syms.append(sym)
+                # Invalidate daily cache file
+                daily_p = os.path.join(ADJUSTED_DAILY_DIR, f"{sym}.parquet")
+                if os.path.exists(daily_p):
+                    try:
+                        os.remove(daily_p)
+                    except Exception:
+                        pass
         except Exception:
             pass
             
+    # Rebuild any invalidated affected stocks
+    if affected_syms:
+        try:
+            from build_daily_cache import build_daily_cache_batch
+            build_daily_cache_batch(affected_syms, force=True)
+        except Exception:
+            pass
+
     return jsonify({
         "status": "ok",
         "message": f"Refreshed corporate actions splits. Tracked stocks: {len(load_splits_cache())}",
         "total_tracked": len(load_splits_cache())
+    })
+
+# --- Pre-Adjusted Daily Parquet Cache REST API Endpoints ---
+
+DAILY_CACHE_SYNC_STATUS = {
+    "is_running": False,
+    "progress": 0,
+    "current": 0,
+    "total": 0,
+    "symbol": "",
+    "status": "idle",
+    "message": "",
+    "stats": {}
+}
+
+@app.route('/api/daily-cache/status', methods=['GET'])
+def api_get_daily_cache_status():
+    from build_daily_cache import get_daily_cache_status
+    cache_info = get_daily_cache_status()
+    return jsonify({
+        "status": "ok",
+        "cache": cache_info,
+        "sync_job": DAILY_CACHE_SYNC_STATUS
+    })
+
+@app.route('/api/daily-cache/build', methods=['POST'])
+def api_build_daily_cache():
+    import threading
+    data = request.get_json() or {}
+    segment = data.get('segment', 'nifty50')
+    symbols = data.get('symbols', [])
+    force = bool(data.get('force', False))
+
+    if DAILY_CACHE_SYNC_STATUS["is_running"]:
+        return jsonify({
+            "status": "busy",
+            "message": "A daily cache build job is already in progress.",
+            "sync_job": DAILY_CACHE_SYNC_STATUS
+        }), 409
+
+    from build_daily_cache import get_symbols_for_segment, build_daily_cache_batch
+    if not symbols:
+        symbols = get_symbols_for_segment(segment)
+
+    if not symbols:
+        return jsonify({"status": "error", "message": f"No symbols found for segment '{segment}'"}), 400
+
+    def run_worker():
+        DAILY_CACHE_SYNC_STATUS["is_running"] = True
+        DAILY_CACHE_SYNC_STATUS["progress"] = 0
+        DAILY_CACHE_SYNC_STATUS["current"] = 0
+        DAILY_CACHE_SYNC_STATUS["total"] = len(symbols)
+        DAILY_CACHE_SYNC_STATUS["status"] = "running"
+        DAILY_CACHE_SYNC_STATUS["message"] = f"Building daily cache for {len(symbols)} stocks..."
+
+        def cb(curr, tot, sym, st):
+            DAILY_CACHE_SYNC_STATUS["current"] = curr
+            DAILY_CACHE_SYNC_STATUS["total"] = tot
+            DAILY_CACHE_SYNC_STATUS["symbol"] = sym
+            DAILY_CACHE_SYNC_STATUS["progress"] = round((curr / tot) * 100, 1) if tot > 0 else 100
+            DAILY_CACHE_SYNC_STATUS["message"] = f"[{curr}/{tot}] {sym} ({st})"
+
+        try:
+            stats = build_daily_cache_batch(symbols, force=force, progress_callback=cb)
+            DAILY_CACHE_SYNC_STATUS["status"] = "complete"
+            DAILY_CACHE_SYNC_STATUS["stats"] = stats
+            DAILY_CACHE_SYNC_STATUS["message"] = f"Daily cache build complete: {stats.get('created', 0) + stats.get('updated', 0)} built, {stats.get('cached', 0)} cached."
+        except Exception as e:
+            logger.error(f"Daily cache worker error: {e}")
+            DAILY_CACHE_SYNC_STATUS["status"] = "error"
+            DAILY_CACHE_SYNC_STATUS["message"] = f"Build failed: {str(e)}"
+        finally:
+            DAILY_CACHE_SYNC_STATUS["is_running"] = False
+
+    t = threading.Thread(target=run_worker, daemon=True)
+    t.start()
+
+    return jsonify({
+        "status": "ok",
+        "message": f"Started pre-adjusted daily cache build for {len(symbols)} stocks.",
+        "sync_job": DAILY_CACHE_SYNC_STATUS
     })
 
 # --- Fundamentals REST API Endpoints ---
