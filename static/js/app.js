@@ -931,7 +931,14 @@ function renderScreenerResults(data) {
             const mcapDisplay = row.Market_Cap_Cr ? `₹${Number(row.Market_Cap_Cr).toLocaleString('en-IN')} Cr` : '-';
             let rowHtml = `
                 <td style="color: var(--text-muted); font-family: var(--font-mono);">${formatDateDDMMMYYYY(row.Date)}</td>
-                <td><span class="stock-pill stock-copy" title="Click to copy symbol" onclick="copyStockSymbol('${row.Symbol}')">${row.Symbol}</span></td>
+                <td>
+                    <div style="display: inline-flex; align-items: center; gap: 0.45rem;">
+                        <span class="stock-pill stock-copy" title="Click to copy symbol" onclick="copyStockSymbol('${row.Symbol}')">${row.Symbol}</span>
+                        <button class="btn-funda-pill" title="View ${row.Symbol} Fundamentals (P&L, Balance Sheet, Ratios)" onclick="event.stopPropagation(); openFundamentalsModal('${row.Symbol}')">
+                            📊 Fundamentals
+                        </button>
+                    </div>
+                </td>
                 <td style="font-family: var(--font-mono); color: #34d399; font-weight: 600;">${mcapDisplay}</td>
                 <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(row.Close).toFixed(2)}</td>
                 <td>${changeBadge}</td>
@@ -946,8 +953,11 @@ function renderScreenerResults(data) {
             });
             
             rowHtml += `
-                <td>
-                    <button class="btn btn-secondary btn-sm" title="Copy symbol" onclick="copyStockSymbol('${row.Symbol}')">
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-primary btn-sm" title="View Quarterly/Yearly Fundamentals" onclick="event.stopPropagation(); openFundamentalsModal('${row.Symbol}')" style="margin-right: 0.35rem; font-size: 0.76rem; padding: 0.25rem 0.6rem;">
+                        📊 Fundamentals
+                    </button>
+                    <button class="btn btn-secondary btn-sm" title="Copy symbol" onclick="copyStockSymbol('${row.Symbol}')" style="font-size: 0.76rem; padding: 0.25rem 0.6rem;">
                         📋 Copy
                     </button>
                 </td>
@@ -1154,7 +1164,14 @@ function renderBacktestResults(data) {
 
                 tr.innerHTML = `
                     <td style="font-family: var(--font-mono); color: var(--text-dark);">${t.trade_id}</td>
-                    <td><span class="stock-pill stock-copy" title="Click to copy symbol" onclick="copyStockSymbol('${t.symbol}')">${t.symbol}</span></td>
+                    <td>
+                        <div style="display: inline-flex; align-items: center; gap: 0.45rem;">
+                            <span class="stock-pill stock-copy" title="Click to copy symbol" onclick="copyStockSymbol('${t.symbol}')">${t.symbol}</span>
+                            <button class="btn-funda-pill" title="View ${t.symbol} Fundamentals (P&L, Balance Sheet, Ratios)" onclick="event.stopPropagation(); openFundamentalsModal('${t.symbol}')">
+                                📊 Fundamentals
+                            </button>
+                        </div>
+                    </td>
                     <td><span class="badge-green">Long</span></td>
                     <td style="font-family: var(--font-mono); color: #a5b4fc;">${formatDateDDMMMYYYY(t.trigger_date)}</td>
                     <td style="font-family: var(--font-mono); color: var(--text-muted);">${formatDateDDMMMYYYY(t.entry_date)}</td>
@@ -2561,12 +2578,304 @@ function initGenAITemplateModal() {
     }
 }
 
+// --- Fundamentals Modal & Manager System ---
+
+let _activeFundStatementData = null;
+
+async function openFundamentalsModal(symbol) {
+    symbol = (symbol || '').toUpperCase().trim();
+    if (!symbol) return;
+
+    const modal = document.getElementById('fundamentals-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+    document.getElementById('fund-modal-symbol-badge').textContent = symbol;
+    document.getElementById('fund-modal-company-name').textContent = `Loading ${symbol} fundamentals...`;
+    document.getElementById('fund-modal-sector').textContent = 'Sector: ...';
+    document.getElementById('fund-modal-industry').textContent = 'Industry: ...';
+    document.getElementById('fund-modal-last-updated').textContent = 'Updated: ...';
+
+    // Clear ratios
+    ['fm-mcap', 'fm-pe', 'fm-forward-pe', 'fm-pb', 'fm-roe', 'fm-roa', 'fm-de', 'fm-op-margin', 'fm-div-yield', 'fm-eps'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '...';
+    });
+
+    // Clear tables
+    ['qpnl', 'ypnl', 'ybs', 'ycf'].forEach(tab => {
+        const thead = document.getElementById(`fund-thead-${tab}`);
+        const tbody = document.getElementById(`fund-tbody-${tab}`);
+        if (thead) thead.innerHTML = '';
+        if (tbody) tbody.innerHTML = `<tr><td style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading ${tab.toUpperCase()} statement...</td></tr>`;
+    });
+
+    try {
+        const res = await fetch(`/api/fundamentals/${symbol}?fetch_online=true`);
+        if (!res.ok) {
+            throw new Error(`Failed to load fundamentals for ${symbol}`);
+        }
+        const json = await res.json();
+        if (json.status !== 'ok' || !json.data) {
+            throw new Error(json.message || 'No data found');
+        }
+
+        const data = json.data;
+        _activeFundStatementData = data;
+        renderFundamentalsModal(data);
+    } catch (err) {
+        console.error('Error fetching fundamentals:', err);
+        document.getElementById('fund-modal-company-name').textContent = `${symbol} (Failed to load)`;
+        showToast(`Could not load fundamentals for ${symbol}: ${err.message}`, 'error');
+        ['qpnl', 'ypnl', 'ybs', 'ycf'].forEach(tab => {
+            const tbody = document.getElementById(`fund-tbody-${tab}`);
+            if (tbody) tbody.innerHTML = `<tr><td style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No data available.</td></tr>`;
+        });
+    }
+}
+window.openFundamentalsModal = openFundamentalsModal;
+
+function renderFundamentalsModal(data) {
+    const ratios = data.ratios || {};
+    document.getElementById('fund-modal-company-name').textContent = ratios.companyName || data.symbol;
+    document.getElementById('fund-modal-sector').textContent = `Sector: ${ratios.sector || 'N/A'}`;
+    document.getElementById('fund-modal-industry').textContent = `Industry: ${ratios.industry || 'N/A'}`;
+    document.getElementById('fund-modal-last-updated').textContent = `Updated: ${ratios.lastUpdated || 'Recently'}`;
+
+    // Populate Key Ratio cards
+    const mcapStr = ratios.marketCapCr ? `₹${Number(ratios.marketCapCr).toLocaleString('en-IN')} Cr` : '-';
+    const peStr = ratios.pe ? Number(ratios.pe).toFixed(2) : '-';
+    const fPeStr = ratios.forwardPE ? Number(ratios.forwardPE).toFixed(2) : '-';
+    const pbStr = ratios.pb ? Number(ratios.pb).toFixed(2) : '-';
+    const roeStr = ratios.roe !== null && ratios.roe !== undefined ? `${Number(ratios.roe).toFixed(2)}%` : '-';
+    const roaStr = ratios.roa !== null && ratios.roa !== undefined ? `${Number(ratios.roa).toFixed(2)}%` : '-';
+    const deStr = ratios.debtToEquity !== null && ratios.debtToEquity !== undefined ? Number(ratios.debtToEquity).toFixed(2) : '-';
+    const opmStr = ratios.operatingMargin !== null && ratios.operatingMargin !== undefined ? `${Number(ratios.operatingMargin).toFixed(2)}%` : '-';
+    const divStr = ratios.dividendYield !== null && ratios.dividendYield !== undefined ? `${Number(ratios.dividendYield).toFixed(2)}%` : '-';
+    const epsStr = ratios.trailingEps ? `₹${Number(ratios.trailingEps).toFixed(2)}` : '-';
+
+    document.getElementById('fm-mcap').textContent = mcapStr;
+    document.getElementById('fm-pe').textContent = peStr;
+    document.getElementById('fm-forward-pe').textContent = fPeStr;
+    document.getElementById('fm-pb').textContent = pbStr;
+    document.getElementById('fm-roe').textContent = roeStr;
+    document.getElementById('fm-roa').textContent = roaStr;
+    document.getElementById('fm-de').textContent = deStr;
+    document.getElementById('fm-op-margin').textContent = opmStr;
+    document.getElementById('fm-div-yield').textContent = divStr;
+    document.getElementById('fm-eps').textContent = epsStr;
+
+    // Render statements
+    renderStatementTable('qpnl', data.quarterly_pnl);
+    renderStatementTable('ypnl', data.yearly_pnl);
+    renderStatementTable('ybs', data.yearly_balance_sheet);
+    renderStatementTable('ycf', data.yearly_cash_flow);
+}
+
+function renderStatementTable(tabKey, stmtObj) {
+    const thead = document.getElementById(`fund-thead-${tabKey}`);
+    const tbody = document.getElementById(`fund-tbody-${tabKey}`);
+    if (!thead || !tbody) return;
+
+    if (!stmtObj || !stmtObj.dates || stmtObj.dates.length === 0 || !stmtObj.metrics) {
+        thead.innerHTML = `<tr><th>Line Item</th><th>No Data Available</th></tr>`;
+        tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No historical data available for this statement.</td></tr>`;
+        return;
+    }
+
+    const dates = stmtObj.dates;
+    const metrics = stmtObj.metrics;
+
+    // Header
+    let thHtml = `<tr><th style="min-width: 220px; position: sticky; left: 0; background: #0f172a; z-index: 2;">Financial Metric</th>`;
+    dates.forEach(d => {
+        thHtml += `<th style="text-align: right; min-width: 110px; font-family: var(--font-mono);">${formatDateDDMMMYYYY(d)}</th>`;
+    });
+    thHtml += `</tr>`;
+    thead.innerHTML = thHtml;
+
+    // Body rows
+    let trHtml = '';
+    const metricNames = Object.keys(metrics);
+
+    metricNames.forEach((mName) => {
+        const isHighlight = ['Operating Revenue', 'Total Revenue', 'Operating Income', 'EBITDA', 'Net Income', 'Basic EPS', 'Diluted EPS', 'Total Assets', 'Stockholders Equity', 'Total Debt', 'Working Capital', 'Operating Cash Flow', 'Free Cash Flow'].includes(mName);
+        const rowStyle = isHighlight ? 'background: rgba(59, 130, 246, 0.08); font-weight: 600;' : '';
+        const nameColor = isHighlight ? 'color: #93c5fd;' : 'color: #e2e8f0;';
+
+        trHtml += `<tr style="${rowStyle}">`;
+        trHtml += `<td style="position: sticky; left: 0; background: ${isHighlight ? '#141e33' : '#0a0f1d'}; ${nameColor} z-index: 1;">${mName}</td>`;
+
+        dates.forEach(d => {
+            const val = metrics[mName] ? metrics[mName][d] : null;
+            let valDisplay = '-';
+            let color = 'color: #94a3b8;';
+
+            if (val !== null && val !== undefined) {
+                const num = Number(val);
+                if (!isNaN(num)) {
+                    valDisplay = num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                    if (num > 0) color = isHighlight ? 'color: #34d399;' : 'color: #cbd5e1;';
+                    else if (num < 0) color = 'color: #f87171;';
+                } else {
+                    valDisplay = val;
+                }
+            }
+            trHtml += `<td style="text-align: right; font-family: var(--font-mono); ${color}">${valDisplay}</td>`;
+        });
+        trHtml += `</tr>`;
+    });
+
+    tbody.innerHTML = trHtml;
+}
+
+function initFundamentalsSystem() {
+    // Modal Close button
+    const closeBtn = document.getElementById('fund-modal-close-btn');
+    const bottomCloseBtn = document.getElementById('fund-modal-bottom-close-btn');
+    const modal = document.getElementById('fundamentals-modal');
+
+    const closeModal = () => {
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (bottomCloseBtn) bottomCloseBtn.addEventListener('click', closeModal);
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            closeModal();
+        }
+    });
+
+    // Modal tabs switching
+    document.querySelectorAll('.fund-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.getAttribute('data-fund-tab');
+            document.querySelectorAll('.fund-tab-btn').forEach(b => {
+                b.classList.remove('active', 'btn-primary');
+                b.classList.add('btn-secondary');
+            });
+            btn.classList.add('active', 'btn-primary');
+            btn.classList.remove('btn-secondary');
+
+            document.querySelectorAll('.fund-tab-content').forEach(pane => pane.style.display = 'none');
+            const targetPane = document.getElementById(`fund-pane-${targetTab}`);
+            if (targetPane) targetPane.style.display = 'block';
+        });
+    });
+
+    // Sync buttons in Manager Tab
+    const btnNifty50 = document.getElementById('btn-sync-fund-nifty50');
+    const btnNifty500 = document.getElementById('btn-sync-fund-nifty500');
+    const btnAll = document.getElementById('btn-sync-fund-all');
+    const forceCheck = document.getElementById('fund-force-refresh');
+
+    const triggerSync = async (segment) => {
+        const force = forceCheck ? forceCheck.checked : false;
+        try {
+            showToast(`Initiating fundamentals sync for ${segment.toUpperCase()}...`, 'info');
+            const res = await fetch('/api/fundamentals/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ segment, force })
+            });
+            const data = await res.json();
+            if (res.status === 409) {
+                showToast(data.message || 'Sync job already running', 'warning');
+            } else if (data.status === 'ok') {
+                showToast(data.message, 'success');
+                startFundamentalsSyncPolling();
+            } else {
+                showToast(data.message || 'Sync failed', 'error');
+            }
+        } catch (err) {
+            showToast(`Sync error: ${err.message}`, 'error');
+        }
+    };
+
+    if (btnNifty50) btnNifty50.addEventListener('click', () => triggerSync('nifty50'));
+    if (btnNifty500) btnNifty500.addEventListener('click', () => triggerSync('nifty500'));
+    if (btnAll) btnAll.addEventListener('click', () => triggerSync('all'));
+
+    // Load initial status
+    loadFundamentalsStatus();
+}
+
+let _fundSyncPollInterval = null;
+
+async function loadFundamentalsStatus() {
+    try {
+        const res = await fetch('/api/fundamentals/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'ok') {
+            const countEl = document.getElementById('fund-tracked-count');
+            const syncEl = document.getElementById('fund-last-sync-time');
+            if (countEl) countEl.textContent = `${data.total_tracked} Stocks`;
+            if (syncEl) syncEl.textContent = data.last_sync || 'Never';
+
+            if (data.sync_job && data.sync_job.is_running) {
+                startFundamentalsSyncPolling();
+            }
+        }
+    } catch (err) {
+        console.warn('Error loading fundamentals status:', err);
+    }
+}
+
+function startFundamentalsSyncPolling() {
+    if (_fundSyncPollInterval) return;
+
+    const progressWrap = document.getElementById('fund-sync-progress-wrap');
+    const progressBar = document.getElementById('fund-sync-progress-bar');
+    const statusText = document.getElementById('fund-sync-status-text');
+    const percentText = document.getElementById('fund-sync-percent-text');
+    if (progressWrap) progressWrap.style.display = 'block';
+
+    _fundSyncPollInterval = setInterval(async () => {
+        try {
+            const res = await fetch('/api/fundamentals/status');
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.status === 'ok' && data.sync_job) {
+                const job = data.sync_job;
+                const pct = job.total > 0 ? Math.round((job.current / job.total) * 100) : 0;
+
+                if (progressBar) progressBar.style.width = `${pct}%`;
+                if (percentText) percentText.textContent = `${pct}% (${job.current}/${job.total})`;
+                if (statusText) statusText.textContent = `Downloading fundamentals: ${job.current_symbol || 'fetching...'} (${pct}%)`;
+
+                if (!job.is_running) {
+                    clearInterval(_fundSyncPollInterval);
+                    _fundSyncPollInterval = null;
+                    if (progressWrap) setTimeout(() => { progressWrap.style.display = 'none'; }, 2500);
+                    showToast(`Fundamentals sync completed! Total: ${data.total_tracked} stocks.`, 'success');
+                    loadFundamentalsStatus();
+                }
+            }
+        } catch (e) {
+            console.warn('Sync poll error:', e);
+        }
+    }, 1500);
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
     initWatchlistUpload();
     initEventListeners();
     initGenAITemplateModal();
+    initFundamentalsSystem();
     
     // Pre-cache all tickers in background for instant autosuggest
     loadAllSymbols();

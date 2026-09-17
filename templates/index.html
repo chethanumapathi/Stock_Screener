@@ -1068,6 +1068,52 @@
           </button>
         </div>
 
+        <!-- Stock Fundamentals Manager Panel -->
+        <div class="glass-panel" style="grid-column: 1 / -1;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 class="panel-title" style="margin-bottom: 0.25rem;">📊 Stock Fundamentals Data Manager</h3>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 0;">
+                Download and cache Quarterly &amp; Yearly P&amp;L, Yearly Balance Sheet, and Financial Ratios (P/E, P/B, ROE, Debt/Equity, Margins).
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span class="badge-tag" id="fund-sync-badge" style="margin-bottom: 0; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #60a5fa;">
+                Tracked: <strong id="fund-tracked-count">Loading...</strong>
+              </span>
+              <span class="badge-tag" id="fund-last-sync-badge" style="margin-bottom: 0; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">
+                Last Sync: <strong id="fund-last-sync-time">-</strong>
+              </span>
+            </div>
+          </div>
+
+          <div id="fund-sync-progress-wrap" style="display: none; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.9rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-family: var(--font-mono); margin-bottom: 0.4rem; color: #cbd5e1;">
+              <span id="fund-sync-status-text">Syncing fundamentals...</span>
+              <span id="fund-sync-percent-text">0%</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 8px; overflow: hidden;">
+              <div id="fund-sync-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-sync-fund-nifty50">
+              ⚡ Sync Nifty 50 (50)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-sync-fund-nifty500">
+              🚀 Sync Nifty 500 (500)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-sync-fund-all">
+              🌐 Sync All Available Stocks (~2,294)
+            </button>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; margin-left: auto;">
+              <input type="checkbox" id="fund-force-refresh" style="cursor: pointer;">
+              <span>Force Re-download (ignore 7-day cache)</span>
+            </label>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1504,6 +1550,154 @@ screen = backtest</code></pre>
     </div>
   </div>
 
+  <!-- Stock Fundamentals Modal -->
+  <div class="modal-overlay" id="fundamentals-modal" style="display: none;">
+    <div class="modal-dialog-large" style="max-width: 1100px; max-height: 90vh; display: flex; flex-direction: column;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div class="modal-title-wrap">
+          <div class="modal-badge-sparkle">
+            <span>📊</span>
+            <span id="fund-modal-symbol-badge">STOCK</span>
+          </div>
+          <div>
+            <h3 class="modal-title" id="fund-modal-company-name" style="margin-bottom: 0.2rem;">Company Fundamentals</h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 0.75rem;">
+              <span id="fund-modal-sector">Sector: -</span>
+              <span>•</span>
+              <span id="fund-modal-industry">Industry: -</span>
+              <span>•</span>
+              <span id="fund-modal-last-updated" style="color: #94a3b8;">Updated: -</span>
+            </div>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="fund-modal-close-btn" title="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="modal-body custom-scrollbar" style="overflow-y: auto; padding: 1.5rem; flex: 1;">
+        
+        <!-- Key Ratios Grid Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Market Cap</div>
+            <div id="fm-mcap" style="font-size: 1.05rem; font-weight: 700; color: #34d399; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">P/E (TTM)</div>
+            <div id="fm-pe" style="font-size: 1.05rem; font-weight: 700; color: #60a5fa; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Forward P/E</div>
+            <div id="fm-forward-pe" style="font-size: 1.05rem; font-weight: 700; color: #93c5fd; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">P/B Ratio</div>
+            <div id="fm-pb" style="font-size: 1.05rem; font-weight: 700; color: #a78bfa; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">ROE %</div>
+            <div id="fm-roe" style="font-size: 1.05rem; font-weight: 700; color: #f59e0b; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">ROA %</div>
+            <div id="fm-roa" style="font-size: 1.05rem; font-weight: 700; color: #fbbf24; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Debt / Equity</div>
+            <div id="fm-de" style="font-size: 1.05rem; font-weight: 700; color: #ec4899; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Op. Margin %</div>
+            <div id="fm-op-margin" style="font-size: 1.05rem; font-weight: 700; color: #38bdf8; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Div Yield %</div>
+            <div id="fm-div-yield" style="font-size: 1.05rem; font-weight: 700; color: #10b981; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+          <div class="glass-panel" style="padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Trailing EPS</div>
+            <div id="fm-eps" style="font-size: 1.05rem; font-weight: 700; color: #c084fc; font-family: var(--font-mono); margin-top: 0.25rem;">-</div>
+          </div>
+        </div>
+
+        <!-- Sub-tabs for Statements -->
+        <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 1.25rem; padding-bottom: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-sm fund-tab-btn active" data-fund-tab="qpnl" id="tab-btn-qpnl" style="border-radius: 6px;">
+            📑 Quarterly P&amp;L
+          </button>
+          <button class="btn btn-sm btn-secondary fund-tab-btn" data-fund-tab="ypnl" id="tab-btn-ypnl" style="border-radius: 6px;">
+            📈 Yearly P&amp;L
+          </button>
+          <button class="btn btn-sm btn-secondary fund-tab-btn" data-fund-tab="ybs" id="tab-btn-ybs" style="border-radius: 6px;">
+            🏛️ Yearly Balance Sheet
+          </button>
+          <button class="btn btn-sm btn-secondary fund-tab-btn" data-fund-tab="ycf" id="tab-btn-ycf" style="border-radius: 6px;">
+            💵 Cash Flows
+          </button>
+          <div style="margin-left: auto; font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center;">
+            <span>Values in ₹ Crores (except per share metrics)</span>
+          </div>
+        </div>
+
+        <!-- Tab 1: Quarterly P&L Table -->
+        <div class="fund-tab-content" id="fund-pane-qpnl">
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="custom-table" id="fund-table-qpnl">
+              <thead id="fund-thead-qpnl"></thead>
+              <tbody id="fund-tbody-qpnl"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Yearly P&L Table -->
+        <div class="fund-tab-content" id="fund-pane-ypnl" style="display: none;">
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="custom-table" id="fund-table-ypnl">
+              <thead id="fund-thead-ypnl"></thead>
+              <tbody id="fund-tbody-ypnl"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Yearly Balance Sheet Table -->
+        <div class="fund-tab-content" id="fund-pane-ybs" style="display: none;">
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="custom-table" id="fund-table-ybs">
+              <thead id="fund-thead-ybs"></thead>
+              <tbody id="fund-tbody-ybs"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 4: Yearly Cash Flow Table -->
+        <div class="fund-tab-content" id="fund-pane-ycf" style="display: none;">
+          <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            <table class="custom-table" id="fund-table-ycf">
+              <thead id="fund-thead-ycf"></thead>
+              <tbody id="fund-tbody-ycf"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2);">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Data sourced from NSE/Yahoo Finance. Values in ₹ Cr.
+        </div>
+        <button class="btn btn-secondary btn-sm" id="fund-modal-bottom-close-btn">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -1515,7 +1709,7 @@ screen = backtest</code></pre>
   </footer>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=20260917-funda-5"></script>
 
   <style>
     @keyframes spin {

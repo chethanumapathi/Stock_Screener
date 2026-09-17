@@ -1,0 +1,3284 @@
+{
+  "symbol": "JKPAPER",
+  "ratios": {
+    "symbol": "JKPAPER",
+    "companyName": "JK Paper Limited",
+    "sector": "Basic Materials",
+    "industry": "Paper & Paper Products",
+    "marketCapCr": 7570.06,
+    "pe": 23.87,
+    "forwardPE": 6.79,
+    "pb": 1.37,
+    "roe": null,
+    "roa": null,
+    "debtToEquity": 0.45,
+    "currentRatio": null,
+    "quickRatio": null,
+    "operatingMargin": 10.12,
+    "profitMargin": 4.34,
+    "dividendYield": 0.99,
+    "trailingEps": 17.49,
+    "forwardEps": 61.5,
+    "pegRatio": 0.3,
+    "quarterlyEarningsGrowth": 60.2,
+    "quarterlyRevenueGrowth": 12.7,
+    "bookValue": 304.3,
+    "currency": "INR",
+    "lastUpdated": "2026-09-17 14:31:57"
+  },
+  "quarterly_pnl": {
+    "dates": [
+      "2026-06-30",
+      "2026-03-31",
+      "2025-12-31",
+      "2025-06-30",
+      "2025-03-31"
+    ],
+    "metrics": {
+      "Tax Effect Of Unusual Items": {
+        "2026-06-30": 0.0,
+        "2026-03-31": -0.68,
+        "2025-12-31": -3.68,
+        "2025-06-30": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Tax Rate For Calcs": {
+        "2026-06-30": 0.26,
+        "2026-03-31": 0.23,
+        "2025-12-31": 0.26,
+        "2025-06-30": 0.28,
+        "2025-03-31": 0.29
+      },
+      "Normalized EBITDA": {
+        "2026-06-30": 320.9,
+        "2026-03-31": 279.07,
+        "2025-12-31": 195.87,
+        "2025-06-30": 272.52,
+        "2025-03-31": 229.11
+      },
+      "Total Unusual Items": {
+        "2026-06-30": 0.0,
+        "2026-03-31": -3.0,
+        "2025-12-31": -14.36,
+        "2025-06-30": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Total Unusual Items Excluding Goodwill": {
+        "2026-06-30": 0.0,
+        "2026-03-31": -3.0,
+        "2025-12-31": -14.36,
+        "2025-06-30": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Net Income From Continuing Operation Net Minority Interest": {
+        "2026-06-30": 1301200000.0,
+        "2026-03-31": 919800000.0,
+        "2025-12-31": 274000000.0,
+        "2025-06-30": 791200000.0,
+        "2025-03-31": 677500000.0
+      },
+      "Reconciled Depreciation": {
+        "2026-06-30": 98.81,
+        "2026-03-31": 99.74,
+        "2025-12-31": 97.03,
+        "2025-06-30": 89.01,
+        "2025-03-31": 86.42
+      },
+      "Reconciled Cost Of Revenue": {
+        "2026-06-30": 1109.77,
+        "2026-03-31": 1219.23,
+        "2025-12-31": 1105.69,
+        "2025-06-30": 998.77,
+        "2025-03-31": 1063.99
+      },
+      "EBITDA": {
+        "2026-06-30": 320.9,
+        "2026-03-31": 276.07,
+        "2025-12-31": 181.51,
+        "2025-06-30": 272.52,
+        "2025-03-31": 229.11
+      },
+      "EBIT": {
+        "2026-06-30": 222.09,
+        "2026-03-31": 176.33,
+        "2025-12-31": 84.48,
+        "2025-06-30": 183.51,
+        "2025-03-31": 142.69
+      },
+      "Net Interest Income": {
+        "2026-06-30": -39.81,
+        "2026-03-31": -59.53,
+        "2025-12-31": -47.47,
+        "2025-06-30": -67.14,
+        "2025-03-31": -50.14
+      },
+      "Interest Expense": {
+        "2026-06-30": 39.81,
+        "2026-03-31": 59.53,
+        "2025-12-31": 47.47,
+        "2025-06-30": 67.14,
+        "2025-03-31": 50.14
+      },
+      "Normalized Income": {
+        "2026-06-30": 130.12,
+        "2026-03-31": 94.3,
+        "2025-12-31": 38.08,
+        "2025-06-30": 79.12,
+        "2025-03-31": 67.75
+      },
+      "Net Income From Continuing And Discontinued Operation": {
+        "2026-06-30": 1301200000.0,
+        "2026-03-31": 919800000.0,
+        "2025-12-31": 274000000.0,
+        "2025-06-30": 791200000.0,
+        "2025-03-31": 677500000.0
+      },
+      "Total Expenses": {
+        "2026-06-30": 1696.22,
+        "2026-03-31": 1789.17,
+        "2025-12-31": 1682.81,
+        "2025-06-30": 1500.41,
+        "2025-03-31": 1545.96
+      },
+      "Diluted Average Shares": {
+        "2026-06-30": 181225627.0,
+        "2026-03-31": 181420118.0,
+        "2025-12-31": 170186335.0,
+        "2025-06-30": 181467890.0,
+        "2025-03-31": 181149733.0
+      },
+      "Basic Average Shares": {
+        "2026-06-30": 181225627.0,
+        "2026-03-31": 181420118.0,
+        "2025-12-31": 170186335.0,
+        "2025-06-30": 181467890.0,
+        "2025-03-31": 181149733.0
+      },
+      "Diluted EPS": {
+        "2026-06-30": 7.18,
+        "2026-03-31": 5.07,
+        "2025-12-31": 1.61,
+        "2025-06-30": 4.36,
+        "2025-03-31": 3.74
+      },
+      "Basic EPS": {
+        "2026-06-30": 7.18,
+        "2026-03-31": 5.07,
+        "2025-12-31": 1.61,
+        "2025-06-30": 4.36,
+        "2025-03-31": 3.74
+      },
+      "Diluted NI Availto Com Stockholders": {
+        "2026-06-30": 130.12,
+        "2026-03-31": 91.98,
+        "2025-12-31": 27.4,
+        "2025-06-30": 79.12,
+        "2025-03-31": 67.75
+      },
+      "Net Income Common Stockholders": {
+        "2026-06-30": 130.12,
+        "2026-03-31": 91.98,
+        "2025-12-31": 27.4,
+        "2025-06-30": 79.12,
+        "2025-03-31": 67.75
+      },
+      "Otherunder Preferred Stock Dividend": {
+        "2026-06-30": 0.0,
+        "2026-03-31": 0.0,
+        "2025-12-31": 0.0,
+        "2025-06-30": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Net Income": {
+        "2026-06-30": 130.12,
+        "2026-03-31": 91.98,
+        "2025-12-31": 27.4,
+        "2025-06-30": 79.12,
+        "2025-03-31": 67.75
+      },
+      "Minority Interests": {
+        "2026-06-30": -6.15,
+        "2026-03-31": 2.3,
+        "2025-12-31": -0.13,
+        "2025-06-30": -4.63,
+        "2025-03-31": 0.47
+      },
+      "Net Income Including Noncontrolling Interests": {
+        "2026-06-30": 136.27,
+        "2026-03-31": 89.68,
+        "2025-12-31": 27.53,
+        "2025-06-30": 83.75,
+        "2025-03-31": 67.28
+      },
+      "Net Income Continuous Operations": {
+        "2026-06-30": 1362700000.0,
+        "2026-03-31": 896800000.0,
+        "2025-12-31": 275300000.0,
+        "2025-06-30": 837500000.0,
+        "2025-03-31": 672800000.0
+      },
+      "Tax Provision": {
+        "2026-06-30": 46.62,
+        "2026-03-31": 26.61,
+        "2025-12-31": 9.48,
+        "2025-06-30": 32.69,
+        "2025-03-31": 26.41
+      },
+      "Pretax Income": {
+        "2026-06-30": 182.28,
+        "2026-03-31": 116.8,
+        "2025-12-31": 37.01,
+        "2025-06-30": 116.37,
+        "2025-03-31": 92.55
+      },
+      "Other Non Operating Income Expenses": {
+        "2026-06-30": 31.14,
+        "2026-03-31": 2.55,
+        "2025-12-31": 18.65,
+        "2025-06-30": 22.88,
+        "2025-03-31": 11.6
+      },
+      "Special Income Charges": {
+        "2026-06-30": 0.0,
+        "2026-03-31": -3.0,
+        "2025-12-31": -14.36,
+        "2025-06-30": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Net Non Operating Interest Income Expense": {
+        "2026-06-30": -39.81,
+        "2026-03-31": -59.53,
+        "2025-12-31": -47.47,
+        "2025-06-30": -67.14,
+        "2025-03-31": -50.14
+      },
+      "Interest Expense Non Operating": {
+        "2026-06-30": 39.81,
+        "2026-03-31": 59.53,
+        "2025-12-31": 47.47,
+        "2025-06-30": 67.14,
+        "2025-03-31": 50.14
+      },
+      "Operating Income": {
+        "2026-06-30": 190.95,
+        "2026-03-31": 176.78,
+        "2025-12-31": 80.19,
+        "2025-06-30": 160.63,
+        "2025-03-31": 131.09
+      },
+      "Operating Expense": {
+        "2026-06-30": 586.45,
+        "2026-03-31": 569.94,
+        "2025-12-31": 577.12,
+        "2025-06-30": 501.64,
+        "2025-03-31": 481.97
+      },
+      "Other Operating Expenses": {
+        "2026-06-30": 289.15,
+        "2026-03-31": 299.55,
+        "2025-12-31": 296.1,
+        "2025-06-30": 247.67,
+        "2025-03-31": 246.24
+      },
+      "Depreciation And Amortization In Income Statement": {
+        "2026-06-30": 98.81,
+        "2026-03-31": 99.74,
+        "2025-12-31": 97.03,
+        "2025-06-30": 89.01,
+        "2025-03-31": 86.42
+      },
+      "Depreciation Income Statement": {
+        "2026-06-30": 98.81,
+        "2026-03-31": 99.74,
+        "2025-12-31": 97.03,
+        "2025-06-30": 89.01,
+        "2025-03-31": 86.42
+      },
+      "Gross Profit": {
+        "2026-06-30": 777.4,
+        "2026-03-31": 746.72,
+        "2025-12-31": 657.31,
+        "2025-06-30": 662.27,
+        "2025-03-31": 613.06
+      },
+      "Cost Of Revenue": {
+        "2026-06-30": 1109.77,
+        "2026-03-31": 1219.23,
+        "2025-12-31": 1105.69,
+        "2025-06-30": 998.77,
+        "2025-03-31": 1063.99
+      },
+      "Total Revenue": {
+        "2026-06-30": 1887.17,
+        "2026-03-31": 1965.95,
+        "2025-12-31": 1763.0,
+        "2025-06-30": 1661.04,
+        "2025-03-31": 1677.05
+      },
+      "Operating Revenue": {
+        "2026-06-30": 1887.17,
+        "2026-03-31": 1965.95,
+        "2025-12-31": 1763.0,
+        "2025-06-30": 1661.04,
+        "2025-03-31": 1677.05
+      }
+    },
+    "records": [
+      {
+        "date": "2026-06-30",
+        "Tax Effect Of Unusual Items": 0.0,
+        "Tax Rate For Calcs": 0.26,
+        "Normalized EBITDA": 320.9,
+        "Total Unusual Items": 0.0,
+        "Total Unusual Items Excluding Goodwill": 0.0,
+        "Net Income From Continuing Operation Net Minority Interest": 1301200000.0,
+        "Reconciled Depreciation": 98.81,
+        "Reconciled Cost Of Revenue": 1109.77,
+        "EBITDA": 320.9,
+        "EBIT": 222.09,
+        "Net Interest Income": -39.81,
+        "Interest Expense": 39.81,
+        "Normalized Income": 130.12,
+        "Net Income From Continuing And Discontinued Operation": 1301200000.0,
+        "Total Expenses": 1696.22,
+        "Diluted Average Shares": 181225627.0,
+        "Basic Average Shares": 181225627.0,
+        "Diluted EPS": 7.18,
+        "Basic EPS": 7.18,
+        "Diluted NI Availto Com Stockholders": 130.12,
+        "Net Income Common Stockholders": 130.12,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 130.12,
+        "Minority Interests": -6.15,
+        "Net Income Including Noncontrolling Interests": 136.27,
+        "Net Income Continuous Operations": 1362700000.0,
+        "Tax Provision": 46.62,
+        "Pretax Income": 182.28,
+        "Other Non Operating Income Expenses": 31.14,
+        "Special Income Charges": 0.0,
+        "Net Non Operating Interest Income Expense": -39.81,
+        "Interest Expense Non Operating": 39.81,
+        "Operating Income": 190.95,
+        "Operating Expense": 586.45,
+        "Other Operating Expenses": 289.15,
+        "Depreciation And Amortization In Income Statement": 98.81,
+        "Depreciation Income Statement": 98.81,
+        "Gross Profit": 777.4,
+        "Cost Of Revenue": 1109.77,
+        "Total Revenue": 1887.17,
+        "Operating Revenue": 1887.17
+      },
+      {
+        "date": "2026-03-31",
+        "Tax Effect Of Unusual Items": -0.68,
+        "Tax Rate For Calcs": 0.23,
+        "Normalized EBITDA": 279.07,
+        "Total Unusual Items": -3.0,
+        "Total Unusual Items Excluding Goodwill": -3.0,
+        "Net Income From Continuing Operation Net Minority Interest": 919800000.0,
+        "Reconciled Depreciation": 99.74,
+        "Reconciled Cost Of Revenue": 1219.23,
+        "EBITDA": 276.07,
+        "EBIT": 176.33,
+        "Net Interest Income": -59.53,
+        "Interest Expense": 59.53,
+        "Normalized Income": 94.3,
+        "Net Income From Continuing And Discontinued Operation": 919800000.0,
+        "Total Expenses": 1789.17,
+        "Diluted Average Shares": 181420118.0,
+        "Basic Average Shares": 181420118.0,
+        "Diluted EPS": 5.07,
+        "Basic EPS": 5.07,
+        "Diluted NI Availto Com Stockholders": 91.98,
+        "Net Income Common Stockholders": 91.98,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 91.98,
+        "Minority Interests": 2.3,
+        "Net Income Including Noncontrolling Interests": 89.68,
+        "Net Income Continuous Operations": 896800000.0,
+        "Tax Provision": 26.61,
+        "Pretax Income": 116.8,
+        "Other Non Operating Income Expenses": 2.55,
+        "Special Income Charges": -3.0,
+        "Net Non Operating Interest Income Expense": -59.53,
+        "Interest Expense Non Operating": 59.53,
+        "Operating Income": 176.78,
+        "Operating Expense": 569.94,
+        "Other Operating Expenses": 299.55,
+        "Depreciation And Amortization In Income Statement": 99.74,
+        "Depreciation Income Statement": 99.74,
+        "Gross Profit": 746.72,
+        "Cost Of Revenue": 1219.23,
+        "Total Revenue": 1965.95,
+        "Operating Revenue": 1965.95
+      },
+      {
+        "date": "2025-12-31",
+        "Tax Effect Of Unusual Items": -3.68,
+        "Tax Rate For Calcs": 0.26,
+        "Normalized EBITDA": 195.87,
+        "Total Unusual Items": -14.36,
+        "Total Unusual Items Excluding Goodwill": -14.36,
+        "Net Income From Continuing Operation Net Minority Interest": 274000000.0,
+        "Reconciled Depreciation": 97.03,
+        "Reconciled Cost Of Revenue": 1105.69,
+        "EBITDA": 181.51,
+        "EBIT": 84.48,
+        "Net Interest Income": -47.47,
+        "Interest Expense": 47.47,
+        "Normalized Income": 38.08,
+        "Net Income From Continuing And Discontinued Operation": 274000000.0,
+        "Total Expenses": 1682.81,
+        "Diluted Average Shares": 170186335.0,
+        "Basic Average Shares": 170186335.0,
+        "Diluted EPS": 1.61,
+        "Basic EPS": 1.61,
+        "Diluted NI Availto Com Stockholders": 27.4,
+        "Net Income Common Stockholders": 27.4,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 27.4,
+        "Minority Interests": -0.13,
+        "Net Income Including Noncontrolling Interests": 27.53,
+        "Net Income Continuous Operations": 275300000.0,
+        "Tax Provision": 9.48,
+        "Pretax Income": 37.01,
+        "Other Non Operating Income Expenses": 18.65,
+        "Special Income Charges": -14.36,
+        "Net Non Operating Interest Income Expense": -47.47,
+        "Interest Expense Non Operating": 47.47,
+        "Operating Income": 80.19,
+        "Operating Expense": 577.12,
+        "Other Operating Expenses": 296.1,
+        "Depreciation And Amortization In Income Statement": 97.03,
+        "Depreciation Income Statement": 97.03,
+        "Gross Profit": 657.31,
+        "Cost Of Revenue": 1105.69,
+        "Total Revenue": 1763.0,
+        "Operating Revenue": 1763.0
+      },
+      {
+        "date": "2025-06-30",
+        "Tax Effect Of Unusual Items": 0.0,
+        "Tax Rate For Calcs": 0.28,
+        "Normalized EBITDA": 272.52,
+        "Total Unusual Items": 0.0,
+        "Total Unusual Items Excluding Goodwill": 0.0,
+        "Net Income From Continuing Operation Net Minority Interest": 791200000.0,
+        "Reconciled Depreciation": 89.01,
+        "Reconciled Cost Of Revenue": 998.77,
+        "EBITDA": 272.52,
+        "EBIT": 183.51,
+        "Net Interest Income": -67.14,
+        "Interest Expense": 67.14,
+        "Normalized Income": 79.12,
+        "Net Income From Continuing And Discontinued Operation": 791200000.0,
+        "Total Expenses": 1500.41,
+        "Diluted Average Shares": 181467890.0,
+        "Basic Average Shares": 181467890.0,
+        "Diluted EPS": 4.36,
+        "Basic EPS": 4.36,
+        "Diluted NI Availto Com Stockholders": 79.12,
+        "Net Income Common Stockholders": 79.12,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 79.12,
+        "Minority Interests": -4.63,
+        "Net Income Including Noncontrolling Interests": 83.75,
+        "Net Income Continuous Operations": 837500000.0,
+        "Tax Provision": 32.69,
+        "Pretax Income": 116.37,
+        "Other Non Operating Income Expenses": 22.88,
+        "Special Income Charges": 0.0,
+        "Net Non Operating Interest Income Expense": -67.14,
+        "Interest Expense Non Operating": 67.14,
+        "Operating Income": 160.63,
+        "Operating Expense": 501.64,
+        "Other Operating Expenses": 247.67,
+        "Depreciation And Amortization In Income Statement": 89.01,
+        "Depreciation Income Statement": 89.01,
+        "Gross Profit": 662.27,
+        "Cost Of Revenue": 998.77,
+        "Total Revenue": 1661.04,
+        "Operating Revenue": 1661.04
+      },
+      {
+        "date": "2025-03-31",
+        "Tax Effect Of Unusual Items": 0.0,
+        "Tax Rate For Calcs": 0.29,
+        "Normalized EBITDA": 229.11,
+        "Total Unusual Items": 0.0,
+        "Total Unusual Items Excluding Goodwill": 0.0,
+        "Net Income From Continuing Operation Net Minority Interest": 677500000.0,
+        "Reconciled Depreciation": 86.42,
+        "Reconciled Cost Of Revenue": 1063.99,
+        "EBITDA": 229.11,
+        "EBIT": 142.69,
+        "Net Interest Income": -50.14,
+        "Interest Expense": 50.14,
+        "Normalized Income": 67.75,
+        "Net Income From Continuing And Discontinued Operation": 677500000.0,
+        "Total Expenses": 1545.96,
+        "Diluted Average Shares": 181149733.0,
+        "Basic Average Shares": 181149733.0,
+        "Diluted EPS": 3.74,
+        "Basic EPS": 3.74,
+        "Diluted NI Availto Com Stockholders": 67.75,
+        "Net Income Common Stockholders": 67.75,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 67.75,
+        "Minority Interests": 0.47,
+        "Net Income Including Noncontrolling Interests": 67.28,
+        "Net Income Continuous Operations": 672800000.0,
+        "Tax Provision": 26.41,
+        "Pretax Income": 92.55,
+        "Other Non Operating Income Expenses": 11.6,
+        "Special Income Charges": 0.0,
+        "Net Non Operating Interest Income Expense": -50.14,
+        "Interest Expense Non Operating": 50.14,
+        "Operating Income": 131.09,
+        "Operating Expense": 481.97,
+        "Other Operating Expenses": 246.24,
+        "Depreciation And Amortization In Income Statement": 86.42,
+        "Depreciation Income Statement": 86.42,
+        "Gross Profit": 613.06,
+        "Cost Of Revenue": 1063.99,
+        "Total Revenue": 1677.05,
+        "Operating Revenue": 1677.05
+      }
+    ]
+  },
+  "yearly_pnl": {
+    "dates": [
+      "2026-03-31",
+      "2025-03-31",
+      "2024-03-31",
+      "2023-03-31",
+      "2022-03-31"
+    ],
+    "metrics": {
+      "Tax Effect Of Unusual Items": {
+        "2026-03-31": -0.35,
+        "2025-03-31": 9.99,
+        "2024-03-31": 10.53,
+        "2023-03-31": -0.1,
+        "2022-03-31": null
+      },
+      "Tax Rate For Calcs": {
+        "2026-03-31": 0.25,
+        "2025-03-31": 0.21,
+        "2024-03-31": 0.14,
+        "2023-03-31": 0.27,
+        "2022-03-31": null
+      },
+      "Normalized EBITDA": {
+        "2026-03-31": 898.69,
+        "2025-03-31": 964.03,
+        "2024-03-31": 1745.22,
+        "2023-03-31": 2108.23,
+        "2022-03-31": null
+      },
+      "Total Unusual Items": {
+        "2026-03-31": -1.39,
+        "2025-03-31": 46.85,
+        "2024-03-31": 72.85,
+        "2023-03-31": -0.36,
+        "2022-03-31": null
+      },
+      "Total Unusual Items Excluding Goodwill": {
+        "2026-03-31": -1.39,
+        "2025-03-31": 46.85,
+        "2024-03-31": 72.85,
+        "2023-03-31": -0.36,
+        "2022-03-31": null
+      },
+      "Net Income From Continuing Operation Net Minority Interest": {
+        "2026-03-31": 2658400000.0,
+        "2025-03-31": 4087900000.0,
+        "2024-03-31": 11217700000.0,
+        "2023-03-31": 11957900000.0,
+        "2022-03-31": null
+      },
+      "Reconciled Depreciation": {
+        "2026-03-31": 376.93,
+        "2025-03-31": 331.62,
+        "2024-03-31": 310.1,
+        "2023-03-31": 281.85,
+        "2022-03-31": null
+      },
+      "Reconciled Cost Of Revenue": {
+        "2026-03-31": 4506.63,
+        "2025-03-31": 4196.55,
+        "2024-03-31": 3577.76,
+        "2023-03-31": 2947.83,
+        "2022-03-31": null
+      },
+      "EBITDA": {
+        "2026-03-31": 897.3,
+        "2025-03-31": 1010.88,
+        "2024-03-31": 1818.07,
+        "2023-03-31": 2107.87,
+        "2022-03-31": null
+      },
+      "EBIT": {
+        "2026-03-31": 520.37,
+        "2025-03-31": 679.26,
+        "2024-03-31": 1507.97,
+        "2023-03-31": 1826.02,
+        "2022-03-31": null
+      },
+      "Net Interest Income": {
+        "2026-03-31": -143.8,
+        "2025-03-31": -135.28,
+        "2024-03-31": -150.42,
+        "2023-03-31": -151.61,
+        "2022-03-31": null
+      },
+      "Interest Expense": {
+        "2026-03-31": 155.89,
+        "2025-03-31": 162.3,
+        "2024-03-31": 183.29,
+        "2023-03-31": 179.54,
+        "2022-03-31": null
+      },
+      "Interest Income": {
+        "2026-03-31": 16.58,
+        "2025-03-31": 28.91,
+        "2024-03-31": 37.25,
+        "2023-03-31": 34.58,
+        "2022-03-31": null
+      },
+      "Normalized Income": {
+        "2026-03-31": 266.88,
+        "2025-03-31": 371.93,
+        "2024-03-31": 1059.45,
+        "2023-03-31": 1196.05,
+        "2022-03-31": null
+      },
+      "Net Income From Continuing And Discontinued Operation": {
+        "2026-03-31": 2658400000.0,
+        "2025-03-31": 4087900000.0,
+        "2024-03-31": 11217700000.0,
+        "2023-03-31": 11957900000.0,
+        "2022-03-31": null
+      },
+      "Total Expenses": {
+        "2026-03-31": 6402.13,
+        "2025-03-31": 5951.76,
+        "2024-03-31": 5188.51,
+        "2023-03-31": 4580.46,
+        "2022-03-31": null
+      },
+      "Rent Expense Supplemental": {
+        "2026-03-31": 15.84,
+        "2025-03-31": 15.95,
+        "2024-03-31": 18.04,
+        "2023-03-31": 15.81,
+        "2022-03-31": null
+      },
+      "Diluted Average Shares": {
+        "2026-03-31": 169402344.0,
+        "2025-03-31": 169402344.0,
+        "2024-03-31": 169402344.0,
+        "2023-03-31": 169402344.0,
+        "2022-03-31": null
+      },
+      "Basic Average Shares": {
+        "2026-03-31": 169402344.0,
+        "2025-03-31": 169402344.0,
+        "2024-03-31": 169402344.0,
+        "2023-03-31": 169402344.0,
+        "2022-03-31": null
+      },
+      "Diluted EPS": {
+        "2026-03-31": 14.66,
+        "2025-03-31": 22.55,
+        "2024-03-31": 59.15,
+        "2023-03-31": 70.59,
+        "2022-03-31": null
+      },
+      "Basic EPS": {
+        "2026-03-31": 14.66,
+        "2025-03-31": 22.55,
+        "2024-03-31": 66.22,
+        "2023-03-31": 70.59,
+        "2022-03-31": null
+      },
+      "Diluted NI Availto Com Stockholders": {
+        "2026-03-31": 265.84,
+        "2025-03-31": 408.79,
+        "2024-03-31": 1001.95,
+        "2023-03-31": 1195.79,
+        "2022-03-31": null
+      },
+      "Average Dilution Earnings": {
+        "2026-03-31": null,
+        "2025-03-31": -21.64,
+        "2024-03-31": -119.82,
+        "2023-03-31": 0.0,
+        "2022-03-31": 0.0
+      },
+      "Net Income Common Stockholders": {
+        "2026-03-31": 265.84,
+        "2025-03-31": 408.79,
+        "2024-03-31": 1121.77,
+        "2023-03-31": 1195.79,
+        "2022-03-31": null
+      },
+      "Otherunder Preferred Stock Dividend": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 0.0,
+        "2024-03-31": 0.0,
+        "2023-03-31": 0.0,
+        "2022-03-31": null
+      },
+      "Net Income": {
+        "2026-03-31": 265.84,
+        "2025-03-31": 408.79,
+        "2024-03-31": 1121.77,
+        "2023-03-31": 1195.79,
+        "2022-03-31": null
+      },
+      "Minority Interests": {
+        "2026-03-31": -7.66,
+        "2025-03-31": -0.98,
+        "2024-03-31": -11.43,
+        "2023-03-31": -12.43,
+        "2022-03-31": null
+      },
+      "Net Income Including Noncontrolling Interests": {
+        "2026-03-31": 273.5,
+        "2025-03-31": 409.77,
+        "2024-03-31": 1133.2,
+        "2023-03-31": 1208.22,
+        "2022-03-31": null
+      },
+      "Net Income Continuous Operations": {
+        "2026-03-31": 2735000000.0,
+        "2025-03-31": 4097700000.0,
+        "2024-03-31": 11332000000.0,
+        "2023-03-31": 12082200000.0,
+        "2022-03-31": null
+      },
+      "Tax Provision": {
+        "2026-03-31": 92.61,
+        "2025-03-31": 110.28,
+        "2024-03-31": 191.48,
+        "2023-03-31": 438.26,
+        "2022-03-31": null
+      },
+      "Pretax Income": {
+        "2026-03-31": 364.48,
+        "2025-03-31": 516.96,
+        "2024-03-31": 1324.68,
+        "2023-03-31": 1646.48,
+        "2022-03-31": null
+      },
+      "Other Non Operating Income Expenses": {
+        "2026-03-31": 60.06,
+        "2025-03-31": 10.41,
+        "2024-03-31": 12.14,
+        "2023-03-31": 4.31,
+        "2022-03-31": null
+      },
+      "Special Income Charges": {
+        "2026-03-31": -21.03,
+        "2025-03-31": -4.66,
+        "2024-03-31": 1.78,
+        "2023-03-31": -32.33,
+        "2022-03-31": null
+      },
+      "Other Special Charges": {
+        "2026-03-31": 20.19,
+        "2025-03-31": -3.76,
+        "2024-03-31": -1.85,
+        "2023-03-31": 28.94,
+        "2022-03-31": null
+      },
+      "Write Off": {
+        "2026-03-31": 0.84,
+        "2025-03-31": 8.42,
+        "2024-03-31": 0.07,
+        "2023-03-31": 3.39,
+        "2022-03-31": null
+      },
+      "Impairment Of Capital Assets": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": 3.12,
+        "2022-03-31": 0.45
+      },
+      "Net Non Operating Interest Income Expense": {
+        "2026-03-31": -143.8,
+        "2025-03-31": -135.28,
+        "2024-03-31": -150.42,
+        "2023-03-31": -151.61,
+        "2022-03-31": null
+      },
+      "Total Other Finance Cost": {
+        "2026-03-31": 4.49,
+        "2025-03-31": 1.89,
+        "2024-03-31": 4.38,
+        "2023-03-31": 6.65,
+        "2022-03-31": null
+      },
+      "Interest Expense Non Operating": {
+        "2026-03-31": 155.89,
+        "2025-03-31": 162.3,
+        "2024-03-31": 183.29,
+        "2023-03-31": 179.54,
+        "2022-03-31": null
+      },
+      "Interest Income Non Operating": {
+        "2026-03-31": 16.58,
+        "2025-03-31": 28.91,
+        "2024-03-31": 37.25,
+        "2023-03-31": 34.58,
+        "2022-03-31": null
+      },
+      "Operating Income": {
+        "2026-03-31": 567.19,
+        "2025-03-31": 616.57,
+        "2024-03-31": 1406.38,
+        "2023-03-31": 1829.2,
+        "2022-03-31": null
+      },
+      "Operating Expense": {
+        "2026-03-31": 1895.5,
+        "2025-03-31": 1755.21,
+        "2024-03-31": 1610.75,
+        "2023-03-31": 1632.63,
+        "2022-03-31": null
+      },
+      "Other Operating Expenses": {
+        "2026-03-31": 745.93,
+        "2025-03-31": 720.93,
+        "2024-03-31": 796.32,
+        "2023-03-31": 890.59,
+        "2022-03-31": null
+      },
+      "Depreciation And Amortization In Income Statement": {
+        "2026-03-31": 376.93,
+        "2025-03-31": 331.62,
+        "2024-03-31": 310.1,
+        "2023-03-31": 281.85,
+        "2022-03-31": null
+      },
+      "Amortization": {
+        "2026-03-31": 36.8,
+        "2025-03-31": 24.09,
+        "2024-03-31": 21.17,
+        "2023-03-31": 13.8,
+        "2022-03-31": null
+      },
+      "Depreciation Income Statement": {
+        "2026-03-31": 340.13,
+        "2025-03-31": 307.53,
+        "2024-03-31": 288.93,
+        "2023-03-31": 268.05,
+        "2022-03-31": null
+      },
+      "Selling General And Administration": {
+        "2026-03-31": 929600000.0,
+        "2025-03-31": 837700000.0,
+        "2024-03-31": 689000000.0,
+        "2023-03-31": 701600000.0,
+        "2022-03-31": null
+      },
+      "Selling And Marketing Expense": {
+        "2026-03-31": 74.33,
+        "2025-03-31": 67.98,
+        "2024-03-31": 53.89,
+        "2023-03-31": 57.43,
+        "2022-03-31": null
+      },
+      "General And Administrative Expense": {
+        "2026-03-31": 18.63,
+        "2025-03-31": 15.79,
+        "2024-03-31": 15.01,
+        "2023-03-31": 12.73,
+        "2022-03-31": null
+      },
+      "Rent And Landing Fees": {
+        "2026-03-31": 15.84,
+        "2025-03-31": 15.95,
+        "2024-03-31": 18.04,
+        "2023-03-31": 15.81,
+        "2022-03-31": null
+      },
+      "Gross Profit": {
+        "2026-03-31": 2462.69,
+        "2025-03-31": 2371.78,
+        "2024-03-31": 3017.13,
+        "2023-03-31": 3461.83,
+        "2022-03-31": null
+      },
+      "Cost Of Revenue": {
+        "2026-03-31": 4506.63,
+        "2025-03-31": 4196.55,
+        "2024-03-31": 3577.76,
+        "2023-03-31": 2947.83,
+        "2022-03-31": null
+      },
+      "Total Revenue": {
+        "2026-03-31": 6969.32,
+        "2025-03-31": 6568.33,
+        "2024-03-31": 6594.89,
+        "2023-03-31": 6409.66,
+        "2022-03-31": null
+      },
+      "Operating Revenue": {
+        "2026-03-31": 6969.32,
+        "2025-03-31": 6568.33,
+        "2024-03-31": 6594.89,
+        "2023-03-31": 6409.66,
+        "2022-03-31": null
+      }
+    },
+    "records": [
+      {
+        "date": "2026-03-31",
+        "Tax Effect Of Unusual Items": -0.35,
+        "Tax Rate For Calcs": 0.25,
+        "Normalized EBITDA": 898.69,
+        "Total Unusual Items": -1.39,
+        "Total Unusual Items Excluding Goodwill": -1.39,
+        "Net Income From Continuing Operation Net Minority Interest": 2658400000.0,
+        "Reconciled Depreciation": 376.93,
+        "Reconciled Cost Of Revenue": 4506.63,
+        "EBITDA": 897.3,
+        "EBIT": 520.37,
+        "Net Interest Income": -143.8,
+        "Interest Expense": 155.89,
+        "Interest Income": 16.58,
+        "Normalized Income": 266.88,
+        "Net Income From Continuing And Discontinued Operation": 2658400000.0,
+        "Total Expenses": 6402.13,
+        "Rent Expense Supplemental": 15.84,
+        "Diluted Average Shares": 169402344.0,
+        "Basic Average Shares": 169402344.0,
+        "Diluted EPS": 14.66,
+        "Basic EPS": 14.66,
+        "Diluted NI Availto Com Stockholders": 265.84,
+        "Average Dilution Earnings": null,
+        "Net Income Common Stockholders": 265.84,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 265.84,
+        "Minority Interests": -7.66,
+        "Net Income Including Noncontrolling Interests": 273.5,
+        "Net Income Continuous Operations": 2735000000.0,
+        "Tax Provision": 92.61,
+        "Pretax Income": 364.48,
+        "Other Non Operating Income Expenses": 60.06,
+        "Special Income Charges": -21.03,
+        "Other Special Charges": 20.19,
+        "Write Off": 0.84,
+        "Impairment Of Capital Assets": null,
+        "Net Non Operating Interest Income Expense": -143.8,
+        "Total Other Finance Cost": 4.49,
+        "Interest Expense Non Operating": 155.89,
+        "Interest Income Non Operating": 16.58,
+        "Operating Income": 567.19,
+        "Operating Expense": 1895.5,
+        "Other Operating Expenses": 745.93,
+        "Depreciation And Amortization In Income Statement": 376.93,
+        "Amortization": 36.8,
+        "Depreciation Income Statement": 340.13,
+        "Selling General And Administration": 929600000.0,
+        "Selling And Marketing Expense": 74.33,
+        "General And Administrative Expense": 18.63,
+        "Rent And Landing Fees": 15.84,
+        "Gross Profit": 2462.69,
+        "Cost Of Revenue": 4506.63,
+        "Total Revenue": 6969.32,
+        "Operating Revenue": 6969.32
+      },
+      {
+        "date": "2025-03-31",
+        "Tax Effect Of Unusual Items": 9.99,
+        "Tax Rate For Calcs": 0.21,
+        "Normalized EBITDA": 964.03,
+        "Total Unusual Items": 46.85,
+        "Total Unusual Items Excluding Goodwill": 46.85,
+        "Net Income From Continuing Operation Net Minority Interest": 4087900000.0,
+        "Reconciled Depreciation": 331.62,
+        "Reconciled Cost Of Revenue": 4196.55,
+        "EBITDA": 1010.88,
+        "EBIT": 679.26,
+        "Net Interest Income": -135.28,
+        "Interest Expense": 162.3,
+        "Interest Income": 28.91,
+        "Normalized Income": 371.93,
+        "Net Income From Continuing And Discontinued Operation": 4087900000.0,
+        "Total Expenses": 5951.76,
+        "Rent Expense Supplemental": 15.95,
+        "Diluted Average Shares": 169402344.0,
+        "Basic Average Shares": 169402344.0,
+        "Diluted EPS": 22.55,
+        "Basic EPS": 22.55,
+        "Diluted NI Availto Com Stockholders": 408.79,
+        "Average Dilution Earnings": -21.64,
+        "Net Income Common Stockholders": 408.79,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 408.79,
+        "Minority Interests": -0.98,
+        "Net Income Including Noncontrolling Interests": 409.77,
+        "Net Income Continuous Operations": 4097700000.0,
+        "Tax Provision": 110.28,
+        "Pretax Income": 516.96,
+        "Other Non Operating Income Expenses": 10.41,
+        "Special Income Charges": -4.66,
+        "Other Special Charges": -3.76,
+        "Write Off": 8.42,
+        "Impairment Of Capital Assets": null,
+        "Net Non Operating Interest Income Expense": -135.28,
+        "Total Other Finance Cost": 1.89,
+        "Interest Expense Non Operating": 162.3,
+        "Interest Income Non Operating": 28.91,
+        "Operating Income": 616.57,
+        "Operating Expense": 1755.21,
+        "Other Operating Expenses": 720.93,
+        "Depreciation And Amortization In Income Statement": 331.62,
+        "Amortization": 24.09,
+        "Depreciation Income Statement": 307.53,
+        "Selling General And Administration": 837700000.0,
+        "Selling And Marketing Expense": 67.98,
+        "General And Administrative Expense": 15.79,
+        "Rent And Landing Fees": 15.95,
+        "Gross Profit": 2371.78,
+        "Cost Of Revenue": 4196.55,
+        "Total Revenue": 6568.33,
+        "Operating Revenue": 6568.33
+      },
+      {
+        "date": "2024-03-31",
+        "Tax Effect Of Unusual Items": 10.53,
+        "Tax Rate For Calcs": 0.14,
+        "Normalized EBITDA": 1745.22,
+        "Total Unusual Items": 72.85,
+        "Total Unusual Items Excluding Goodwill": 72.85,
+        "Net Income From Continuing Operation Net Minority Interest": 11217700000.0,
+        "Reconciled Depreciation": 310.1,
+        "Reconciled Cost Of Revenue": 3577.76,
+        "EBITDA": 1818.07,
+        "EBIT": 1507.97,
+        "Net Interest Income": -150.42,
+        "Interest Expense": 183.29,
+        "Interest Income": 37.25,
+        "Normalized Income": 1059.45,
+        "Net Income From Continuing And Discontinued Operation": 11217700000.0,
+        "Total Expenses": 5188.51,
+        "Rent Expense Supplemental": 18.04,
+        "Diluted Average Shares": 169402344.0,
+        "Basic Average Shares": 169402344.0,
+        "Diluted EPS": 59.15,
+        "Basic EPS": 66.22,
+        "Diluted NI Availto Com Stockholders": 1001.95,
+        "Average Dilution Earnings": -119.82,
+        "Net Income Common Stockholders": 1121.77,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 1121.77,
+        "Minority Interests": -11.43,
+        "Net Income Including Noncontrolling Interests": 1133.2,
+        "Net Income Continuous Operations": 11332000000.0,
+        "Tax Provision": 191.48,
+        "Pretax Income": 1324.68,
+        "Other Non Operating Income Expenses": 12.14,
+        "Special Income Charges": 1.78,
+        "Other Special Charges": -1.85,
+        "Write Off": 0.07,
+        "Impairment Of Capital Assets": null,
+        "Net Non Operating Interest Income Expense": -150.42,
+        "Total Other Finance Cost": 4.38,
+        "Interest Expense Non Operating": 183.29,
+        "Interest Income Non Operating": 37.25,
+        "Operating Income": 1406.38,
+        "Operating Expense": 1610.75,
+        "Other Operating Expenses": 796.32,
+        "Depreciation And Amortization In Income Statement": 310.1,
+        "Amortization": 21.17,
+        "Depreciation Income Statement": 288.93,
+        "Selling General And Administration": 689000000.0,
+        "Selling And Marketing Expense": 53.89,
+        "General And Administrative Expense": 15.01,
+        "Rent And Landing Fees": 18.04,
+        "Gross Profit": 3017.13,
+        "Cost Of Revenue": 3577.76,
+        "Total Revenue": 6594.89,
+        "Operating Revenue": 6594.89
+      },
+      {
+        "date": "2023-03-31",
+        "Tax Effect Of Unusual Items": -0.1,
+        "Tax Rate For Calcs": 0.27,
+        "Normalized EBITDA": 2108.23,
+        "Total Unusual Items": -0.36,
+        "Total Unusual Items Excluding Goodwill": -0.36,
+        "Net Income From Continuing Operation Net Minority Interest": 11957900000.0,
+        "Reconciled Depreciation": 281.85,
+        "Reconciled Cost Of Revenue": 2947.83,
+        "EBITDA": 2107.87,
+        "EBIT": 1826.02,
+        "Net Interest Income": -151.61,
+        "Interest Expense": 179.54,
+        "Interest Income": 34.58,
+        "Normalized Income": 1196.05,
+        "Net Income From Continuing And Discontinued Operation": 11957900000.0,
+        "Total Expenses": 4580.46,
+        "Rent Expense Supplemental": 15.81,
+        "Diluted Average Shares": 169402344.0,
+        "Basic Average Shares": 169402344.0,
+        "Diluted EPS": 70.59,
+        "Basic EPS": 70.59,
+        "Diluted NI Availto Com Stockholders": 1195.79,
+        "Average Dilution Earnings": 0.0,
+        "Net Income Common Stockholders": 1195.79,
+        "Otherunder Preferred Stock Dividend": 0.0,
+        "Net Income": 1195.79,
+        "Minority Interests": -12.43,
+        "Net Income Including Noncontrolling Interests": 1208.22,
+        "Net Income Continuous Operations": 12082200000.0,
+        "Tax Provision": 438.26,
+        "Pretax Income": 1646.48,
+        "Other Non Operating Income Expenses": 4.31,
+        "Special Income Charges": -32.33,
+        "Other Special Charges": 28.94,
+        "Write Off": 3.39,
+        "Impairment Of Capital Assets": 3.12,
+        "Net Non Operating Interest Income Expense": -151.61,
+        "Total Other Finance Cost": 6.65,
+        "Interest Expense Non Operating": 179.54,
+        "Interest Income Non Operating": 34.58,
+        "Operating Income": 1829.2,
+        "Operating Expense": 1632.63,
+        "Other Operating Expenses": 890.59,
+        "Depreciation And Amortization In Income Statement": 281.85,
+        "Amortization": 13.8,
+        "Depreciation Income Statement": 268.05,
+        "Selling General And Administration": 701600000.0,
+        "Selling And Marketing Expense": 57.43,
+        "General And Administrative Expense": 12.73,
+        "Rent And Landing Fees": 15.81,
+        "Gross Profit": 3461.83,
+        "Cost Of Revenue": 2947.83,
+        "Total Revenue": 6409.66,
+        "Operating Revenue": 6409.66
+      },
+      {
+        "date": "2022-03-31",
+        "Tax Effect Of Unusual Items": null,
+        "Tax Rate For Calcs": null,
+        "Normalized EBITDA": null,
+        "Total Unusual Items": null,
+        "Total Unusual Items Excluding Goodwill": null,
+        "Net Income From Continuing Operation Net Minority Interest": null,
+        "Reconciled Depreciation": null,
+        "Reconciled Cost Of Revenue": null,
+        "EBITDA": null,
+        "EBIT": null,
+        "Net Interest Income": null,
+        "Interest Expense": null,
+        "Interest Income": null,
+        "Normalized Income": null,
+        "Net Income From Continuing And Discontinued Operation": null,
+        "Total Expenses": null,
+        "Rent Expense Supplemental": null,
+        "Diluted Average Shares": null,
+        "Basic Average Shares": null,
+        "Diluted EPS": null,
+        "Basic EPS": null,
+        "Diluted NI Availto Com Stockholders": null,
+        "Average Dilution Earnings": 0.0,
+        "Net Income Common Stockholders": null,
+        "Otherunder Preferred Stock Dividend": null,
+        "Net Income": null,
+        "Minority Interests": null,
+        "Net Income Including Noncontrolling Interests": null,
+        "Net Income Continuous Operations": null,
+        "Tax Provision": null,
+        "Pretax Income": null,
+        "Other Non Operating Income Expenses": null,
+        "Special Income Charges": null,
+        "Other Special Charges": null,
+        "Write Off": null,
+        "Impairment Of Capital Assets": 0.45,
+        "Net Non Operating Interest Income Expense": null,
+        "Total Other Finance Cost": null,
+        "Interest Expense Non Operating": null,
+        "Interest Income Non Operating": null,
+        "Operating Income": null,
+        "Operating Expense": null,
+        "Other Operating Expenses": null,
+        "Depreciation And Amortization In Income Statement": null,
+        "Amortization": null,
+        "Depreciation Income Statement": null,
+        "Selling General And Administration": null,
+        "Selling And Marketing Expense": null,
+        "General And Administrative Expense": null,
+        "Rent And Landing Fees": null,
+        "Gross Profit": null,
+        "Cost Of Revenue": null,
+        "Total Revenue": null,
+        "Operating Revenue": null
+      }
+    ]
+  },
+  "yearly_balance_sheet": {
+    "dates": [
+      "2026-03-31",
+      "2025-03-31",
+      "2024-03-31",
+      "2023-03-31"
+    ],
+    "metrics": {
+      "Ordinary Shares Number": {
+        "2026-03-31": 181318771.0,
+        "2025-03-31": 169402344.0,
+        "2024-03-31": 169402344.0,
+        "2023-03-31": 169402344.0
+      },
+      "Share Issued": {
+        "2026-03-31": 18.13,
+        "2025-03-31": 16.94,
+        "2024-03-31": 16.94,
+        "2023-03-31": 16.94
+      },
+      "Net Debt": {
+        "2026-03-31": 2278.96,
+        "2025-03-31": 1725.93,
+        "2024-03-31": 2062.55,
+        "2023-03-31": 2704.06
+      },
+      "Total Debt": {
+        "2026-03-31": 2577.52,
+        "2025-03-31": 1885.14,
+        "2024-03-31": 2204.2,
+        "2023-03-31": 2802.77
+      },
+      "Tangible Book Value": {
+        "2026-03-31": 4622.02,
+        "2025-03-31": 4599.67,
+        "2024-03-31": 4708.14,
+        "2023-03-31": 3654.33
+      },
+      "Invested Capital": {
+        "2026-03-31": 7956.78,
+        "2025-03-31": 7121.87,
+        "2024-03-31": 7194.82,
+        "2023-03-31": 6772.52
+      },
+      "Working Capital": {
+        "2026-03-31": 848.52,
+        "2025-03-31": 1252.65,
+        "2024-03-31": 1581.69,
+        "2023-03-31": 1082.85
+      },
+      "Net Tangible Assets": {
+        "2026-03-31": 4622.02,
+        "2025-03-31": 4599.67,
+        "2024-03-31": 4708.14,
+        "2023-03-31": 3654.33
+      },
+      "Capital Lease Obligations": {
+        "2026-03-31": 141.27,
+        "2025-03-31": 135.4,
+        "2024-03-31": 78.88,
+        "2023-03-31": 64.25
+      },
+      "Common Stock Equity": {
+        "2026-03-31": 5520.53,
+        "2025-03-31": 5372.13,
+        "2024-03-31": 5069.5,
+        "2023-03-31": 4034.0
+      },
+      "Total Capitalization": {
+        "2026-03-31": 6952.97,
+        "2025-03-31": 6646.46,
+        "2024-03-31": 6699.76,
+        "2023-03-31": 6116.91
+      },
+      "Total Equity Gross Minority Interest": {
+        "2026-03-31": 5786.42,
+        "2025-03-31": 5593.32,
+        "2024-03-31": 5211.91,
+        "2023-03-31": 4164.75
+      },
+      "Minority Interest": {
+        "2026-03-31": 265.89,
+        "2025-03-31": 221.19,
+        "2024-03-31": 142.41,
+        "2023-03-31": 130.75
+      },
+      "Stockholders Equity": {
+        "2026-03-31": 5520.53,
+        "2025-03-31": 5372.13,
+        "2024-03-31": 5069.5,
+        "2023-03-31": 4034.0
+      },
+      "Other Equity Interest": {
+        "2026-03-31": 5339.21,
+        "2025-03-31": 27.83,
+        "2024-03-31": 63.0,
+        "2023-03-31": 31.0
+      },
+      "Retained Earnings": {
+        "2026-03-31": 2944.78,
+        "2025-03-31": 2731.72,
+        "2024-03-31": 2589.94,
+        "2023-03-31": 1895.22
+      },
+      "Additional Paid In Capital": {
+        "2026-03-31": 357.11,
+        "2025-03-31": 454.9,
+        "2024-03-31": 454.9,
+        "2023-03-31": 454.9
+      },
+      "Capital Stock": {
+        "2026-03-31": 181.32,
+        "2025-03-31": 169.4,
+        "2024-03-31": 169.4,
+        "2023-03-31": 169.4
+      },
+      "Common Stock": {
+        "2026-03-31": 181.32,
+        "2025-03-31": 169.4,
+        "2024-03-31": 169.4,
+        "2023-03-31": 169.4
+      },
+      "Total Liabilities Net Minority Interest": {
+        "2026-03-31": 4751.83,
+        "2025-03-31": 3812.38,
+        "2024-03-31": 4115.88,
+        "2023-03-31": 4755.13
+      },
+      "Total Non Current Liabilities Net Minority Interest": {
+        "2026-03-31": 2578.99,
+        "2025-03-31": 2309.66,
+        "2024-03-31": 2639.93,
+        "2023-03-31": 3126.27
+      },
+      "Other Non Current Liabilities": {
+        "2026-03-31": 67.03,
+        "2025-03-31": 37.83,
+        "2024-03-31": 39.83,
+        "2023-03-31": 41.83
+      },
+      "Derivative Product Liabilities": {
+        "2026-03-31": 3.2,
+        "2025-03-31": 0.18,
+        "2024-03-31": 1.11,
+        "2023-03-31": 2.24
+      },
+      "Non Current Pension And Other Postretirement Benefit Plans": {
+        "2026-03-31": 31.9,
+        "2025-03-31": 16.69,
+        "2024-03-31": 14.39,
+        "2023-03-31": 11.66
+      },
+      "Non Current Accrued Expenses": {
+        "2026-03-31": 1.3,
+        "2025-03-31": 1.12,
+        "2024-03-31": 1.98,
+        "2023-03-31": 1.98
+      },
+      "Non Current Deferred Taxes Liabilities": {
+        "2026-03-31": 741.06,
+        "2025-03-31": 713.87,
+        "2024-03-31": 737.86,
+        "2023-03-31": 785.74
+      },
+      "Long Term Debt And Capital Lease Obligation": {
+        "2026-03-31": 1550.08,
+        "2025-03-31": 1387.92,
+        "2024-03-31": 1695.26,
+        "2023-03-31": 2137.21
+      },
+      "Long Term Capital Lease Obligation": {
+        "2026-03-31": 117.64,
+        "2025-03-31": 113.59,
+        "2024-03-31": 65.0,
+        "2023-03-31": 54.3
+      },
+      "Long Term Debt": {
+        "2026-03-31": 1432.44,
+        "2025-03-31": 1274.33,
+        "2024-03-31": 1630.26,
+        "2023-03-31": 2082.91
+      },
+      "Long Term Provisions": {
+        "2026-03-31": 31.9,
+        "2025-03-31": 16.69,
+        "2024-03-31": 14.39,
+        "2023-03-31": 11.66
+      },
+      "Current Liabilities": {
+        "2026-03-31": 2172.84,
+        "2025-03-31": 1502.72,
+        "2024-03-31": 1475.95,
+        "2023-03-31": 1628.86
+      },
+      "Other Current Liabilities": {
+        "2026-03-31": 3.78,
+        "2025-03-31": 2.0,
+        "2024-03-31": 2.0,
+        "2023-03-31": 2.0
+      },
+      "Current Deferred Taxes Liabilities": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 11.71,
+        "2024-03-31": 3.46,
+        "2023-03-31": 0.33
+      },
+      "Current Debt And Capital Lease Obligation": {
+        "2026-03-31": 1027.44,
+        "2025-03-31": 497.22,
+        "2024-03-31": 508.94,
+        "2023-03-31": 665.56
+      },
+      "Current Capital Lease Obligation": {
+        "2026-03-31": 23.63,
+        "2025-03-31": 21.81,
+        "2024-03-31": 13.88,
+        "2023-03-31": 9.95
+      },
+      "Current Debt": {
+        "2026-03-31": 1003.81,
+        "2025-03-31": 475.41,
+        "2024-03-31": 495.06,
+        "2023-03-31": 655.61
+      },
+      "Pensionand Other Post Retirement Benefit Plans Current": {
+        "2026-03-31": 21.52,
+        "2025-03-31": 11.88,
+        "2024-03-31": 12.6,
+        "2023-03-31": 12.8
+      },
+      "Current Provisions": {
+        "2026-03-31": 21.52,
+        "2025-03-31": 11.88,
+        "2024-03-31": 12.6,
+        "2023-03-31": 12.8
+      },
+      "Payables": {
+        "2026-03-31": 1089.57,
+        "2025-03-31": 949.54,
+        "2024-03-31": 918.92,
+        "2023-03-31": 915.25
+      },
+      "Other Payable": {
+        "2026-03-31": 233.66,
+        "2025-03-31": 210.04,
+        "2024-03-31": 240.43,
+        "2023-03-31": 256.73
+      },
+      "Dividends Payable": {
+        "2026-03-31": 0.95,
+        "2025-03-31": 0.85,
+        "2024-03-31": 0.81,
+        "2023-03-31": 0.66
+      },
+      "Total Tax Payable": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 27.22,
+        "2024-03-31": 3.46,
+        "2023-03-31": 0.33
+      },
+      "Accounts Payable": {
+        "2026-03-31": 854.96,
+        "2025-03-31": 738.65,
+        "2024-03-31": 677.68,
+        "2023-03-31": 657.86
+      },
+      "Total Assets": {
+        "2026-03-31": 10538.25,
+        "2025-03-31": 9405.7,
+        "2024-03-31": 9327.79,
+        "2023-03-31": 8919.88
+      },
+      "Total Non Current Assets": {
+        "2026-03-31": 7516.89,
+        "2025-03-31": 6650.33,
+        "2024-03-31": 6270.15,
+        "2023-03-31": 6208.17
+      },
+      "Other Non Current Assets": {
+        "2026-03-31": 188.84,
+        "2025-03-31": -27.14,
+        "2024-03-31": 22.03,
+        "2023-03-31": 1.04
+      },
+      "Non Current Prepaid Assets": {
+        "2026-03-31": 188.48,
+        "2025-03-31": 39.69,
+        "2024-03-31": 42.39,
+        "2023-03-31": 42.73
+      },
+      "Non Current Deferred Taxes Assets": {
+        "2026-03-31": 7.0,
+        "2025-03-31": 4.6,
+        "2024-03-31": 1.55,
+        "2023-03-31": 0.0
+      },
+      "Financial Assets": {
+        "2026-03-31": 12.75,
+        "2025-03-31": 15.25,
+        "2024-03-31": 55.05,
+        "2023-03-31": 81.8
+      },
+      "Investmentin Financial Assets": {
+        "2026-03-31": 114.26,
+        "2025-03-31": 165.36,
+        "2024-03-31": 167.69,
+        "2023-03-31": 92.43
+      },
+      "Available For Sale Securities": {
+        "2026-03-31": 114.26,
+        "2025-03-31": 165.36,
+        "2024-03-31": 167.69,
+        "2023-03-31": 92.43
+      },
+      "Trading Securities": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": 68.45,
+        "2023-03-31": 0.0
+      },
+      "Long Term Equity Investment": {
+        "2026-03-31": 30.89,
+        "2025-03-31": 27.95,
+        "2024-03-31": 27.1,
+        "2023-03-31": 26.72
+      },
+      "Investmentsin Joint Venturesat Cost": {
+        "2026-03-31": 30.89,
+        "2025-03-31": 27.95,
+        "2024-03-31": 27.1,
+        "2023-03-31": 26.72
+      },
+      "Investmentsin Associatesat Cost": {
+        "2026-03-31": null,
+        "2025-03-31": 0.01,
+        "2024-03-31": 0.0,
+        "2023-03-31": null
+      },
+      "Investment Properties": {
+        "2026-03-31": 51.68,
+        "2025-03-31": 52.07,
+        "2024-03-31": 52.14,
+        "2023-03-31": 52.65
+      },
+      "Goodwill And Other Intangible Assets": {
+        "2026-03-31": 898.51,
+        "2025-03-31": 772.46,
+        "2024-03-31": 361.36,
+        "2023-03-31": 379.67
+      },
+      "Other Intangible Assets": {
+        "2026-03-31": 439.17,
+        "2025-03-31": 409.1,
+        "2024-03-31": 210.79,
+        "2023-03-31": 230.57
+      },
+      "Goodwill": {
+        "2026-03-31": 459.34,
+        "2025-03-31": 363.36,
+        "2024-03-31": 150.57,
+        "2023-03-31": 149.1
+      },
+      "Net PPE": {
+        "2026-03-31": 6005.08,
+        "2025-03-31": 5574.39,
+        "2024-03-31": 5507.86,
+        "2023-03-31": 5479.0
+      },
+      "Accumulated Depreciation": {
+        "2026-03-31": -2036.71,
+        "2025-03-31": -1713.98,
+        "2024-03-31": -1411.96,
+        "2023-03-31": -1150.92
+      },
+      "Gross PPE": {
+        "2026-03-31": 8041.79,
+        "2025-03-31": 7288.37,
+        "2024-03-31": 6919.82,
+        "2023-03-31": 6629.92
+      },
+      "Construction In Progress": {
+        "2026-03-31": 442.84,
+        "2025-03-31": 135.02,
+        "2024-03-31": 70.99,
+        "2023-03-31": 151.1
+      },
+      "Other Properties": {
+        "2026-03-31": 165.51,
+        "2025-03-31": 165.51,
+        "2024-03-31": 135.51,
+        "2023-03-31": 113.0
+      },
+      "Machinery Furniture Equipment": {
+        "2026-03-31": 5564.0,
+        "2025-03-31": 5292.72,
+        "2024-03-31": 5253.66,
+        "2023-03-31": 4902.4
+      },
+      "Buildings And Improvements": {
+        "2026-03-31": 917.09,
+        "2025-03-31": 795.76,
+        "2024-03-31": 728.57,
+        "2023-03-31": 646.08
+      },
+      "Land And Improvements": {
+        "2026-03-31": 952.35,
+        "2025-03-31": 899.36,
+        "2024-03-31": 866.6,
+        "2023-03-31": 817.34
+      },
+      "Properties": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 0.0,
+        "2024-03-31": 0.0,
+        "2023-03-31": 0.0
+      },
+      "Current Assets": {
+        "2026-03-31": 3021.36,
+        "2025-03-31": 2755.37,
+        "2024-03-31": 3057.64,
+        "2023-03-31": 2711.71
+      },
+      "Other Current Assets": {
+        "2026-03-31": -0.7,
+        "2025-03-31": -0.43,
+        "2024-03-31": 0.19,
+        "2023-03-31": 1.06
+      },
+      "Hedging Assets Current": {
+        "2026-03-31": 23.12,
+        "2025-03-31": 2.5,
+        "2024-03-31": 11.26,
+        "2023-03-31": 13.46
+      },
+      "Assets Held For Sale Current": {
+        "2026-03-31": 53.29,
+        "2025-03-31": 0.12,
+        "2024-03-31": 0.08,
+        "2023-03-31": 7.76
+      },
+      "Restricted Cash": {
+        "2026-03-31": 6.68,
+        "2025-03-31": 4.88,
+        "2024-03-31": 2.35,
+        "2023-03-31": 2.19
+      },
+      "Prepaid Assets": {
+        "2026-03-31": 254.65,
+        "2025-03-31": 410.57,
+        "2024-03-31": 386.64,
+        "2023-03-31": 410.29
+      },
+      "Inventory": {
+        "2026-03-31": 1348.47,
+        "2025-03-31": 1213.54,
+        "2024-03-31": 941.63,
+        "2023-03-31": 819.29
+      },
+      "Other Inventories": {
+        "2026-03-31": 0.17,
+        "2025-03-31": 0.17,
+        "2024-03-31": 0.17,
+        "2023-03-31": 0.15
+      },
+      "Finished Goods": {
+        "2026-03-31": 332.54,
+        "2025-03-31": 238.74,
+        "2024-03-31": 193.35,
+        "2023-03-31": 158.47
+      },
+      "Work In Process": {
+        "2026-03-31": 72.2,
+        "2025-03-31": 77.88,
+        "2024-03-31": 47.28,
+        "2023-03-31": 42.6
+      },
+      "Raw Materials": {
+        "2026-03-31": 943.56,
+        "2025-03-31": 896.75,
+        "2024-03-31": 700.83,
+        "2023-03-31": 618.07
+      },
+      "Other Receivables": {
+        "2026-03-31": 213.97,
+        "2025-03-31": 262.47,
+        "2024-03-31": 313.35,
+        "2023-03-31": 238.16
+      },
+      "Taxes Receivable": {
+        "2026-03-31": 6.6,
+        "2025-03-31": 1.22,
+        "2024-03-31": 8.94,
+        "2023-03-31": 5.69
+      },
+      "Accounts Receivable": {
+        "2026-03-31": 545.92,
+        "2025-03-31": 431.79,
+        "2024-03-31": 361.27,
+        "2023-03-31": 349.54
+      },
+      "Allowance For Doubtful Accounts Receivable": {
+        "2026-03-31": -7.78,
+        "2025-03-31": -8.61,
+        "2024-03-31": -8.48,
+        "2023-03-31": -2.8
+      },
+      "Gross Accounts Receivable": {
+        "2026-03-31": 553.7,
+        "2025-03-31": 440.78,
+        "2024-03-31": 369.75,
+        "2023-03-31": 352.34
+      },
+      "Cash Cash Equivalents And Short Term Investments": {
+        "2026-03-31": 575.96,
+        "2025-03-31": 429.93,
+        "2024-03-31": 1040.87,
+        "2023-03-31": 864.27
+      },
+      "Other Short Term Investments": {
+        "2026-03-31": 418.67,
+        "2025-03-31": 406.12,
+        "2024-03-31": 978.1,
+        "2023-03-31": 829.81
+      },
+      "Cash And Cash Equivalents": {
+        "2026-03-31": 157.29,
+        "2025-03-31": 23.81,
+        "2024-03-31": 62.77,
+        "2023-03-31": 34.46
+      },
+      "Cash Financial": {
+        "2026-03-31": 157.29,
+        "2025-03-31": 23.81,
+        "2024-03-31": 62.77,
+        "2023-03-31": 34.46
+      }
+    },
+    "records": [
+      {
+        "date": "2026-03-31",
+        "Ordinary Shares Number": 181318771.0,
+        "Share Issued": 18.13,
+        "Net Debt": 2278.96,
+        "Total Debt": 2577.52,
+        "Tangible Book Value": 4622.02,
+        "Invested Capital": 7956.78,
+        "Working Capital": 848.52,
+        "Net Tangible Assets": 4622.02,
+        "Capital Lease Obligations": 141.27,
+        "Common Stock Equity": 5520.53,
+        "Total Capitalization": 6952.97,
+        "Total Equity Gross Minority Interest": 5786.42,
+        "Minority Interest": 265.89,
+        "Stockholders Equity": 5520.53,
+        "Other Equity Interest": 5339.21,
+        "Retained Earnings": 2944.78,
+        "Additional Paid In Capital": 357.11,
+        "Capital Stock": 181.32,
+        "Common Stock": 181.32,
+        "Total Liabilities Net Minority Interest": 4751.83,
+        "Total Non Current Liabilities Net Minority Interest": 2578.99,
+        "Other Non Current Liabilities": 67.03,
+        "Derivative Product Liabilities": 3.2,
+        "Non Current Pension And Other Postretirement Benefit Plans": 31.9,
+        "Non Current Accrued Expenses": 1.3,
+        "Non Current Deferred Taxes Liabilities": 741.06,
+        "Long Term Debt And Capital Lease Obligation": 1550.08,
+        "Long Term Capital Lease Obligation": 117.64,
+        "Long Term Debt": 1432.44,
+        "Long Term Provisions": 31.9,
+        "Current Liabilities": 2172.84,
+        "Other Current Liabilities": 3.78,
+        "Current Deferred Taxes Liabilities": 0.0,
+        "Current Debt And Capital Lease Obligation": 1027.44,
+        "Current Capital Lease Obligation": 23.63,
+        "Current Debt": 1003.81,
+        "Pensionand Other Post Retirement Benefit Plans Current": 21.52,
+        "Current Provisions": 21.52,
+        "Payables": 1089.57,
+        "Other Payable": 233.66,
+        "Dividends Payable": 0.95,
+        "Total Tax Payable": 0.0,
+        "Accounts Payable": 854.96,
+        "Total Assets": 10538.25,
+        "Total Non Current Assets": 7516.89,
+        "Other Non Current Assets": 188.84,
+        "Non Current Prepaid Assets": 188.48,
+        "Non Current Deferred Taxes Assets": 7.0,
+        "Financial Assets": 12.75,
+        "Investmentin Financial Assets": 114.26,
+        "Available For Sale Securities": 114.26,
+        "Trading Securities": null,
+        "Long Term Equity Investment": 30.89,
+        "Investmentsin Joint Venturesat Cost": 30.89,
+        "Investmentsin Associatesat Cost": null,
+        "Investment Properties": 51.68,
+        "Goodwill And Other Intangible Assets": 898.51,
+        "Other Intangible Assets": 439.17,
+        "Goodwill": 459.34,
+        "Net PPE": 6005.08,
+        "Accumulated Depreciation": -2036.71,
+        "Gross PPE": 8041.79,
+        "Construction In Progress": 442.84,
+        "Other Properties": 165.51,
+        "Machinery Furniture Equipment": 5564.0,
+        "Buildings And Improvements": 917.09,
+        "Land And Improvements": 952.35,
+        "Properties": 0.0,
+        "Current Assets": 3021.36,
+        "Other Current Assets": -0.7,
+        "Hedging Assets Current": 23.12,
+        "Assets Held For Sale Current": 53.29,
+        "Restricted Cash": 6.68,
+        "Prepaid Assets": 254.65,
+        "Inventory": 1348.47,
+        "Other Inventories": 0.17,
+        "Finished Goods": 332.54,
+        "Work In Process": 72.2,
+        "Raw Materials": 943.56,
+        "Other Receivables": 213.97,
+        "Taxes Receivable": 6.6,
+        "Accounts Receivable": 545.92,
+        "Allowance For Doubtful Accounts Receivable": -7.78,
+        "Gross Accounts Receivable": 553.7,
+        "Cash Cash Equivalents And Short Term Investments": 575.96,
+        "Other Short Term Investments": 418.67,
+        "Cash And Cash Equivalents": 157.29,
+        "Cash Financial": 157.29
+      },
+      {
+        "date": "2025-03-31",
+        "Ordinary Shares Number": 169402344.0,
+        "Share Issued": 16.94,
+        "Net Debt": 1725.93,
+        "Total Debt": 1885.14,
+        "Tangible Book Value": 4599.67,
+        "Invested Capital": 7121.87,
+        "Working Capital": 1252.65,
+        "Net Tangible Assets": 4599.67,
+        "Capital Lease Obligations": 135.4,
+        "Common Stock Equity": 5372.13,
+        "Total Capitalization": 6646.46,
+        "Total Equity Gross Minority Interest": 5593.32,
+        "Minority Interest": 221.19,
+        "Stockholders Equity": 5372.13,
+        "Other Equity Interest": 27.83,
+        "Retained Earnings": 2731.72,
+        "Additional Paid In Capital": 454.9,
+        "Capital Stock": 169.4,
+        "Common Stock": 169.4,
+        "Total Liabilities Net Minority Interest": 3812.38,
+        "Total Non Current Liabilities Net Minority Interest": 2309.66,
+        "Other Non Current Liabilities": 37.83,
+        "Derivative Product Liabilities": 0.18,
+        "Non Current Pension And Other Postretirement Benefit Plans": 16.69,
+        "Non Current Accrued Expenses": 1.12,
+        "Non Current Deferred Taxes Liabilities": 713.87,
+        "Long Term Debt And Capital Lease Obligation": 1387.92,
+        "Long Term Capital Lease Obligation": 113.59,
+        "Long Term Debt": 1274.33,
+        "Long Term Provisions": 16.69,
+        "Current Liabilities": 1502.72,
+        "Other Current Liabilities": 2.0,
+        "Current Deferred Taxes Liabilities": 11.71,
+        "Current Debt And Capital Lease Obligation": 497.22,
+        "Current Capital Lease Obligation": 21.81,
+        "Current Debt": 475.41,
+        "Pensionand Other Post Retirement Benefit Plans Current": 11.88,
+        "Current Provisions": 11.88,
+        "Payables": 949.54,
+        "Other Payable": 210.04,
+        "Dividends Payable": 0.85,
+        "Total Tax Payable": 27.22,
+        "Accounts Payable": 738.65,
+        "Total Assets": 9405.7,
+        "Total Non Current Assets": 6650.33,
+        "Other Non Current Assets": -27.14,
+        "Non Current Prepaid Assets": 39.69,
+        "Non Current Deferred Taxes Assets": 4.6,
+        "Financial Assets": 15.25,
+        "Investmentin Financial Assets": 165.36,
+        "Available For Sale Securities": 165.36,
+        "Trading Securities": null,
+        "Long Term Equity Investment": 27.95,
+        "Investmentsin Joint Venturesat Cost": 27.95,
+        "Investmentsin Associatesat Cost": 0.01,
+        "Investment Properties": 52.07,
+        "Goodwill And Other Intangible Assets": 772.46,
+        "Other Intangible Assets": 409.1,
+        "Goodwill": 363.36,
+        "Net PPE": 5574.39,
+        "Accumulated Depreciation": -1713.98,
+        "Gross PPE": 7288.37,
+        "Construction In Progress": 135.02,
+        "Other Properties": 165.51,
+        "Machinery Furniture Equipment": 5292.72,
+        "Buildings And Improvements": 795.76,
+        "Land And Improvements": 899.36,
+        "Properties": 0.0,
+        "Current Assets": 2755.37,
+        "Other Current Assets": -0.43,
+        "Hedging Assets Current": 2.5,
+        "Assets Held For Sale Current": 0.12,
+        "Restricted Cash": 4.88,
+        "Prepaid Assets": 410.57,
+        "Inventory": 1213.54,
+        "Other Inventories": 0.17,
+        "Finished Goods": 238.74,
+        "Work In Process": 77.88,
+        "Raw Materials": 896.75,
+        "Other Receivables": 262.47,
+        "Taxes Receivable": 1.22,
+        "Accounts Receivable": 431.79,
+        "Allowance For Doubtful Accounts Receivable": -8.61,
+        "Gross Accounts Receivable": 440.78,
+        "Cash Cash Equivalents And Short Term Investments": 429.93,
+        "Other Short Term Investments": 406.12,
+        "Cash And Cash Equivalents": 23.81,
+        "Cash Financial": 23.81
+      },
+      {
+        "date": "2024-03-31",
+        "Ordinary Shares Number": 169402344.0,
+        "Share Issued": 16.94,
+        "Net Debt": 2062.55,
+        "Total Debt": 2204.2,
+        "Tangible Book Value": 4708.14,
+        "Invested Capital": 7194.82,
+        "Working Capital": 1581.69,
+        "Net Tangible Assets": 4708.14,
+        "Capital Lease Obligations": 78.88,
+        "Common Stock Equity": 5069.5,
+        "Total Capitalization": 6699.76,
+        "Total Equity Gross Minority Interest": 5211.91,
+        "Minority Interest": 142.41,
+        "Stockholders Equity": 5069.5,
+        "Other Equity Interest": 63.0,
+        "Retained Earnings": 2589.94,
+        "Additional Paid In Capital": 454.9,
+        "Capital Stock": 169.4,
+        "Common Stock": 169.4,
+        "Total Liabilities Net Minority Interest": 4115.88,
+        "Total Non Current Liabilities Net Minority Interest": 2639.93,
+        "Other Non Current Liabilities": 39.83,
+        "Derivative Product Liabilities": 1.11,
+        "Non Current Pension And Other Postretirement Benefit Plans": 14.39,
+        "Non Current Accrued Expenses": 1.98,
+        "Non Current Deferred Taxes Liabilities": 737.86,
+        "Long Term Debt And Capital Lease Obligation": 1695.26,
+        "Long Term Capital Lease Obligation": 65.0,
+        "Long Term Debt": 1630.26,
+        "Long Term Provisions": 14.39,
+        "Current Liabilities": 1475.95,
+        "Other Current Liabilities": 2.0,
+        "Current Deferred Taxes Liabilities": 3.46,
+        "Current Debt And Capital Lease Obligation": 508.94,
+        "Current Capital Lease Obligation": 13.88,
+        "Current Debt": 495.06,
+        "Pensionand Other Post Retirement Benefit Plans Current": 12.6,
+        "Current Provisions": 12.6,
+        "Payables": 918.92,
+        "Other Payable": 240.43,
+        "Dividends Payable": 0.81,
+        "Total Tax Payable": 3.46,
+        "Accounts Payable": 677.68,
+        "Total Assets": 9327.79,
+        "Total Non Current Assets": 6270.15,
+        "Other Non Current Assets": 22.03,
+        "Non Current Prepaid Assets": 42.39,
+        "Non Current Deferred Taxes Assets": 1.55,
+        "Financial Assets": 55.05,
+        "Investmentin Financial Assets": 167.69,
+        "Available For Sale Securities": 167.69,
+        "Trading Securities": 68.45,
+        "Long Term Equity Investment": 27.1,
+        "Investmentsin Joint Venturesat Cost": 27.1,
+        "Investmentsin Associatesat Cost": 0.0,
+        "Investment Properties": 52.14,
+        "Goodwill And Other Intangible Assets": 361.36,
+        "Other Intangible Assets": 210.79,
+        "Goodwill": 150.57,
+        "Net PPE": 5507.86,
+        "Accumulated Depreciation": -1411.96,
+        "Gross PPE": 6919.82,
+        "Construction In Progress": 70.99,
+        "Other Properties": 135.51,
+        "Machinery Furniture Equipment": 5253.66,
+        "Buildings And Improvements": 728.57,
+        "Land And Improvements": 866.6,
+        "Properties": 0.0,
+        "Current Assets": 3057.64,
+        "Other Current Assets": 0.19,
+        "Hedging Assets Current": 11.26,
+        "Assets Held For Sale Current": 0.08,
+        "Restricted Cash": 2.35,
+        "Prepaid Assets": 386.64,
+        "Inventory": 941.63,
+        "Other Inventories": 0.17,
+        "Finished Goods": 193.35,
+        "Work In Process": 47.28,
+        "Raw Materials": 700.83,
+        "Other Receivables": 313.35,
+        "Taxes Receivable": 8.94,
+        "Accounts Receivable": 361.27,
+        "Allowance For Doubtful Accounts Receivable": -8.48,
+        "Gross Accounts Receivable": 369.75,
+        "Cash Cash Equivalents And Short Term Investments": 1040.87,
+        "Other Short Term Investments": 978.1,
+        "Cash And Cash Equivalents": 62.77,
+        "Cash Financial": 62.77
+      },
+      {
+        "date": "2023-03-31",
+        "Ordinary Shares Number": 169402344.0,
+        "Share Issued": 16.94,
+        "Net Debt": 2704.06,
+        "Total Debt": 2802.77,
+        "Tangible Book Value": 3654.33,
+        "Invested Capital": 6772.52,
+        "Working Capital": 1082.85,
+        "Net Tangible Assets": 3654.33,
+        "Capital Lease Obligations": 64.25,
+        "Common Stock Equity": 4034.0,
+        "Total Capitalization": 6116.91,
+        "Total Equity Gross Minority Interest": 4164.75,
+        "Minority Interest": 130.75,
+        "Stockholders Equity": 4034.0,
+        "Other Equity Interest": 31.0,
+        "Retained Earnings": 1895.22,
+        "Additional Paid In Capital": 454.9,
+        "Capital Stock": 169.4,
+        "Common Stock": 169.4,
+        "Total Liabilities Net Minority Interest": 4755.13,
+        "Total Non Current Liabilities Net Minority Interest": 3126.27,
+        "Other Non Current Liabilities": 41.83,
+        "Derivative Product Liabilities": 2.24,
+        "Non Current Pension And Other Postretirement Benefit Plans": 11.66,
+        "Non Current Accrued Expenses": 1.98,
+        "Non Current Deferred Taxes Liabilities": 785.74,
+        "Long Term Debt And Capital Lease Obligation": 2137.21,
+        "Long Term Capital Lease Obligation": 54.3,
+        "Long Term Debt": 2082.91,
+        "Long Term Provisions": 11.66,
+        "Current Liabilities": 1628.86,
+        "Other Current Liabilities": 2.0,
+        "Current Deferred Taxes Liabilities": 0.33,
+        "Current Debt And Capital Lease Obligation": 665.56,
+        "Current Capital Lease Obligation": 9.95,
+        "Current Debt": 655.61,
+        "Pensionand Other Post Retirement Benefit Plans Current": 12.8,
+        "Current Provisions": 12.8,
+        "Payables": 915.25,
+        "Other Payable": 256.73,
+        "Dividends Payable": 0.66,
+        "Total Tax Payable": 0.33,
+        "Accounts Payable": 657.86,
+        "Total Assets": 8919.88,
+        "Total Non Current Assets": 6208.17,
+        "Other Non Current Assets": 1.04,
+        "Non Current Prepaid Assets": 42.73,
+        "Non Current Deferred Taxes Assets": 0.0,
+        "Financial Assets": 81.8,
+        "Investmentin Financial Assets": 92.43,
+        "Available For Sale Securities": 92.43,
+        "Trading Securities": 0.0,
+        "Long Term Equity Investment": 26.72,
+        "Investmentsin Joint Venturesat Cost": 26.72,
+        "Investmentsin Associatesat Cost": null,
+        "Investment Properties": 52.65,
+        "Goodwill And Other Intangible Assets": 379.67,
+        "Other Intangible Assets": 230.57,
+        "Goodwill": 149.1,
+        "Net PPE": 5479.0,
+        "Accumulated Depreciation": -1150.92,
+        "Gross PPE": 6629.92,
+        "Construction In Progress": 151.1,
+        "Other Properties": 113.0,
+        "Machinery Furniture Equipment": 4902.4,
+        "Buildings And Improvements": 646.08,
+        "Land And Improvements": 817.34,
+        "Properties": 0.0,
+        "Current Assets": 2711.71,
+        "Other Current Assets": 1.06,
+        "Hedging Assets Current": 13.46,
+        "Assets Held For Sale Current": 7.76,
+        "Restricted Cash": 2.19,
+        "Prepaid Assets": 410.29,
+        "Inventory": 819.29,
+        "Other Inventories": 0.15,
+        "Finished Goods": 158.47,
+        "Work In Process": 42.6,
+        "Raw Materials": 618.07,
+        "Other Receivables": 238.16,
+        "Taxes Receivable": 5.69,
+        "Accounts Receivable": 349.54,
+        "Allowance For Doubtful Accounts Receivable": -2.8,
+        "Gross Accounts Receivable": 352.34,
+        "Cash Cash Equivalents And Short Term Investments": 864.27,
+        "Other Short Term Investments": 829.81,
+        "Cash And Cash Equivalents": 34.46,
+        "Cash Financial": 34.46
+      }
+    ]
+  },
+  "quarterly_balance_sheet": {
+    "dates": [
+      "2026-03-31",
+      "2025-03-31"
+    ],
+    "metrics": {
+      "Ordinary Shares Number": {
+        "2026-03-31": 181318771.0,
+        "2025-03-31": 169402344.0
+      },
+      "Share Issued": {
+        "2026-03-31": 18.13,
+        "2025-03-31": 16.94
+      },
+      "Net Debt": {
+        "2026-03-31": 2278.96,
+        "2025-03-31": 1725.93
+      },
+      "Total Debt": {
+        "2026-03-31": 2577.52,
+        "2025-03-31": 1885.14
+      },
+      "Tangible Book Value": {
+        "2026-03-31": 4622.02,
+        "2025-03-31": 4599.67
+      },
+      "Invested Capital": {
+        "2026-03-31": 7956.78,
+        "2025-03-31": 7121.87
+      },
+      "Working Capital": {
+        "2026-03-31": 848.52,
+        "2025-03-31": 1252.65
+      },
+      "Net Tangible Assets": {
+        "2026-03-31": 4622.02,
+        "2025-03-31": 4599.67
+      },
+      "Capital Lease Obligations": {
+        "2026-03-31": 141.27,
+        "2025-03-31": 135.4
+      },
+      "Common Stock Equity": {
+        "2026-03-31": 5520.53,
+        "2025-03-31": 5372.13
+      },
+      "Total Capitalization": {
+        "2026-03-31": 6952.97,
+        "2025-03-31": 6646.46
+      },
+      "Total Equity Gross Minority Interest": {
+        "2026-03-31": 5786.42,
+        "2025-03-31": 5593.32
+      },
+      "Minority Interest": {
+        "2026-03-31": 265.89,
+        "2025-03-31": 221.19
+      },
+      "Stockholders Equity": {
+        "2026-03-31": 5520.53,
+        "2025-03-31": 5372.13
+      },
+      "Other Equity Interest": {
+        "2026-03-31": 5339.21,
+        "2025-03-31": 27.83
+      },
+      "Retained Earnings": {
+        "2026-03-31": 2944.78,
+        "2025-03-31": 2731.72
+      },
+      "Additional Paid In Capital": {
+        "2026-03-31": 357.11,
+        "2025-03-31": 454.9
+      },
+      "Capital Stock": {
+        "2026-03-31": 181.32,
+        "2025-03-31": 169.4
+      },
+      "Common Stock": {
+        "2026-03-31": 181.32,
+        "2025-03-31": 169.4
+      },
+      "Total Liabilities Net Minority Interest": {
+        "2026-03-31": 4751.83,
+        "2025-03-31": 3812.38
+      },
+      "Total Non Current Liabilities Net Minority Interest": {
+        "2026-03-31": 2578.99,
+        "2025-03-31": 2309.66
+      },
+      "Other Non Current Liabilities": {
+        "2026-03-31": 67.03,
+        "2025-03-31": 37.83
+      },
+      "Derivative Product Liabilities": {
+        "2026-03-31": 3.2,
+        "2025-03-31": 0.18
+      },
+      "Non Current Pension And Other Postretirement Benefit Plans": {
+        "2026-03-31": 31.9,
+        "2025-03-31": 16.69
+      },
+      "Non Current Accrued Expenses": {
+        "2026-03-31": 1.3,
+        "2025-03-31": 1.12
+      },
+      "Non Current Deferred Taxes Liabilities": {
+        "2026-03-31": 741.06,
+        "2025-03-31": 713.87
+      },
+      "Long Term Debt And Capital Lease Obligation": {
+        "2026-03-31": 1550.08,
+        "2025-03-31": 1387.92
+      },
+      "Long Term Capital Lease Obligation": {
+        "2026-03-31": 117.64,
+        "2025-03-31": 113.59
+      },
+      "Long Term Debt": {
+        "2026-03-31": 1432.44,
+        "2025-03-31": 1274.33
+      },
+      "Long Term Provisions": {
+        "2026-03-31": 31.9,
+        "2025-03-31": 16.69
+      },
+      "Current Liabilities": {
+        "2026-03-31": 2172.84,
+        "2025-03-31": 1502.72
+      },
+      "Other Current Liabilities": {
+        "2026-03-31": 3.78,
+        "2025-03-31": 2.0
+      },
+      "Current Deferred Taxes Liabilities": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 11.71
+      },
+      "Current Debt And Capital Lease Obligation": {
+        "2026-03-31": 1027.44,
+        "2025-03-31": 497.22
+      },
+      "Current Capital Lease Obligation": {
+        "2026-03-31": 23.63,
+        "2025-03-31": 21.81
+      },
+      "Current Debt": {
+        "2026-03-31": 1003.81,
+        "2025-03-31": 475.41
+      },
+      "Pensionand Other Post Retirement Benefit Plans Current": {
+        "2026-03-31": 21.52,
+        "2025-03-31": 11.88
+      },
+      "Current Provisions": {
+        "2026-03-31": 21.52,
+        "2025-03-31": 11.88
+      },
+      "Payables": {
+        "2026-03-31": 1089.57,
+        "2025-03-31": 949.54
+      },
+      "Other Payable": {
+        "2026-03-31": 233.66,
+        "2025-03-31": 210.04
+      },
+      "Dividends Payable": {
+        "2026-03-31": 0.95,
+        "2025-03-31": 0.85
+      },
+      "Total Tax Payable": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 27.22
+      },
+      "Accounts Payable": {
+        "2026-03-31": 854.96,
+        "2025-03-31": 738.65
+      },
+      "Total Assets": {
+        "2026-03-31": 10538.25,
+        "2025-03-31": 9405.7
+      },
+      "Total Non Current Assets": {
+        "2026-03-31": 7516.89,
+        "2025-03-31": 6650.33
+      },
+      "Other Non Current Assets": {
+        "2026-03-31": 188.84,
+        "2025-03-31": -27.14
+      },
+      "Non Current Prepaid Assets": {
+        "2026-03-31": 188.48,
+        "2025-03-31": 39.69
+      },
+      "Non Current Deferred Taxes Assets": {
+        "2026-03-31": 7.0,
+        "2025-03-31": 4.6
+      },
+      "Financial Assets": {
+        "2026-03-31": 12.75,
+        "2025-03-31": 15.25
+      },
+      "Investmentin Financial Assets": {
+        "2026-03-31": 114.26,
+        "2025-03-31": 165.36
+      },
+      "Available For Sale Securities": {
+        "2026-03-31": 114.26,
+        "2025-03-31": 165.36
+      },
+      "Long Term Equity Investment": {
+        "2026-03-31": 30.89,
+        "2025-03-31": 27.95
+      },
+      "Investmentsin Joint Venturesat Cost": {
+        "2026-03-31": 30.89,
+        "2025-03-31": 27.95
+      },
+      "Investmentsin Associatesat Cost": {
+        "2026-03-31": null,
+        "2025-03-31": 0.01
+      },
+      "Investment Properties": {
+        "2026-03-31": 51.68,
+        "2025-03-31": 52.07
+      },
+      "Goodwill And Other Intangible Assets": {
+        "2026-03-31": 898.51,
+        "2025-03-31": 772.46
+      },
+      "Other Intangible Assets": {
+        "2026-03-31": 439.17,
+        "2025-03-31": 409.1
+      },
+      "Goodwill": {
+        "2026-03-31": 459.34,
+        "2025-03-31": 363.36
+      },
+      "Net PPE": {
+        "2026-03-31": 6005.08,
+        "2025-03-31": 5574.39
+      },
+      "Accumulated Depreciation": {
+        "2026-03-31": -2036.71,
+        "2025-03-31": -1713.98
+      },
+      "Gross PPE": {
+        "2026-03-31": 8041.79,
+        "2025-03-31": 7288.37
+      },
+      "Construction In Progress": {
+        "2026-03-31": 442.84,
+        "2025-03-31": 135.02
+      },
+      "Other Properties": {
+        "2026-03-31": 165.51,
+        "2025-03-31": 165.51
+      },
+      "Machinery Furniture Equipment": {
+        "2026-03-31": 5564.0,
+        "2025-03-31": 5292.72
+      },
+      "Buildings And Improvements": {
+        "2026-03-31": 917.09,
+        "2025-03-31": 795.76
+      },
+      "Land And Improvements": {
+        "2026-03-31": 952.35,
+        "2025-03-31": 899.36
+      },
+      "Properties": {
+        "2026-03-31": 0.0,
+        "2025-03-31": 0.0
+      },
+      "Current Assets": {
+        "2026-03-31": 3021.36,
+        "2025-03-31": 2755.37
+      },
+      "Other Current Assets": {
+        "2026-03-31": -0.7,
+        "2025-03-31": -0.43
+      },
+      "Hedging Assets Current": {
+        "2026-03-31": 23.12,
+        "2025-03-31": 2.5
+      },
+      "Assets Held For Sale Current": {
+        "2026-03-31": 53.29,
+        "2025-03-31": 0.12
+      },
+      "Restricted Cash": {
+        "2026-03-31": 6.68,
+        "2025-03-31": 4.88
+      },
+      "Prepaid Assets": {
+        "2026-03-31": 254.65,
+        "2025-03-31": 410.57
+      },
+      "Inventory": {
+        "2026-03-31": 1348.47,
+        "2025-03-31": 1213.54
+      },
+      "Other Inventories": {
+        "2026-03-31": 0.17,
+        "2025-03-31": 0.17
+      },
+      "Finished Goods": {
+        "2026-03-31": 332.54,
+        "2025-03-31": 238.74
+      },
+      "Work In Process": {
+        "2026-03-31": 72.2,
+        "2025-03-31": 77.88
+      },
+      "Raw Materials": {
+        "2026-03-31": 943.56,
+        "2025-03-31": 896.75
+      },
+      "Other Receivables": {
+        "2026-03-31": 213.97,
+        "2025-03-31": 262.47
+      },
+      "Taxes Receivable": {
+        "2026-03-31": 6.6,
+        "2025-03-31": 1.22
+      },
+      "Accounts Receivable": {
+        "2026-03-31": 545.92,
+        "2025-03-31": 431.79
+      },
+      "Allowance For Doubtful Accounts Receivable": {
+        "2026-03-31": -7.78,
+        "2025-03-31": -8.61
+      },
+      "Gross Accounts Receivable": {
+        "2026-03-31": 553.7,
+        "2025-03-31": 440.78
+      },
+      "Cash Cash Equivalents And Short Term Investments": {
+        "2026-03-31": 575.96,
+        "2025-03-31": 429.93
+      },
+      "Other Short Term Investments": {
+        "2026-03-31": 418.67,
+        "2025-03-31": 406.12
+      },
+      "Cash And Cash Equivalents": {
+        "2026-03-31": 157.29,
+        "2025-03-31": 23.81
+      },
+      "Cash Financial": {
+        "2026-03-31": 157.29,
+        "2025-03-31": 23.81
+      }
+    },
+    "records": [
+      {
+        "date": "2026-03-31",
+        "Ordinary Shares Number": 181318771.0,
+        "Share Issued": 18.13,
+        "Net Debt": 2278.96,
+        "Total Debt": 2577.52,
+        "Tangible Book Value": 4622.02,
+        "Invested Capital": 7956.78,
+        "Working Capital": 848.52,
+        "Net Tangible Assets": 4622.02,
+        "Capital Lease Obligations": 141.27,
+        "Common Stock Equity": 5520.53,
+        "Total Capitalization": 6952.97,
+        "Total Equity Gross Minority Interest": 5786.42,
+        "Minority Interest": 265.89,
+        "Stockholders Equity": 5520.53,
+        "Other Equity Interest": 5339.21,
+        "Retained Earnings": 2944.78,
+        "Additional Paid In Capital": 357.11,
+        "Capital Stock": 181.32,
+        "Common Stock": 181.32,
+        "Total Liabilities Net Minority Interest": 4751.83,
+        "Total Non Current Liabilities Net Minority Interest": 2578.99,
+        "Other Non Current Liabilities": 67.03,
+        "Derivative Product Liabilities": 3.2,
+        "Non Current Pension And Other Postretirement Benefit Plans": 31.9,
+        "Non Current Accrued Expenses": 1.3,
+        "Non Current Deferred Taxes Liabilities": 741.06,
+        "Long Term Debt And Capital Lease Obligation": 1550.08,
+        "Long Term Capital Lease Obligation": 117.64,
+        "Long Term Debt": 1432.44,
+        "Long Term Provisions": 31.9,
+        "Current Liabilities": 2172.84,
+        "Other Current Liabilities": 3.78,
+        "Current Deferred Taxes Liabilities": 0.0,
+        "Current Debt And Capital Lease Obligation": 1027.44,
+        "Current Capital Lease Obligation": 23.63,
+        "Current Debt": 1003.81,
+        "Pensionand Other Post Retirement Benefit Plans Current": 21.52,
+        "Current Provisions": 21.52,
+        "Payables": 1089.57,
+        "Other Payable": 233.66,
+        "Dividends Payable": 0.95,
+        "Total Tax Payable": 0.0,
+        "Accounts Payable": 854.96,
+        "Total Assets": 10538.25,
+        "Total Non Current Assets": 7516.89,
+        "Other Non Current Assets": 188.84,
+        "Non Current Prepaid Assets": 188.48,
+        "Non Current Deferred Taxes Assets": 7.0,
+        "Financial Assets": 12.75,
+        "Investmentin Financial Assets": 114.26,
+        "Available For Sale Securities": 114.26,
+        "Long Term Equity Investment": 30.89,
+        "Investmentsin Joint Venturesat Cost": 30.89,
+        "Investmentsin Associatesat Cost": null,
+        "Investment Properties": 51.68,
+        "Goodwill And Other Intangible Assets": 898.51,
+        "Other Intangible Assets": 439.17,
+        "Goodwill": 459.34,
+        "Net PPE": 6005.08,
+        "Accumulated Depreciation": -2036.71,
+        "Gross PPE": 8041.79,
+        "Construction In Progress": 442.84,
+        "Other Properties": 165.51,
+        "Machinery Furniture Equipment": 5564.0,
+        "Buildings And Improvements": 917.09,
+        "Land And Improvements": 952.35,
+        "Properties": 0.0,
+        "Current Assets": 3021.36,
+        "Other Current Assets": -0.7,
+        "Hedging Assets Current": 23.12,
+        "Assets Held For Sale Current": 53.29,
+        "Restricted Cash": 6.68,
+        "Prepaid Assets": 254.65,
+        "Inventory": 1348.47,
+        "Other Inventories": 0.17,
+        "Finished Goods": 332.54,
+        "Work In Process": 72.2,
+        "Raw Materials": 943.56,
+        "Other Receivables": 213.97,
+        "Taxes Receivable": 6.6,
+        "Accounts Receivable": 545.92,
+        "Allowance For Doubtful Accounts Receivable": -7.78,
+        "Gross Accounts Receivable": 553.7,
+        "Cash Cash Equivalents And Short Term Investments": 575.96,
+        "Other Short Term Investments": 418.67,
+        "Cash And Cash Equivalents": 157.29,
+        "Cash Financial": 157.29
+      },
+      {
+        "date": "2025-03-31",
+        "Ordinary Shares Number": 169402344.0,
+        "Share Issued": 16.94,
+        "Net Debt": 1725.93,
+        "Total Debt": 1885.14,
+        "Tangible Book Value": 4599.67,
+        "Invested Capital": 7121.87,
+        "Working Capital": 1252.65,
+        "Net Tangible Assets": 4599.67,
+        "Capital Lease Obligations": 135.4,
+        "Common Stock Equity": 5372.13,
+        "Total Capitalization": 6646.46,
+        "Total Equity Gross Minority Interest": 5593.32,
+        "Minority Interest": 221.19,
+        "Stockholders Equity": 5372.13,
+        "Other Equity Interest": 27.83,
+        "Retained Earnings": 2731.72,
+        "Additional Paid In Capital": 454.9,
+        "Capital Stock": 169.4,
+        "Common Stock": 169.4,
+        "Total Liabilities Net Minority Interest": 3812.38,
+        "Total Non Current Liabilities Net Minority Interest": 2309.66,
+        "Other Non Current Liabilities": 37.83,
+        "Derivative Product Liabilities": 0.18,
+        "Non Current Pension And Other Postretirement Benefit Plans": 16.69,
+        "Non Current Accrued Expenses": 1.12,
+        "Non Current Deferred Taxes Liabilities": 713.87,
+        "Long Term Debt And Capital Lease Obligation": 1387.92,
+        "Long Term Capital Lease Obligation": 113.59,
+        "Long Term Debt": 1274.33,
+        "Long Term Provisions": 16.69,
+        "Current Liabilities": 1502.72,
+        "Other Current Liabilities": 2.0,
+        "Current Deferred Taxes Liabilities": 11.71,
+        "Current Debt And Capital Lease Obligation": 497.22,
+        "Current Capital Lease Obligation": 21.81,
+        "Current Debt": 475.41,
+        "Pensionand Other Post Retirement Benefit Plans Current": 11.88,
+        "Current Provisions": 11.88,
+        "Payables": 949.54,
+        "Other Payable": 210.04,
+        "Dividends Payable": 0.85,
+        "Total Tax Payable": 27.22,
+        "Accounts Payable": 738.65,
+        "Total Assets": 9405.7,
+        "Total Non Current Assets": 6650.33,
+        "Other Non Current Assets": -27.14,
+        "Non Current Prepaid Assets": 39.69,
+        "Non Current Deferred Taxes Assets": 4.6,
+        "Financial Assets": 15.25,
+        "Investmentin Financial Assets": 165.36,
+        "Available For Sale Securities": 165.36,
+        "Long Term Equity Investment": 27.95,
+        "Investmentsin Joint Venturesat Cost": 27.95,
+        "Investmentsin Associatesat Cost": 0.01,
+        "Investment Properties": 52.07,
+        "Goodwill And Other Intangible Assets": 772.46,
+        "Other Intangible Assets": 409.1,
+        "Goodwill": 363.36,
+        "Net PPE": 5574.39,
+        "Accumulated Depreciation": -1713.98,
+        "Gross PPE": 7288.37,
+        "Construction In Progress": 135.02,
+        "Other Properties": 165.51,
+        "Machinery Furniture Equipment": 5292.72,
+        "Buildings And Improvements": 795.76,
+        "Land And Improvements": 899.36,
+        "Properties": 0.0,
+        "Current Assets": 2755.37,
+        "Other Current Assets": -0.43,
+        "Hedging Assets Current": 2.5,
+        "Assets Held For Sale Current": 0.12,
+        "Restricted Cash": 4.88,
+        "Prepaid Assets": 410.57,
+        "Inventory": 1213.54,
+        "Other Inventories": 0.17,
+        "Finished Goods": 238.74,
+        "Work In Process": 77.88,
+        "Raw Materials": 896.75,
+        "Other Receivables": 262.47,
+        "Taxes Receivable": 1.22,
+        "Accounts Receivable": 431.79,
+        "Allowance For Doubtful Accounts Receivable": -8.61,
+        "Gross Accounts Receivable": 440.78,
+        "Cash Cash Equivalents And Short Term Investments": 429.93,
+        "Other Short Term Investments": 406.12,
+        "Cash And Cash Equivalents": 23.81,
+        "Cash Financial": 23.81
+      }
+    ]
+  },
+  "yearly_cash_flow": {
+    "dates": [
+      "2026-03-31",
+      "2025-03-31",
+      "2024-03-31",
+      "2023-03-31",
+      "2022-03-31"
+    ],
+    "metrics": {
+      "Free Cash Flow": {
+        "2026-03-31": 269.56,
+        "2025-03-31": 391.98,
+        "2024-03-31": 1135.63,
+        "2023-03-31": 1538.07,
+        "2022-03-31": null
+      },
+      "Repurchase Of Capital Stock": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": 0.0
+      },
+      "Repayment Of Debt": {
+        "2026-03-31": -374.77,
+        "2025-03-31": -380.23,
+        "2024-03-31": -664.59,
+        "2023-03-31": -536.01,
+        "2022-03-31": null
+      },
+      "Issuance Of Debt": {
+        "2026-03-31": 422.09,
+        "2025-03-31": 15.18,
+        "2024-03-31": 54.53,
+        "2023-03-31": 176.91,
+        "2022-03-31": null
+      },
+      "Capital Expenditure": {
+        "2026-03-31": -503.28,
+        "2025-03-31": -251.4,
+        "2024-03-31": -240.26,
+        "2023-03-31": -223.88,
+        "2022-03-31": null
+      },
+      "End Cash Position": {
+        "2026-03-31": 157.29,
+        "2025-03-31": 23.81,
+        "2024-03-31": 64.08,
+        "2023-03-31": 35.77,
+        "2022-03-31": null
+      },
+      "Other Cash Adjustment Outside Changein Cash": {
+        "2026-03-31": 22.12,
+        "2025-03-31": 9.06,
+        "2024-03-31": 0.85,
+        "2023-03-31": 18.91,
+        "2022-03-31": null
+      },
+      "Beginning Cash Position": {
+        "2026-03-31": 23.81,
+        "2025-03-31": 64.08,
+        "2024-03-31": 35.77,
+        "2023-03-31": 8.88,
+        "2022-03-31": null
+      },
+      "Changes In Cash": {
+        "2026-03-31": 111.36,
+        "2025-03-31": -49.33,
+        "2024-03-31": 27.46,
+        "2023-03-31": 7.98,
+        "2022-03-31": null
+      },
+      "Financing Cash Flow": {
+        "2026-03-31": 174.91,
+        "2025-03-31": -656.12,
+        "2024-03-31": -937.58,
+        "2023-03-31": -786.65,
+        "2022-03-31": null
+      },
+      "Interest Paid Cff": {
+        "2026-03-31": -126.29,
+        "2025-03-31": -172.77,
+        "2024-03-31": -215.31,
+        "2023-03-31": -209.42,
+        "2022-03-31": null
+      },
+      "Cash Dividends Paid": {
+        "2026-03-31": -84.6,
+        "2025-03-31": -84.66,
+        "2024-03-31": -126.9,
+        "2023-03-31": -160.82,
+        "2022-03-31": null
+      },
+      "Common Stock Dividend Paid": {
+        "2026-03-31": -84.6,
+        "2025-03-31": -84.66,
+        "2024-03-31": -126.9,
+        "2023-03-31": -160.82,
+        "2022-03-31": null
+      },
+      "Net Preferred Stock Issuance": {
+        "2026-03-31": null,
+        "2025-03-31": 0.0,
+        "2024-03-31": 32.0,
+        "2023-03-31": 0.0,
+        "2022-03-31": null
+      },
+      "Net Common Stock Issuance": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": 0.0
+      },
+      "Common Stock Payments": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": 0.0
+      },
+      "Net Issuance Payments Of Debt": {
+        "2026-03-31": 421.09,
+        "2025-03-31": -373.45,
+        "2024-03-31": -607.64,
+        "2023-03-31": -398.06,
+        "2022-03-31": null
+      },
+      "Net Short Term Debt Issuance": {
+        "2026-03-31": 373.77,
+        "2025-03-31": -8.4,
+        "2024-03-31": 2.42,
+        "2023-03-31": -38.96,
+        "2022-03-31": null
+      },
+      "Net Long Term Debt Issuance": {
+        "2026-03-31": 47.32,
+        "2025-03-31": -365.05,
+        "2024-03-31": -610.06,
+        "2023-03-31": -359.1,
+        "2022-03-31": null
+      },
+      "Long Term Debt Payments": {
+        "2026-03-31": -374.77,
+        "2025-03-31": -380.23,
+        "2024-03-31": -664.59,
+        "2023-03-31": -536.01,
+        "2022-03-31": null
+      },
+      "Long Term Debt Issuance": {
+        "2026-03-31": 422.09,
+        "2025-03-31": 15.18,
+        "2024-03-31": 54.53,
+        "2023-03-31": 176.91,
+        "2022-03-31": null
+      },
+      "Investing Cash Flow": {
+        "2026-03-31": -836.39,
+        "2025-03-31": -36.59,
+        "2024-03-31": -410.85,
+        "2023-03-31": -967.32,
+        "2022-03-31": null
+      },
+      "Net Other Investing Changes": {
+        "2026-03-31": 40.06,
+        "2025-03-31": -0.01,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": -4.5
+      },
+      "Interest Received Cfi": {
+        "2026-03-31": 22.53,
+        "2025-03-31": 30.77,
+        "2024-03-31": 34.49,
+        "2023-03-31": 18.09,
+        "2022-03-31": null
+      },
+      "Dividends Received Cfi": {
+        "2026-03-31": 0.95,
+        "2025-03-31": 0.5,
+        "2024-03-31": 0.11,
+        "2023-03-31": 0.14,
+        "2022-03-31": null
+      },
+      "Net Investment Purchase And Sale": {
+        "2026-03-31": -169.93,
+        "2025-03-31": 649.15,
+        "2024-03-31": -135.28,
+        "2023-03-31": -166.24,
+        "2022-03-31": null
+      },
+      "Sale Of Investment": {
+        "2026-03-31": null,
+        "2025-03-31": 651.6,
+        "2024-03-31": 6.68,
+        "2023-03-31": null,
+        "2022-03-31": 0.23
+      },
+      "Purchase Of Investment": {
+        "2026-03-31": -169.93,
+        "2025-03-31": -2.45,
+        "2024-03-31": -141.96,
+        "2023-03-31": -166.24,
+        "2022-03-31": null
+      },
+      "Net Business Purchase And Sale": {
+        "2026-03-31": -239.32,
+        "2025-03-31": -469.81,
+        "2024-03-31": -89.34,
+        "2023-03-31": -586.32,
+        "2022-03-31": null
+      },
+      "Purchase Of Business": {
+        "2026-03-31": -239.32,
+        "2025-03-31": -469.81,
+        "2024-03-31": -89.34,
+        "2023-03-31": -586.32,
+        "2022-03-31": null
+      },
+      "Net PPE Purchase And Sale": {
+        "2026-03-31": -490.68,
+        "2025-03-31": -247.19,
+        "2024-03-31": -235.83,
+        "2023-03-31": -210.42,
+        "2022-03-31": null
+      },
+      "Sale Of PPE": {
+        "2026-03-31": 12.6,
+        "2025-03-31": 4.21,
+        "2024-03-31": 4.43,
+        "2023-03-31": 13.46,
+        "2022-03-31": null
+      },
+      "Purchase Of PPE": {
+        "2026-03-31": -503.28,
+        "2025-03-31": -251.4,
+        "2024-03-31": -240.26,
+        "2023-03-31": -223.88,
+        "2022-03-31": null
+      },
+      "Operating Cash Flow": {
+        "2026-03-31": 772.84,
+        "2025-03-31": 643.38,
+        "2024-03-31": 1375.89,
+        "2023-03-31": 1761.95,
+        "2022-03-31": null
+      },
+      "Taxes Refund Paid": {
+        "2026-03-31": -133.85,
+        "2025-03-31": -123.49,
+        "2024-03-31": -252.5,
+        "2023-03-31": -258.89,
+        "2022-03-31": null
+      },
+      "Change In Working Capital": {
+        "2026-03-31": 40.61,
+        "2025-03-31": -100.85,
+        "2024-03-31": -91.22,
+        "2023-03-31": -84.62,
+        "2022-03-31": null
+      },
+      "Change In Payable": {
+        "2026-03-31": 97.79,
+        "2025-03-31": 103.53,
+        "2024-03-31": 17.55,
+        "2023-03-31": 61.72,
+        "2022-03-31": null
+      },
+      "Change In Inventory": {
+        "2026-03-31": -66.68,
+        "2025-03-31": -246.62,
+        "2024-03-31": -107.81,
+        "2023-03-31": -221.59,
+        "2022-03-31": null
+      },
+      "Change In Receivables": {
+        "2026-03-31": 9.5,
+        "2025-03-31": 42.24,
+        "2024-03-31": -0.96,
+        "2023-03-31": 75.25,
+        "2022-03-31": null
+      },
+      "Other Non Cash Items": {
+        "2026-03-31": 226.12,
+        "2025-03-31": 143.64,
+        "2024-03-31": 168.83,
+        "2023-03-31": 185.9,
+        "2022-03-31": null
+      },
+      "Provisionand Write Offof Assets": {
+        "2026-03-31": -84.61,
+        "2025-03-31": -79.45,
+        "2024-03-31": -9.01,
+        "2023-03-31": -6.13,
+        "2022-03-31": null
+      },
+      "Depreciation And Amortization": {
+        "2026-03-31": 376.93,
+        "2025-03-31": 331.62,
+        "2024-03-31": 310.1,
+        "2023-03-31": 281.85,
+        "2022-03-31": null
+      },
+      "Amortization Cash Flow": {
+        "2026-03-31": 36.8,
+        "2025-03-31": 24.09,
+        "2024-03-31": 21.17,
+        "2023-03-31": 13.8,
+        "2022-03-31": null
+      },
+      "Depreciation": {
+        "2026-03-31": 340.13,
+        "2025-03-31": 307.53,
+        "2024-03-31": 310.1,
+        "2023-03-31": 268.05,
+        "2022-03-31": null
+      },
+      "Pension And Employee Benefit Expense": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": 2.52
+      },
+      "Gain Loss On Investment Securities": {
+        "2026-03-31": -22.08,
+        "2025-03-31": -54.62,
+        "2024-03-31": -73.11,
+        "2023-03-31": -34.22,
+        "2022-03-31": null
+      },
+      "Net Foreign Currency Exchange Gain Loss": {
+        "2026-03-31": -2.28,
+        "2025-03-31": 0.83,
+        "2024-03-31": -1.09,
+        "2023-03-31": -2.28,
+        "2022-03-31": null
+      },
+      "Gain Loss On Sale Of PPE": {
+        "2026-03-31": 5.05,
+        "2025-03-31": -0.77,
+        "2024-03-31": -0.86,
+        "2023-03-31": -3.16,
+        "2022-03-31": null
+      },
+      "Net Income From Continuing Operations": {
+        "2026-03-31": 3644800000.0,
+        "2025-03-31": 5169600000.0,
+        "2024-03-31": 13246800000.0,
+        "2023-03-31": 16464800000.0,
+        "2022-03-31": null
+      }
+    },
+    "records": [
+      {
+        "date": "2026-03-31",
+        "Free Cash Flow": 269.56,
+        "Repurchase Of Capital Stock": null,
+        "Repayment Of Debt": -374.77,
+        "Issuance Of Debt": 422.09,
+        "Capital Expenditure": -503.28,
+        "End Cash Position": 157.29,
+        "Other Cash Adjustment Outside Changein Cash": 22.12,
+        "Beginning Cash Position": 23.81,
+        "Changes In Cash": 111.36,
+        "Financing Cash Flow": 174.91,
+        "Interest Paid Cff": -126.29,
+        "Cash Dividends Paid": -84.6,
+        "Common Stock Dividend Paid": -84.6,
+        "Net Preferred Stock Issuance": null,
+        "Net Common Stock Issuance": null,
+        "Common Stock Payments": null,
+        "Net Issuance Payments Of Debt": 421.09,
+        "Net Short Term Debt Issuance": 373.77,
+        "Net Long Term Debt Issuance": 47.32,
+        "Long Term Debt Payments": -374.77,
+        "Long Term Debt Issuance": 422.09,
+        "Investing Cash Flow": -836.39,
+        "Net Other Investing Changes": 40.06,
+        "Interest Received Cfi": 22.53,
+        "Dividends Received Cfi": 0.95,
+        "Net Investment Purchase And Sale": -169.93,
+        "Sale Of Investment": null,
+        "Purchase Of Investment": -169.93,
+        "Net Business Purchase And Sale": -239.32,
+        "Purchase Of Business": -239.32,
+        "Net PPE Purchase And Sale": -490.68,
+        "Sale Of PPE": 12.6,
+        "Purchase Of PPE": -503.28,
+        "Operating Cash Flow": 772.84,
+        "Taxes Refund Paid": -133.85,
+        "Change In Working Capital": 40.61,
+        "Change In Payable": 97.79,
+        "Change In Inventory": -66.68,
+        "Change In Receivables": 9.5,
+        "Other Non Cash Items": 226.12,
+        "Provisionand Write Offof Assets": -84.61,
+        "Depreciation And Amortization": 376.93,
+        "Amortization Cash Flow": 36.8,
+        "Depreciation": 340.13,
+        "Pension And Employee Benefit Expense": null,
+        "Gain Loss On Investment Securities": -22.08,
+        "Net Foreign Currency Exchange Gain Loss": -2.28,
+        "Gain Loss On Sale Of PPE": 5.05,
+        "Net Income From Continuing Operations": 3644800000.0
+      },
+      {
+        "date": "2025-03-31",
+        "Free Cash Flow": 391.98,
+        "Repurchase Of Capital Stock": null,
+        "Repayment Of Debt": -380.23,
+        "Issuance Of Debt": 15.18,
+        "Capital Expenditure": -251.4,
+        "End Cash Position": 23.81,
+        "Other Cash Adjustment Outside Changein Cash": 9.06,
+        "Beginning Cash Position": 64.08,
+        "Changes In Cash": -49.33,
+        "Financing Cash Flow": -656.12,
+        "Interest Paid Cff": -172.77,
+        "Cash Dividends Paid": -84.66,
+        "Common Stock Dividend Paid": -84.66,
+        "Net Preferred Stock Issuance": 0.0,
+        "Net Common Stock Issuance": null,
+        "Common Stock Payments": null,
+        "Net Issuance Payments Of Debt": -373.45,
+        "Net Short Term Debt Issuance": -8.4,
+        "Net Long Term Debt Issuance": -365.05,
+        "Long Term Debt Payments": -380.23,
+        "Long Term Debt Issuance": 15.18,
+        "Investing Cash Flow": -36.59,
+        "Net Other Investing Changes": -0.01,
+        "Interest Received Cfi": 30.77,
+        "Dividends Received Cfi": 0.5,
+        "Net Investment Purchase And Sale": 649.15,
+        "Sale Of Investment": 651.6,
+        "Purchase Of Investment": -2.45,
+        "Net Business Purchase And Sale": -469.81,
+        "Purchase Of Business": -469.81,
+        "Net PPE Purchase And Sale": -247.19,
+        "Sale Of PPE": 4.21,
+        "Purchase Of PPE": -251.4,
+        "Operating Cash Flow": 643.38,
+        "Taxes Refund Paid": -123.49,
+        "Change In Working Capital": -100.85,
+        "Change In Payable": 103.53,
+        "Change In Inventory": -246.62,
+        "Change In Receivables": 42.24,
+        "Other Non Cash Items": 143.64,
+        "Provisionand Write Offof Assets": -79.45,
+        "Depreciation And Amortization": 331.62,
+        "Amortization Cash Flow": 24.09,
+        "Depreciation": 307.53,
+        "Pension And Employee Benefit Expense": null,
+        "Gain Loss On Investment Securities": -54.62,
+        "Net Foreign Currency Exchange Gain Loss": 0.83,
+        "Gain Loss On Sale Of PPE": -0.77,
+        "Net Income From Continuing Operations": 5169600000.0
+      },
+      {
+        "date": "2024-03-31",
+        "Free Cash Flow": 1135.63,
+        "Repurchase Of Capital Stock": null,
+        "Repayment Of Debt": -664.59,
+        "Issuance Of Debt": 54.53,
+        "Capital Expenditure": -240.26,
+        "End Cash Position": 64.08,
+        "Other Cash Adjustment Outside Changein Cash": 0.85,
+        "Beginning Cash Position": 35.77,
+        "Changes In Cash": 27.46,
+        "Financing Cash Flow": -937.58,
+        "Interest Paid Cff": -215.31,
+        "Cash Dividends Paid": -126.9,
+        "Common Stock Dividend Paid": -126.9,
+        "Net Preferred Stock Issuance": 32.0,
+        "Net Common Stock Issuance": null,
+        "Common Stock Payments": null,
+        "Net Issuance Payments Of Debt": -607.64,
+        "Net Short Term Debt Issuance": 2.42,
+        "Net Long Term Debt Issuance": -610.06,
+        "Long Term Debt Payments": -664.59,
+        "Long Term Debt Issuance": 54.53,
+        "Investing Cash Flow": -410.85,
+        "Net Other Investing Changes": null,
+        "Interest Received Cfi": 34.49,
+        "Dividends Received Cfi": 0.11,
+        "Net Investment Purchase And Sale": -135.28,
+        "Sale Of Investment": 6.68,
+        "Purchase Of Investment": -141.96,
+        "Net Business Purchase And Sale": -89.34,
+        "Purchase Of Business": -89.34,
+        "Net PPE Purchase And Sale": -235.83,
+        "Sale Of PPE": 4.43,
+        "Purchase Of PPE": -240.26,
+        "Operating Cash Flow": 1375.89,
+        "Taxes Refund Paid": -252.5,
+        "Change In Working Capital": -91.22,
+        "Change In Payable": 17.55,
+        "Change In Inventory": -107.81,
+        "Change In Receivables": -0.96,
+        "Other Non Cash Items": 168.83,
+        "Provisionand Write Offof Assets": -9.01,
+        "Depreciation And Amortization": 310.1,
+        "Amortization Cash Flow": 21.17,
+        "Depreciation": 310.1,
+        "Pension And Employee Benefit Expense": null,
+        "Gain Loss On Investment Securities": -73.11,
+        "Net Foreign Currency Exchange Gain Loss": -1.09,
+        "Gain Loss On Sale Of PPE": -0.86,
+        "Net Income From Continuing Operations": 13246800000.0
+      },
+      {
+        "date": "2023-03-31",
+        "Free Cash Flow": 1538.07,
+        "Repurchase Of Capital Stock": null,
+        "Repayment Of Debt": -536.01,
+        "Issuance Of Debt": 176.91,
+        "Capital Expenditure": -223.88,
+        "End Cash Position": 35.77,
+        "Other Cash Adjustment Outside Changein Cash": 18.91,
+        "Beginning Cash Position": 8.88,
+        "Changes In Cash": 7.98,
+        "Financing Cash Flow": -786.65,
+        "Interest Paid Cff": -209.42,
+        "Cash Dividends Paid": -160.82,
+        "Common Stock Dividend Paid": -160.82,
+        "Net Preferred Stock Issuance": 0.0,
+        "Net Common Stock Issuance": null,
+        "Common Stock Payments": null,
+        "Net Issuance Payments Of Debt": -398.06,
+        "Net Short Term Debt Issuance": -38.96,
+        "Net Long Term Debt Issuance": -359.1,
+        "Long Term Debt Payments": -536.01,
+        "Long Term Debt Issuance": 176.91,
+        "Investing Cash Flow": -967.32,
+        "Net Other Investing Changes": null,
+        "Interest Received Cfi": 18.09,
+        "Dividends Received Cfi": 0.14,
+        "Net Investment Purchase And Sale": -166.24,
+        "Sale Of Investment": null,
+        "Purchase Of Investment": -166.24,
+        "Net Business Purchase And Sale": -586.32,
+        "Purchase Of Business": -586.32,
+        "Net PPE Purchase And Sale": -210.42,
+        "Sale Of PPE": 13.46,
+        "Purchase Of PPE": -223.88,
+        "Operating Cash Flow": 1761.95,
+        "Taxes Refund Paid": -258.89,
+        "Change In Working Capital": -84.62,
+        "Change In Payable": 61.72,
+        "Change In Inventory": -221.59,
+        "Change In Receivables": 75.25,
+        "Other Non Cash Items": 185.9,
+        "Provisionand Write Offof Assets": -6.13,
+        "Depreciation And Amortization": 281.85,
+        "Amortization Cash Flow": 13.8,
+        "Depreciation": 268.05,
+        "Pension And Employee Benefit Expense": null,
+        "Gain Loss On Investment Securities": -34.22,
+        "Net Foreign Currency Exchange Gain Loss": -2.28,
+        "Gain Loss On Sale Of PPE": -3.16,
+        "Net Income From Continuing Operations": 16464800000.0
+      },
+      {
+        "date": "2022-03-31",
+        "Free Cash Flow": null,
+        "Repurchase Of Capital Stock": 0.0,
+        "Repayment Of Debt": null,
+        "Issuance Of Debt": null,
+        "Capital Expenditure": null,
+        "End Cash Position": null,
+        "Other Cash Adjustment Outside Changein Cash": null,
+        "Beginning Cash Position": null,
+        "Changes In Cash": null,
+        "Financing Cash Flow": null,
+        "Interest Paid Cff": null,
+        "Cash Dividends Paid": null,
+        "Common Stock Dividend Paid": null,
+        "Net Preferred Stock Issuance": null,
+        "Net Common Stock Issuance": 0.0,
+        "Common Stock Payments": 0.0,
+        "Net Issuance Payments Of Debt": null,
+        "Net Short Term Debt Issuance": null,
+        "Net Long Term Debt Issuance": null,
+        "Long Term Debt Payments": null,
+        "Long Term Debt Issuance": null,
+        "Investing Cash Flow": null,
+        "Net Other Investing Changes": -4.5,
+        "Interest Received Cfi": null,
+        "Dividends Received Cfi": null,
+        "Net Investment Purchase And Sale": null,
+        "Sale Of Investment": 0.23,
+        "Purchase Of Investment": null,
+        "Net Business Purchase And Sale": null,
+        "Purchase Of Business": null,
+        "Net PPE Purchase And Sale": null,
+        "Sale Of PPE": null,
+        "Purchase Of PPE": null,
+        "Operating Cash Flow": null,
+        "Taxes Refund Paid": null,
+        "Change In Working Capital": null,
+        "Change In Payable": null,
+        "Change In Inventory": null,
+        "Change In Receivables": null,
+        "Other Non Cash Items": null,
+        "Provisionand Write Offof Assets": null,
+        "Depreciation And Amortization": null,
+        "Amortization Cash Flow": null,
+        "Depreciation": null,
+        "Pension And Employee Benefit Expense": 2.52,
+        "Gain Loss On Investment Securities": null,
+        "Net Foreign Currency Exchange Gain Loss": null,
+        "Gain Loss On Sale Of PPE": null,
+        "Net Income From Continuing Operations": null
+      }
+    ]
+  },
+  "last_updated": "2026-09-17 14:31:59"
+}

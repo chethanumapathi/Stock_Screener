@@ -33,6 +33,9 @@ BHAV_DIR = os.path.join(DATA_DIR, 'bhavcopies')
 CONSOLIDATED_FILE = os.path.join(DATA_DIR, 'consolidated_data.csv')
 SPLITS_CACHE_FILE = os.path.join(DATA_DIR, 'splits_cache.json')
 MARKET_CAP_CACHE_FILE = os.path.join(DATA_DIR, 'market_cap_cache.json')
+FUNDAMENTALS_DIR = os.path.join(DATA_DIR, 'fundamentals')
+STATEMENTS_DIR = os.path.join(FUNDAMENTALS_DIR, 'statements')
+RATIOS_SUMMARY_FILE = os.path.join(FUNDAMENTALS_DIR, 'ratios_summary.json')
 STRATEGIES_FILE = os.path.join(DATA_DIR, 'strategies.json')
 BACKTEST_STRATEGIES_FILE = os.path.join(DATA_DIR, 'backtest_strategies.json')
 NIFTY50_FILE = os.path.join(DATA_DIR, 'nifty50.csv')
@@ -45,6 +48,8 @@ ZERODHA_MINUTE_DIR = r"C:\Zerodha Historical Data\data\minute"
 # Ensure local directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(BHAV_DIR, exist_ok=True)
+os.makedirs(FUNDAMENTALS_DIR, exist_ok=True)
+os.makedirs(STATEMENTS_DIR, exist_ok=True)
 
 # Column mapping from raw NSE to cleaned dashboard columns
 COLUMN_MAP = {
@@ -186,6 +191,88 @@ def get_market_cap_cr(symbol, fetch_online=True):
     except Exception as e:
         logger.debug(f"Could not fetch market cap for {sym}: {e}")
         return 0.0
+
+# --- Fundamentals Cache & Helpers ---
+
+_FUNDAMENTALS_CACHE = None
+FUNDAMENTALS_SYNC_STATUS = {
+    "is_running": False,
+    "current": 0,
+    "total": 0,
+    "current_symbol": "",
+    "status": "idle",
+    "last_sync": None
+}
+
+def load_fundamentals_cache(force_reload=False):
+    """
+    Loads all stock ratios from data/fundamentals/ratios_summary.json into memory.
+    """
+    global _FUNDAMENTALS_CACHE
+    if _FUNDAMENTALS_CACHE is not None and not force_reload:
+        return _FUNDAMENTALS_CACHE
+    if os.path.exists(RATIOS_SUMMARY_FILE) and os.path.getsize(RATIOS_SUMMARY_FILE) > 0:
+        try:
+            with open(RATIOS_SUMMARY_FILE, 'r', encoding='utf-8') as f:
+                _FUNDAMENTALS_CACHE = json.load(f)
+                return _FUNDAMENTALS_CACHE
+        except Exception as e:
+            logger.error(f"Error loading fundamentals cache: {e}")
+    _FUNDAMENTALS_CACHE = {}
+    return _FUNDAMENTALS_CACHE
+
+def save_fundamentals_cache(cache):
+    try:
+        with open(RATIOS_SUMMARY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving fundamentals cache: {e}")
+
+def get_stock_fundamentals(symbol, fetch_online=False):
+    """
+    Returns fundamental financial ratios dictionary for symbol:
+    pe, forwardPE, pb, roe, roa, debtToEquity, currentRatio, quickRatio,
+    operatingMargin, profitMargin, dividendYield, marketCapCr, etc.
+    """
+    cache = load_fundamentals_cache()
+    sym = str(symbol).upper().replace('.NS', '').strip()
+    if sym in cache and cache[sym]:
+        return cache[sym]
+
+    if not fetch_online:
+        return {}
+
+    try:
+        from download_fundamentals import download_fundamentals_for_symbol
+        res = download_fundamentals_for_symbol(sym, force=True)
+        if res and res.get('ratios'):
+            cache[sym] = res['ratios']
+            return res['ratios']
+    except Exception as e:
+        logger.debug(f"Could not fetch online fundamentals for {sym}: {e}")
+    return {}
+
+def get_stock_statement(symbol, fetch_online=False):
+    """
+    Loads full financial statements (quarterly_pnl, yearly_pnl, balance_sheet, cashflow)
+    from data/fundamentals/statements/{symbol}.json.
+    """
+    sym = str(symbol).upper().replace('.NS', '').strip()
+    stmt_file = os.path.join(STATEMENTS_DIR, f"{sym}.json")
+    if os.path.exists(stmt_file):
+        try:
+            with open(stmt_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading statement for {sym}: {e}")
+
+    if fetch_online:
+        try:
+            from download_fundamentals import download_fundamentals_for_symbol
+            return download_fundamentals_for_symbol(sym, force=True)
+        except Exception as e:
+            logger.error(f"Error downloading statement for {sym}: {e}")
+    return {}
 
 def adjust_parquet_splits(df, symbol):
     """
@@ -360,8 +447,25 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
     df['Close'] = df['close'].round(2)
     df['Volume'] = df['volume'].round(0).astype('int64', errors='ignore')
     df['Prev_Close'] = df['Close'].shift(1).fillna(df['Open']).round(2)
+    mcap_val = get_market_cap_cr(symbol, fetch_online=False)
+    fund = get_stock_fundamentals(symbol, fetch_online=False)
+    if (not mcap_val or mcap_val == 0.0) and fund and fund.get('marketCapCr'):
+        mcap_val = fund['marketCapCr']
+
     df['Symbol'] = symbol
-    df['Market_Cap_Cr'] = get_market_cap_cr(symbol, fetch_online=False)
+    df['Market_Cap_Cr'] = mcap_val
+
+    # Attach key fundamentals if available in local cache
+    if fund:
+        df['PE'] = fund.get('pe')
+        df['Forward_PE'] = fund.get('forwardPE')
+        df['PB'] = fund.get('pb')
+        df['ROE'] = fund.get('roe')
+        df['ROA'] = fund.get('roa')
+        df['Debt_To_Equity'] = fund.get('debtToEquity')
+        df['Operating_Margin'] = fund.get('operatingMargin')
+        df['Profit_Margin'] = fund.get('profitMargin')
+        df['Dividend_Yield'] = fund.get('dividendYield')
 
     if auto_adjust:
         df = adjust_parquet_splits(df, symbol)
@@ -667,6 +771,10 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
         'datetime': datetime,
         'timedelta': timedelta,
         'get_market_cap_cr': get_market_cap_cr,
+        'get_stock_fundamentals': get_stock_fundamentals,
+        'get_fundamentals': get_stock_fundamentals,
+        'get_stock_statement': get_stock_statement,
+        'load_fundamentals_cache': load_fundamentals_cache,
     }
     try:
         exec(code_str, exec_env)
@@ -1207,6 +1315,10 @@ def validate_backtest_code(code_str):
         'datetime': datetime,
         'timedelta': timedelta,
         'get_market_cap_cr': get_market_cap_cr,
+        'get_stock_fundamentals': get_stock_fundamentals,
+        'get_fundamentals': get_stock_fundamentals,
+        'get_stock_statement': get_stock_statement,
+        'load_fundamentals_cache': load_fundamentals_cache,
     }
 
     try:
@@ -2785,6 +2897,103 @@ def api_zerodha_sync_splits():
         "status": "ok",
         "message": f"Refreshed corporate actions splits. Tracked stocks: {len(load_splits_cache())}",
         "total_tracked": len(load_splits_cache())
+    })
+
+# --- Fundamentals REST API Endpoints ---
+
+@app.route('/api/fundamentals/<symbol>', methods=['GET'])
+def api_get_stock_fundamentals_route(symbol):
+    fetch_online = request.args.get('fetch_online', 'true').lower() in ['true', '1', 'yes']
+    data = get_stock_statement(symbol, fetch_online=fetch_online)
+    if not data or not data.get('ratios'):
+        ratios = get_stock_fundamentals(symbol, fetch_online=fetch_online)
+        if ratios:
+            data = {
+                "symbol": symbol.upper(),
+                "ratios": ratios,
+                "quarterly_pnl": {},
+                "yearly_pnl": {},
+                "yearly_balance_sheet": {},
+                "quarterly_balance_sheet": {},
+                "yearly_cash_flow": {}
+            }
+    if data:
+        return jsonify({"status": "ok", "data": data})
+    return jsonify({"status": "error", "message": f"Could not find fundamentals for {symbol}"}), 404
+
+@app.route('/api/fundamentals/summary', methods=['GET'])
+def api_get_fundamentals_summary():
+    summary = load_fundamentals_cache()
+    return jsonify({"status": "ok", "data": summary, "count": len(summary)})
+
+@app.route('/api/fundamentals/status', methods=['GET'])
+def api_get_fundamentals_status():
+    summary = load_fundamentals_cache()
+    latest_ts = None
+    for r in summary.values():
+        ts = r.get('lastUpdated')
+        if ts and (latest_ts is None or ts > latest_ts):
+            latest_ts = ts
+    return jsonify({
+        "status": "ok",
+        "total_tracked": len(summary),
+        "last_sync": latest_ts,
+        "sync_job": FUNDAMENTALS_SYNC_STATUS
+    })
+
+@app.route('/api/fundamentals/sync', methods=['POST'])
+def api_sync_fundamentals():
+    import threading
+    data = request.get_json() or {}
+    segment = data.get('segment', 'nifty50')
+    symbols = data.get('symbols', [])
+    force = bool(data.get('force', False))
+
+    if FUNDAMENTALS_SYNC_STATUS["is_running"]:
+        return jsonify({
+            "status": "busy",
+            "message": "A fundamentals sync job is already in progress.",
+            "sync_job": FUNDAMENTALS_SYNC_STATUS
+        }), 409
+
+    if not symbols:
+        from download_fundamentals import get_symbols_for_segment
+        symbols = get_symbols_for_segment(segment)
+
+    if not symbols:
+        return jsonify({"status": "error", "message": f"No symbols found for segment '{segment}'"}), 400
+
+    def run_sync():
+        global FUNDAMENTALS_SYNC_STATUS
+        FUNDAMENTALS_SYNC_STATUS["is_running"] = True
+        FUNDAMENTALS_SYNC_STATUS["total"] = len(symbols)
+        FUNDAMENTALS_SYNC_STATUS["current"] = 0
+        FUNDAMENTALS_SYNC_STATUS["status"] = "running"
+        try:
+            from download_fundamentals import download_fundamentals_batch
+            def on_progress(cur, tot, sym, stat):
+                FUNDAMENTALS_SYNC_STATUS["current"] = cur
+                FUNDAMENTALS_SYNC_STATUS["total"] = tot
+                FUNDAMENTALS_SYNC_STATUS["current_symbol"] = sym
+
+            download_fundamentals_batch(symbols, force=force, delay=0.35, progress_callback=on_progress)
+            load_fundamentals_cache(force_reload=True)
+            FUNDAMENTALS_SYNC_STATUS["status"] = "completed"
+            FUNDAMENTALS_SYNC_STATUS["last_sync"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            logger.error(f"Error in fundamentals sync thread: {e}")
+            FUNDAMENTALS_SYNC_STATUS["status"] = f"error: {str(e)}"
+        finally:
+            FUNDAMENTALS_SYNC_STATUS["is_running"] = False
+
+    t = threading.Thread(target=run_sync, daemon=True)
+    t.start()
+
+    return jsonify({
+        "status": "ok",
+        "message": f"Started background fundamentals download for {len(symbols)} stocks ({segment}).",
+        "total": len(symbols),
+        "sync_job": FUNDAMENTALS_SYNC_STATUS
     })
 
 @app.route('/api/sync-data', methods=['POST'])
