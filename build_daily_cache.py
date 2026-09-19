@@ -44,9 +44,12 @@ def get_raw_minute_parquet_path(symbol: str) -> str:
     path = os.path.join(ZERODHA_MINUTE_DIR, f"{clean_sym}.parquet")
     if os.path.exists(path):
         return path
-    alt_path = os.path.join(DATA_DIR, 'parquet', f"{clean_sym}.parquet")
-    if os.path.exists(alt_path):
-        return alt_path
+    alt_path1 = os.path.join(DATA_DIR, 'minute', f"{clean_sym}.parquet")
+    if os.path.exists(alt_path1):
+        return alt_path1
+    alt_path2 = os.path.join(DATA_DIR, 'parquet', f"{clean_sym}.parquet")
+    if os.path.exists(alt_path2):
+        return alt_path2
     return None
 
 

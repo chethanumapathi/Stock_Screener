@@ -7,3 +7,9 @@ data/splits_cache.json
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+# Kotak Neo credentials and sessions
+kotak_credentials.env
+.env
+.kotak_*.json
+kotak_scrip_master_*.csv
