@@ -167,6 +167,8 @@
                 <label class="form-label" for="timeframe-select">Screening Time Frame</label>
                 <select class="form-control" id="timeframe-select">
                   <option value="1d" selected>Daily (EOD)</option>
+                  <option value="1w">Weekly</option>
+                  <option value="1mo">Monthly</option>
                   <option value="1h">1 Hour (60 mins)</option>
                   <option value="15m">15 Minutes</option>
                   <option value="5m">5 Minutes</option>
@@ -344,6 +346,8 @@
                 <label class="form-label" for="bt-timeframe-select">Backtesting Time Frame</label>
                 <select class="form-control" id="bt-timeframe-select">
                   <option value="1d" selected>Daily (EOD)</option>
+                  <option value="1w">Weekly</option>
+                  <option value="1mo">Monthly</option>
                   <option value="1h">1 Hour (60 mins)</option>
                   <option value="15m">15 Minutes</option>
                   <option value="5m">5 Minutes</option>
@@ -787,6 +791,20 @@
                   </div>
                   <div class="report-card-cell">
                     <div class="cell-label-group">
+                      <span class="cell-label">Recovery Factor</span>
+                      <span class="info-circle" title="Recovery Factor = Net Overall Profit ÷ Maximum Drawdown. Quantifies how many times the strategy has recovered its maximum historical rupee drawdown loss. Values > 3.0 indicate strong recovery. Example: If Net Profit is ₹57,00,000 and Max DD was ₹2,28,000, Recovery Factor = 57,00,000 ÷ 2,28,000 = 25.00x (meaning ₹25 profit generated for every ₹1 of drawdown risk taken).">ℹ</span>
+                    </div>
+                    <div class="cell-val text-green" id="metric-recovery-factor">0.00</div>
+                  </div>
+                  <div class="report-card-cell">
+                    <div class="cell-label-group">
+                      <span class="cell-label">Ulcer Index</span>
+                      <span class="info-circle" title="Ulcer Index (UI) = sqrt(mean(Drawdown % ^ 2)). Quadratic measure of drawdown depth and duration over time. Unlike standard deviation, it strictly penalizes downside stress without punishing upward volatility. Values < 5.0 indicate low psychological stress. Example: A portfolio with quick, shallow 3% dips has a UI of 1.40 (smooth ride), whereas a strategy with a 20% drawdown lasting 8 months has a UI of 12.80 (high emotional strain).">ℹ</span>
+                    </div>
+                    <div class="cell-val" id="metric-ulcer-index">0.00</div>
+                  </div>
+                  <div class="report-card-cell">
+                    <div class="cell-label-group">
                       <span class="cell-label">Max Drawdown</span>
                       <span class="info-circle" title="Largest peak-to-trough equity drop in absolute rupees recorded during the backtest.">ℹ</span>
                     </div>
@@ -885,6 +903,13 @@
                     </div>
                     <div class="cell-val text-green" id="metric-profitable-months">-</div>
                   </div>
+                  <div class="report-card-cell">
+                    <div class="cell-label-group">
+                      <span class="cell-label">Time Under Water %</span>
+                      <span class="info-circle" title="Time Under Water % = (Calendar Days Below Peak Equity ÷ Total Backtest Days) × 100. Percentage of time the portfolio spent recovering from drawdowns before reaching a new all-time high. Lower is better. Example: If a 1,000-day backtest spent 350 days below its previous equity peak, Time Under Water = 35.0% (meaning 65% of the time the portfolio was at or making new all-time highs).">ℹ</span>
+                    </div>
+                    <div class="cell-val" id="metric-time-under-water">-</div>
+                  </div>
                   <div class="report-card-cell cell-stacked">
                     <div class="cell-label-group">
                       <span class="cell-label">Average Calendar Days</span>
@@ -918,10 +943,346 @@
               </div>
             </div>
 
-          </div>
-        </div>
+            <!-- Section: Quantitative Diagnostics & Robustness Suite -->
+            <div class="bt-analytics-card" id="bt-diagnostics-suite" style="margin-top: 1.5rem;">
+              <div class="bt-diag-header">
+                <div>
+                  <h3 class="bt-section-heading" style="margin-bottom: 0.2rem;">🔬 Institutional Quantitative Diagnostics &amp; Robustness</h3>
+                  <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">In-depth stress testing, Monte Carlo risk bounds, benchmark alpha/beta, and portfolio clustering diagnostics.</p>
+                </div>
+                <div class="diag-header-actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                  <!-- Master Pill Switcher: Robustness vs Portfolio Diagnostics -->
+                  <div class="diag-master-tabs" id="diag-master-tabs-wrap" style="display: none;">
+                    <button class="diag-master-pill active" id="pill-tab-robustness" data-panel="panel-robustness">🛡️ Robustness &amp; Validation</button>
+                    <button class="diag-master-pill" id="pill-tab-portfolio" data-panel="panel-portfolio">📊 Trade &amp; Portfolio Diagnostics</button>
+                  </div>
+                  <!-- Dedicated Calculate / Toggle Diagnostics Button -->
+                  <button type="button" class="btn-toggle-diag" id="btn-toggle-diagnostics">
+                    <span id="btn-toggle-diagnostics-icon">⚡</span>
+                    <span id="btn-toggle-diagnostics-text">Calculate Diagnostics</span>
+                  </button>
+                </div>
+              </div>
 
-      </div>
+              <!-- Standby Banner (Shown when diagnostics have not been calculated or are toggled off) -->
+              <div id="diag-standby-placeholder" class="diag-standby-banner">
+                <div class="diag-standby-icon-badge">🔬</div>
+                <div class="diag-standby-body">
+                  <h4 style="margin: 0 0 0.35rem 0; font-size: 1rem; color: #f8fafc; font-weight: 600;">Institutional Diagnostics Suite (On-Demand)</h4>
+                  <p style="margin: 0 0 0.85rem 0; font-size: 0.85rem; color: #94a3b8; line-height: 1.5;">
+                    Monte Carlo 1,000x stress simulations, Benchmark Alpha/Beta comparison, Walk-Forward splits, and Portfolio sizing diagnostics are deferred for maximum backtest speed. Click below to compute full institutional analytics on demand.
+                  </p>
+                  <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-run-diagnostics-hero" style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; padding: 0.5rem 1rem;">
+                      <span>⚡ Calculate &amp; Populate Diagnostics</span>
+                    </button>
+                    <span style="font-size: 0.78rem; color: #64748b;">(Note: If not calculated, PDF export will omit this section and only print the primary report)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Diagnostics Content Wrapper (hidden until calculated / active) -->
+              <div id="diag-content-wrapper" style="display: none;">
+
+              <!-- PANEL 1: ROBUSTNESS & VALIDATION -->
+              <div class="diag-panel active" id="panel-robustness">
+                <!-- Sub-nav pills -->
+                <div class="diag-subtabs">
+                  <button class="diag-subpill active" data-subview="view-benchmark">Benchmark (Nifty 50)</button>
+                  <button class="diag-subpill" data-subview="view-oos">Out-of-Sample Split</button>
+                  <button class="diag-subpill" data-subview="view-heatmap">Parameter Sensitivity</button>
+                  <button class="diag-subpill" data-subview="view-montecarlo">Monte Carlo (1,000x)</button>
+                  <button class="diag-subpill" data-subview="view-regime">Market Regime Split</button>
+                </div>
+
+                <!-- Subview: Benchmark Comparison -->
+                <div class="diag-view-pane active" id="view-benchmark">
+                  <!-- KPI Cards row: Alpha, Beta, Correlation, Strat CAGR vs Nifty CAGR -->
+                  <div class="diag-kpi-grid">
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Strategy CAGR</span>
+                        <span class="info-circle" title="Compound Annual Growth Rate (CAGR) of the strategy portfolio over the backtest period. Example: If initial capital of ₹10,00,000 grows to ₹13,85,000 over 3.0 years, CAGR = ((13,85,000 ÷ 10,00,000)^(1/3) - 1) × 100 = 11.47% annualized return.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-green" id="kpi-strat-cagr">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Nifty 50 CAGR</span>
+                        <span class="info-circle" title="Compound Annual Growth Rate (CAGR) of the benchmark Nifty 50 index over the identical trading date range. Example: If Nifty 50 index rose from 18,500 to 22,500 over 2.5 years, Nifty CAGR = 8.32%. Comparing Strategy CAGR to Nifty CAGR verifies whether the strategy beats passive buy-and-hold.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-nifty-cagr">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Annualized Alpha</span>
+                        <span class="info-circle" title="Jensen's Alpha (Annualized): Excess risk-adjusted return generated above the Nifty 50 benchmark after adjusting for market Beta: Alpha = Strategy Return - (Beta × Nifty Return). Example: If Strategy returned +18% with Beta = 0.60 against Nifty returning +10%, Alpha = 18% - (0.60 × 10%) = +12.00% (pure unsystematic manager edge).">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-green" id="kpi-alpha">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Beta to Nifty 50</span>
+                        <span class="info-circle" title="Beta (β) = Covariance(Strategy, Nifty) ÷ Variance(Nifty). Measures portfolio sensitivity to broad market swings. Example: A Beta of 0.40 means the strategy moves by 0.40% for every 1.00% move in the Nifty 50. Negative or near-zero Beta indicates market-neutral behavior.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-beta">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Correlation (r)</span>
+                        <span class="info-circle" title="Pearson correlation coefficient (r) between daily strategy returns and daily Nifty 50 returns (-1.0 to +1.0). Example: An r of +0.15 indicates very low correlation with the broad index, offering exceptional diversification benefits during market corrections.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-corr">-</span>
+                    </div>
+                  </div>
+                  <!-- Chart: Equity Curve Overlay -->
+                  <div id="chart-benchmark-container" style="height: 380px; width: 100%;"></div>
+                </div>
+
+                <!-- Subview: Out-of-Sample Split -->
+                <div class="diag-view-pane" id="view-oos" style="display: none;">
+                  <div class="oos-header-banner">
+                    <div>
+                      <strong style="color: #60a5fa;">In-Sample (65%) vs Out-of-Sample (35%) Partition</strong>
+                      <div style="font-size: 0.82rem; color: var(--text-muted);" id="oos-split-info">Evaluating parameter stability and edge decay</div>
+                    </div>
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
+                      <span style="font-size: 0.82rem; color: var(--text-muted);">Degradation Ratio:</span>
+                      <span class="info-circle" title="Degradation Ratio = Out-of-Sample (Test) Metric ÷ In-Sample (Train) Metric. Quantifies edge retention when transitioning from training data to unseen future market data. Values > 0.70 demonstrate that the edge is persistent and not an artifact of curve-fitting. Example: If In-Sample Profit Factor was 2.80 and Out-of-Sample Profit Factor is 2.10, Degradation Ratio = 2.10 ÷ 2.80 = 0.75 (75% retention).">ℹ</span>
+                      <span id="oos-degradation-badge" class="badge-tag" style="font-size: 0.95rem; font-weight: 700; margin-left: 0.25rem;">-</span>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="custom-table" id="table-oos-comparison">
+                      <thead>
+                        <tr>
+                          <th>Metric</th>
+                          <th>In-Sample (Train)</th>
+                          <th>Out-of-Sample (Test)</th>
+                          <th>Retention / Variance</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-oos-comparison"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Subview: Parameter Sensitivity Heatmap -->
+                <div class="diag-view-pane" id="view-heatmap" style="display: none;">
+                  <div class="diag-controls-row">
+                    <div style="font-size: 0.88rem; color: var(--text-muted);">
+                      Testing edge stability across <strong>RSI Thresholds</strong> (70–85) and <strong>Trailing EMA Lengths</strong> (20–40).
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <label style="font-size: 0.82rem; color: var(--text-muted);">Target Profit (TP):</label>
+                      <select class="custom-select custom-select-sm" id="select-heatmap-tp" style="padding: 0.3rem 0.6rem; font-size: 0.82rem;">
+                        <option value="50%">TP: 50%</option>
+                        <option value="75%">TP: 75%</option>
+                        <option value="100%" selected>TP: 100% (Baseline)</option>
+                        <option value="150%">TP: 150%</option>
+                        <option value="Trailing Only">Trailing EMA Only</option>
+                      </select>
+                      <label style="font-size: 0.82rem; color: var(--text-muted); margin-left: 0.75rem;">Metric:</label>
+                      <select class="custom-select custom-select-sm" id="select-heatmap-metric" style="padding: 0.3rem 0.6rem; font-size: 0.82rem;">
+                        <option value="profit_factor" selected>Profit Factor</option>
+                        <option value="net_pnl">Net Profit (₹)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="chart-heatmap-container" style="height: 380px; width: 100%;"></div>
+                </div>
+
+                <!-- Subview: Monte Carlo Simulation -->
+                <div class="diag-view-pane" id="view-montecarlo" style="display: none;">
+                  <div class="diag-kpi-grid">
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Median Max DD</span>
+                        <span class="info-circle" title="50th percentile (Median) maximum peak-to-trough drawdown across 1,000 randomized bootstrap trade reshufflings. Example: Out of 1,000 simulated trading histories, 500 resulted in a max drawdown of ₹1,85,000 or less, representing the most realistic expected drawdown under random execution order.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-red" id="kpi-mc-median-dd">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">95th %ile Worst DD</span>
+                        <span class="info-circle" title="95th percentile worst-case maximum drawdown across 1,000 Monte Carlo runs (Value-at-Risk threshold). Only 5% of simulated trade sequences suffered a worse drawdown. Example: If 95th %ile DD is ₹3,20,000, account capital should be sized to comfortably withstand this 1-in-20 adverse trade clustering.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-red" id="kpi-mc-p95-dd">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">99th %ile Stress DD</span>
+                        <span class="info-circle" title="99th percentile extreme black swan drawdown across 1,000 Monte Carlo iterations. Example: If 99th %ile DD is ₹4,15,000, it reflects the severe 1-in-100 adverse trade reshuffling where losing streaks cluster tightly together.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-red" id="kpi-mc-p99-dd">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Prob(DD > 20%)</span>
+                        <span class="info-circle" title="Probability across all 1,000 bootstrap simulations that the portfolio suffers a drawdown exceeding 20% of account equity. Example: 0.0% means in none of the 1,000 resamplings did drawdown reach 20%, verifying robust downside safety.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-mc-prob-20">-</span>
+                    </div>
+                  </div>
+                  <div id="chart-montecarlo-container" style="height: 380px; width: 100%;"></div>
+                </div>
+
+                <!-- Subview: Market Regime Breakdown -->
+                <div class="diag-view-pane" id="view-regime" style="display: none;">
+                  <div style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Classifying strategy entry points by <strong>Nifty 50 200 SMA trend & slope</strong> (Bull, Bear, Sideways).
+                  </div>
+                  <div class="table-responsive">
+                    <table class="custom-table" id="table-regime">
+                      <thead>
+                        <tr>
+                          <th>Market Regime</th>
+                          <th>Trades</th>
+                          <th>Win %</th>
+                          <th>Profit Factor</th>
+                          <th>Net Profit (₹)</th>
+                          <th>Avg Profit / Trade</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-regime"></tbody>
+                    </table>
+                  </div>
+                  <div id="chart-regime-container" style="height: 280px; width: 100%; margin-top: 1.25rem;"></div>
+                </div>
+              </div>
+
+              <!-- PANEL 2: TRADE & PORTFOLIO DIAGNOSTICS -->
+              <div class="diag-panel" id="panel-portfolio" style="display: none;">
+                <!-- Sub-nav pills -->
+                <div class="diag-subtabs">
+                  <button class="diag-subpill active" data-subview="view-pnldist">P&L & R-Multiple</button>
+                  <button class="diag-subpill" data-subview="view-sectormcap">Sector & Market Cap</button>
+                  <button class="diag-subpill" data-subview="view-timeline">Concurrent Positions & Cash</button>
+                  <button class="diag-subpill" data-subview="view-rolling">Rolling Metrics (6M / 12M)</button>
+                  <button class="diag-subpill" data-subview="view-sizing">Position Sizing Models</button>
+                </div>
+
+                <!-- Subview: P&L & R-Multiple -->
+                <div class="diag-view-pane active" id="view-pnldist">
+                  <div class="diag-kpi-grid">
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Return Skewness</span>
+                        <span class="info-circle" title="Third standardized moment measuring asymmetry of the trade return distribution. Positive skew (> 0) indicates a long right tail of outsized winners with capped losses. Example: Skewness of +1.80 confirms a classic trend-following profile where big multi-baggers drive the majority of profits.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val text-green" id="kpi-dist-skew">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Excess Kurtosis</span>
+                        <span class="info-circle" title="Fourth standardized moment measuring fat tails relative to a normal distribution (Normal = 0). Example: Kurtosis of +3.50 means the strategy has 'leptokurtic' fat tails with higher odds of outlier winning trades than a bell curve would predict.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-dist-kurt">-</span>
+                    </div>
+                    <div class="diag-kpi-card" style="grid-column: span 3;">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Fat Tail Diagnosis</span>
+                        <span class="info-circle" title="Quantitative classification of the payoff distribution (e.g. Right-skewed positive fat tails, Leptokurtic, Gaussian). Example: A positive fat-tail strategy earns most profits from rare 50% to 100%+ runners while losing small amounts on frequent scratch trades.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" style="font-size: 0.88rem; font-weight: 500;" id="kpi-dist-desc">-</span>
+                    </div>
+                  </div>
+                  <div class="diag-charts-2col">
+                    <div id="chart-pnl-hist-container" style="height: 350px;"></div>
+                    <div id="chart-rmult-hist-container" style="height: 350px;"></div>
+                  </div>
+                </div>
+
+                <!-- Subview: Sector & Market Cap -->
+                <div class="diag-view-pane" id="view-sectormcap" style="display: none;">
+                  <div class="diag-charts-2col">
+                    <div>
+                      <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #cbd5e1;">Market Cap Distribution</h4>
+                      <div id="chart-mcap-donut-container" style="height: 280px;"></div>
+                    </div>
+                    <div>
+                      <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #cbd5e1;">Sector Contribution</h4>
+                      <div id="chart-sector-bar-container" style="height: 280px;"></div>
+                    </div>
+                  </div>
+                  <div class="table-responsive" style="margin-top: 1rem;">
+                    <table class="custom-table" id="table-sector-breakdown">
+                      <thead>
+                        <tr>
+                          <th>Sector</th>
+                          <th>Trades</th>
+                          <th>Win %</th>
+                          <th>Total Net Profit (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-sector-breakdown"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Subview: Concurrent Positions & Cash Timeline -->
+                <div class="diag-view-pane" id="view-timeline" style="display: none;">
+                  <div class="diag-kpi-grid">
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Peak Concurrent Positions</span>
+                        <span class="info-circle" title="Highest number of open stock positions held simultaneously at any single point in time. Example: If Peak Concurrent Positions is 6 with ₹1,00,000 capital per trade, the trader needed at least ₹6,00,000 in available purchasing power.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-timeline-peak-pos">-</span>
+                    </div>
+                    <div class="diag-kpi-card">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Average Capital Utilized</span>
+                        <span class="info-circle" title="Time-weighted average percentage of total account capital actively deployed across open trades. Example: 25.0% on a ₹10,00,000 account means an average of ₹2,50,000 was invested in stocks, while ₹7,50,000 sat safely in liquid cash.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" id="kpi-timeline-avg-util">-</span>
+                    </div>
+                    <div class="diag-kpi-card" style="grid-column: span 3;">
+                      <div class="diag-kpi-header">
+                        <span class="diag-kpi-label">Clustering Insight</span>
+                        <span class="info-circle" title="Analysis of entry clustering over time. When broad market breakouts trigger across sectors, strategies often enter multiple trades simultaneously, requiring adequate cash reserves.">ℹ</span>
+                      </div>
+                      <span class="diag-kpi-val" style="font-size: 0.88rem; font-weight: 500;" id="kpi-timeline-desc">High clustering indicates entries fire together during market breakout surges.</span>
+                    </div>
+                  </div>
+                  <div id="chart-concurrent-timeline-container" style="height: 380px; width: 100%;"></div>
+                </div>
+
+                <!-- Subview: Rolling 6M & 12M Metrics -->
+                <div class="diag-view-pane" id="view-rolling" style="display: none;">
+                  <div style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Tracks <strong>alpha decay</strong> and consistency over time with 180-day and 365-day rolling windows.
+                  </div>
+                  <div id="chart-rolling-metrics-container" style="height: 380px; width: 100%;"></div>
+                </div>
+
+                <!-- Subview: Position Sizing Models -->
+                <div class="diag-view-pane" id="view-sizing" style="display: none;">
+                  <div class="table-responsive" style="margin-bottom: 1.25rem;">
+                    <table class="custom-table" id="table-sizing-comparison">
+                      <thead>
+                        <tr>
+                          <th>
+                            <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                              Position Sizing Model
+                              <span class="info-circle" title="Compares Fixed ₹100,000 capital per trade vs Compounding 5% of active equity vs Volatility / ATR-scaled sizing (0.5% risk per trade). Example: Compounding accelerates gains during sustained bull runs, while ATR scaling sizes down high-volatility speculative stocks to maintain uniform rupee risk.">ℹ</span>
+                            </span>
+                          </th>
+                          <th>Net Profit (₹)</th>
+                          <th>CAGR %</th>
+                          <th>Max Drawdown %</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbody-sizing-comparison"></tbody>
+                    </table>
+                  </div>
+                  <div id="chart-sizing-comparison-container" style="height: 350px; width: 100%;"></div>
+                </div>
+              </div>
+
+              </div> <!-- End #diag-content-wrapper -->
+
+            </div>
 
     </section>
 
@@ -1870,6 +2231,97 @@ screen = backtest</code></pre>
     </div>
   </div>
 
+  <!-- Backtest Ready Pop-out Notification Modal -->
+  <div class="modal-overlay" id="bt-report-ready-modal" style="display: none;">
+    <div class="modal-dialog-ready">
+      <div class="modal-ready-glow-ring"></div>
+      <div class="modal-header modal-ready-header">
+        <div class="modal-title-wrap">
+          <div class="modal-badge-sparkle modal-badge-success">
+            <span class="sparkle-icon">🚀</span>
+            <span>BACKTEST COMPLETE</span>
+          </div>
+          <h3 class="modal-title">Backtest Report is Ready!</h3>
+          <p class="modal-subtitle" id="bt-ready-subtitle">Simulation completed across universe.</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-bt-ready-modal" title="Close (Esc)">&times;</button>
+      </div>
+
+      <div class="modal-ready-body">
+        <!-- Quick Performance Highlights Grid -->
+        <div class="bt-ready-kpi-grid">
+          <div class="bt-ready-kpi-card">
+            <div class="bt-ready-kpi-label">NET PROFIT / LOSS</div>
+            <div class="bt-ready-kpi-val" id="bt-ready-net-pnl">₹0.00</div>
+            <div class="bt-ready-kpi-sub" id="bt-ready-roi">0.00% Return</div>
+          </div>
+          <div class="bt-ready-kpi-card">
+            <div class="bt-ready-kpi-label">WIN RATE</div>
+            <div class="bt-ready-kpi-val" id="bt-ready-winrate">0.0%</div>
+            <div class="bt-ready-kpi-sub" id="bt-ready-win-loss">0W / 0L</div>
+          </div>
+          <div class="bt-ready-kpi-card">
+            <div class="bt-ready-kpi-label">TOTAL TRADES</div>
+            <div class="bt-ready-kpi-val" id="bt-ready-trades">0</div>
+            <div class="bt-ready-kpi-sub" id="bt-ready-trades-status">0 Closed | 0 Running</div>
+          </div>
+          <div class="bt-ready-kpi-card">
+            <div class="bt-ready-kpi-label">PROFIT FACTOR</div>
+            <div class="bt-ready-kpi-val" id="bt-ready-pf">0.00</div>
+            <div class="bt-ready-kpi-sub" id="bt-ready-maxdd">Max DD: -</div>
+          </div>
+        </div>
+
+        <!-- Strategy & Universe Meta Info -->
+        <div class="bt-ready-meta-bar">
+          <div class="bt-ready-meta-item">
+            <span class="meta-icon">⏱️</span>
+            <span class="meta-label">Timeframe:</span>
+            <strong id="bt-ready-timeframe">Daily</strong>
+          </div>
+          <div class="bt-ready-meta-item">
+            <span class="meta-icon">🎯</span>
+            <span class="meta-label">Segment:</span>
+            <strong id="bt-ready-segment">Nifty 50</strong>
+          </div>
+          <div class="bt-ready-meta-item">
+            <span class="meta-icon">⚡</span>
+            <span class="meta-label">Duration:</span>
+            <strong id="bt-ready-duration">1.2s</strong>
+          </div>
+          <div class="bt-ready-meta-item">
+            <span class="meta-icon">📅</span>
+            <span class="meta-label">Date Range:</span>
+            <strong id="bt-ready-daterange">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="modal-footer modal-ready-footer">
+        <button class="btn btn-ghost" id="btn-bt-ready-dismiss">Dismiss</button>
+        <div class="modal-ready-actions">
+          <button class="btn btn-secondary" id="btn-bt-ready-print">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Print / Export PDF
+          </button>
+          <button class="btn btn-primary" id="btn-bt-ready-view">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            View Full Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -1881,7 +2333,7 @@ screen = backtest</code></pre>
   </footer>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js?v=20260917-funda-guide-1"></script>
+  <script src="/static/js/app.js?v=20260920-bt-ready-popup"></script>
 
   <style>
     @keyframes spin {

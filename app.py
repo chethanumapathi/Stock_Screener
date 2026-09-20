@@ -12,6 +12,7 @@ import numpy as np
 import yfinance as yf
 import duckdb
 from flask import Flask, request, jsonify, render_template, send_file
+import backtest_diagnostics as bd
 
 try:
     from reportlab.lib.pagesizes import landscape, A4
@@ -343,7 +344,7 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
     # Reads directly from data/adjusted_daily/{SYMBOL}.parquet, bypassing heavy
     # 1-minute aggregation and on-the-fly split recalculation.
     # -------------------------------------------------------------------------
-    if timeframe in ['1d', 'daily', 'day']:
+    if timeframe in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth']:
         adj_daily_path = os.path.join(ADJUSTED_DAILY_DIR, f"{symbol}.parquet")
         if os.path.exists(adj_daily_path):
             try:
@@ -359,21 +360,56 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
                     time_filter += " AND date <= ?"
                     params.append(end_str)
 
-                sql = f"""
-                    SELECT date, open, high, low, close, volume, prev_close
-                    FROM read_parquet(?)
-                    WHERE 1=1 {time_filter}
-                    ORDER BY date ASC
-                """
+                if timeframe in ['1d', 'daily', 'day']:
+                    sql = f"""
+                        SELECT date, open, high, low, close, volume, prev_close
+                        FROM read_parquet(?)
+                        WHERE 1=1 {time_filter}
+                        ORDER BY date ASC
+                    """
+                elif timeframe in ['1w', 'weekly', 'week']:
+                    sql = f"""
+                        SELECT 
+                            date_trunc('week', CAST(date AS DATE)) AS date,
+                            FIRST(open) AS open,
+                            MAX(high) AS high,
+                            MIN(low) AS low,
+                            LAST(close) AS close,
+                            SUM(volume) AS volume,
+                            FIRST(prev_close) AS prev_close
+                        FROM read_parquet(?)
+                        WHERE 1=1 {time_filter}
+                        GROUP BY 1
+                        ORDER BY 1 ASC
+                    """
+                else: # Monthly: 1mo, monthly, month, 1mth
+                    sql = f"""
+                        SELECT 
+                            date_trunc('month', CAST(date AS DATE)) AS date,
+                            FIRST(open) AS open,
+                            MAX(high) AS high,
+                            MIN(low) AS low,
+                            LAST(close) AS close,
+                            SUM(volume) AS volume,
+                            FIRST(prev_close) AS prev_close
+                        FROM read_parquet(?)
+                        WHERE 1=1 {time_filter}
+                        GROUP BY 1
+                        ORDER BY 1 ASC
+                    """
+
                 df = con.execute(sql, params).fetchdf()
                 if not df.empty:
-                    df['Date'] = df['date'].astype(str)
+                    df['Date'] = df['date'].dt.strftime('%Y-%m-%d') if hasattr(df['date'], 'dt') else df['date'].astype(str).str[:10]
                     df['Open'] = df['open'].round(2)
                     df['High'] = df['high'].round(2)
                     df['Low'] = df['low'].round(2)
                     df['Close'] = df['close'].round(2)
                     df['Volume'] = df['volume'].round(0).astype('int64', errors='ignore')
-                    df['Prev_Close'] = df['prev_close'].round(2)
+                    if 'prev_close' in df.columns:
+                        df['Prev_Close'] = df['prev_close'].round(2)
+                    else:
+                        df['Prev_Close'] = df['Close'].shift(1).fillna(df['Open']).round(2)
                     df['Symbol'] = symbol
 
                     mcap_val = get_market_cap_cr(symbol, fetch_online=False)
@@ -393,7 +429,8 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
                         df['Profit_Margin'] = fund.get('profitMargin')
                         df['Dividend_Yield'] = fund.get('dividendYield')
 
-                    df.index = pd.to_datetime(df['date']).astype('datetime64[ns]')
+                    df.index = pd.to_datetime(df['Date']).astype('datetime64[ns]')
+                    df._is_split_adjusted = True
                     return df
             except Exception as e:
                 logger.warning(f"Error querying adjusted daily cache for {symbol}: {e}. Falling back to 1-minute aggregation.")
@@ -423,6 +460,34 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
             sql = f"""
                 SELECT 
                     CAST(date AS DATE) AS date,
+                    FIRST(open) AS open,
+                    MAX(high) AS high,
+                    MIN(low) AS low,
+                    LAST(close) AS close,
+                    SUM(volume) AS volume
+                FROM read_parquet(?)
+                WHERE 1=1 {time_filter}
+                GROUP BY 1
+                ORDER BY 1 ASC
+            """
+        elif timeframe in ['1w', 'weekly', 'week']:
+            sql = f"""
+                SELECT 
+                    date_trunc('week', CAST(date AS DATE)) AS date,
+                    FIRST(open) AS open,
+                    MAX(high) AS high,
+                    MIN(low) AS low,
+                    LAST(close) AS close,
+                    SUM(volume) AS volume
+                FROM read_parquet(?)
+                WHERE 1=1 {time_filter}
+                GROUP BY 1
+                ORDER BY 1 ASC
+            """
+        elif timeframe in ['1mo', 'monthly', 'month', '1mth']:
+            sql = f"""
+                SELECT 
+                    date_trunc('month', CAST(date AS DATE)) AS date,
                     FIRST(open) AS open,
                     MAX(high) AS high,
                     MIN(low) AS low,
@@ -498,8 +563,8 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
         return pd.DataFrame()
 
     # Format date string column
-    if timeframe in ['1d', 'daily', 'day']:
-        df['Date'] = df['date'].astype(str)
+    if timeframe in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth']:
+        df['Date'] = df['date'].dt.strftime('%Y-%m-%d') if hasattr(df['date'], 'dt') else df['date'].astype(str).str[:10]
     else:
         df['Date'] = df['date'].dt.strftime('%Y-%m-%d %H:%M')
 
@@ -977,7 +1042,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                 matching_times = signal_series.index[true_mask]
                 for ts in matching_times:
                     ts_dt = pd.to_datetime(ts)
-                    date_str = ts_dt.strftime('%Y-%m-%d %H:%M') if timeframe != '1d' else ts_dt.strftime('%Y-%m-%d')
+                    date_str = ts_dt.strftime('%Y-%m-%d') if timeframe in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth'] else ts_dt.strftime('%Y-%m-%d %H:%M')
 
                     if start_date and date_str[:10] < str(start_date)[:10]:
                         continue
@@ -1481,7 +1546,7 @@ def format_date_dd_mmm_yyyy(d_str):
         return dt.strftime('%d-%b-%Y %H:%M')
     return dt.strftime('%d-%b-%Y')
 
-def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True, include_taxes=True, brokerage_per_order=20.0, weekday_filter=None, capital_per_trade=100000.0, month_filter=None):
+def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True, include_taxes=True, brokerage_per_order=20.0, weekday_filter=None, capital_per_trade=100000.0, month_filter=None, compute_diagnostics=False):
     """
     Computes professional institutional backtest performance analytics:
     - 4-column Overall Performance Report with Risk-Adjusted Returns & Capital Exposure
@@ -1530,10 +1595,14 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
                 "red_months": 0,
                 "avg_holding_win_days": 0.0,
                 "avg_holding_loss_days": 0.0,
-                "avg_holding_str": "-"
+                "avg_holding_str": "-",
+                "recovery_factor": 0.0,
+                "ulcer_index": 0.0,
+                "time_under_water_pct": 0.0
             },
             "year_wise_returns": [],
             "drawdown_chart": {"dates": [], "drawdowns": []},
+            "diagnostics": {},
             "summary": {
                 "total_brokerage": 0.0,
                 "total_taxes": 0.0,
@@ -1661,10 +1730,14 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
                 "red_months": 0,
                 "avg_holding_win_days": 0.0,
                 "avg_holding_loss_days": 0.0,
-                "avg_holding_str": "-"
+                "avg_holding_str": "-",
+                "recovery_factor": 0.0,
+                "ulcer_index": 0.0,
+                "time_under_water_pct": 0.0
             },
             "year_wise_returns": [],
             "drawdown_chart": {"dates": [], "drawdowns": []},
+            "diagnostics": {},
             "summary": {
                 "total_brokerage": 0.0,
                 "total_taxes": 0.0,
@@ -1754,9 +1827,11 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
     try:
         p_dt = parse_date_flexible(mdd_peak_date)
         t_dt = parse_date_flexible(mdd_trough_date)
+        if p_dt and t_dt and p_dt > t_dt:
+            p_dt, t_dt = t_dt, p_dt
         mdd_days = max(1, abs((t_dt - p_dt).days)) if (overall_max_dd < 0 and p_dt and t_dt) else 0
-        p_dt_str = format_date_dd_mmm_yyyy(mdd_peak_date)
-        t_dt_str = format_date_dd_mmm_yyyy(mdd_trough_date)
+        p_dt_str = p_dt.strftime('%d-%b-%Y') if p_dt else "-"
+        t_dt_str = t_dt.strftime('%d-%b-%Y') if t_dt else "-"
     except Exception:
         mdd_days = 0
         p_dt_str = "-"
@@ -1827,6 +1902,28 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
 
     base_capital = max(peak_capital_deployed, capital_per_trade)
 
+    # Build continuous daily equity curve for ulcer index, benchmark, and diagnostics
+    daily_dates_list = []
+    daily_equity_list = []
+    if all_trade_intervals:
+        running_eq = base_capital
+        tr_by_exit = sorted([t for t in adjusted_trades if not t.get('is_open') and t.get('net_pnl') is not None], key=lambda x: parse_date_flexible(x.get('exit_date')) or datetime.min)
+        t_ptr = 0
+        n_closed = len(tr_by_exit)
+        cur_d = min_date
+        while cur_d <= max_date:
+            cur_d_str = cur_d.strftime('%Y-%m-%d')
+            while t_ptr < n_closed:
+                ex_dt = parse_date_flexible(tr_by_exit[t_ptr].get('exit_date'))
+                if ex_dt and ex_dt <= cur_d:
+                    running_eq += tr_by_exit[t_ptr]['net_pnl']
+                    t_ptr += 1
+                else:
+                    break
+            daily_dates_list.append(cur_d_str)
+            daily_equity_list.append(round(running_eq, 2))
+            cur_d += timedelta(days=1)
+
     # Year-wise & Month-wise Returns Matrix
     years_dict = {
         yr: {
@@ -1860,30 +1957,41 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
         yr_total = round(sum(m_vals.values()), 2)
         
         yr_cum = 0.0
-        yr_peak = 0.0
+        yr_running_peak = 0.0
         yr_max_dd = 0.0
         
         if yr_info["trades"]:
-            yr_peak_dt = yr_info["trades"][0]['exit_date']
-            yr_trough_dt = yr_peak_dt
+            first_tr = yr_info["trades"][0]
+            first_dt_str = first_tr.get('entry_date') or first_tr.get('exit_date')
+            yr_running_peak_dt = first_dt_str
+            yr_mdd_peak_dt = first_dt_str
+            yr_mdd_trough_dt = first_tr.get('exit_date')
             
             for tr in yr_info["trades"]:
                 yr_cum += tr['net_pnl']
-                if yr_cum >= yr_peak:
-                    yr_peak = yr_cum
-                    yr_peak_dt = tr['exit_date']
+                if yr_cum >= yr_running_peak:
+                    yr_running_peak = yr_cum
+                    yr_running_peak_dt = tr.get('exit_date')
                 else:
-                    curr_dd = yr_cum - yr_peak
+                    curr_dd = yr_cum - yr_running_peak
                     if curr_dd < yr_max_dd:
                         yr_max_dd = curr_dd
-                        yr_trough_dt = tr['exit_date']
+                        yr_mdd_trough_dt = tr.get('exit_date')
+                        yr_mdd_peak_dt = yr_running_peak_dt
                         
             try:
-                yd_p = parse_date_flexible(yr_peak_dt)
-                yd_t = parse_date_flexible(yr_trough_dt)
-                yr_days = max(1, abs((yd_t - yd_p).days)) if (yr_max_dd < 0 and yd_p and yd_t) else 0
-                yd_p_str = format_date_dd_mmm_yyyy(yr_peak_dt)
-                yd_t_str = format_date_dd_mmm_yyyy(yr_trough_dt)
+                yd_p = parse_date_flexible(yr_mdd_peak_dt)
+                yd_t = parse_date_flexible(yr_mdd_trough_dt)
+                if yd_p and yd_t:
+                    if yd_p > yd_t:
+                        yd_p, yd_t = yd_t, yd_p
+                    yr_days = max(1, abs((yd_t - yd_p).days)) if yr_max_dd < 0 else 0
+                    yd_p_str = yd_p.strftime('%d-%b-%Y')
+                    yd_t_str = yd_t.strftime('%d-%b-%Y')
+                else:
+                    yr_days = 0
+                    yd_p_str = "-"
+                    yd_t_str = "-"
             except Exception:
                 yr_days = 0
                 yd_p_str = "-"
@@ -2035,6 +2143,32 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             t_copy['exit_date'] = format_date_dd_mmm_yyyy(t_copy['exit_date'])
         formatted_display_trades.append(t_copy)
 
+    if compute_diagnostics:
+        diagnostics_data = bd.compute_comprehensive_diagnostics(
+            trades=adjusted_trades,
+            daily_dates=daily_dates_list if all_trade_intervals else [],
+            daily_equity=daily_equity_list if all_trade_intervals else [],
+            overall_profit=overall_profit,
+            max_dd=overall_max_dd,
+            base_capital=base_capital,
+            capital_per_trade=capital_per_trade
+        )
+        ulcer_info = diagnostics_data.get('ulcer_metrics', {})
+        recovery_factor = ulcer_info.get('recovery_factor', 0.0)
+        ulcer_index = ulcer_info.get('ulcer_index', 0.0)
+        time_under_water_pct = ulcer_info.get('time_under_water_pct', 0.0)
+    else:
+        diagnostics_data = {}
+        ulcer_info = bd.compute_ulcer_and_recovery(
+            daily_dates=daily_dates_list if all_trade_intervals else [],
+            daily_equity=daily_equity_list if all_trade_intervals else [],
+            overall_profit=overall_profit,
+            max_dd=overall_max_dd
+        )
+        recovery_factor = ulcer_info.get('recovery_factor', 0.0)
+        ulcer_index = ulcer_info.get('ulcer_index', 0.0)
+        time_under_water_pct = ulcer_info.get('time_under_water_pct', 0.0)
+
     return {
         "trades": formatted_display_trades,
         "overall_report": {
@@ -2064,6 +2198,9 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             "calmar_ratio": calmar_ratio,
             "sharpe_ratio": sharpe_ratio,
             "sortino_ratio": sortino_ratio,
+            "recovery_factor": recovery_factor,
+            "ulcer_index": ulcer_index,
+            "time_under_water_pct": time_under_water_pct,
             "max_concurrent_positions": max_concurrent_positions,
             "peak_capital_deployed": peak_capital_deployed,
             "capital_utilization_pct": avg_capital_utilization,
@@ -2085,6 +2222,7 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             "dates": chart_dates,
             "drawdowns": chart_drawdowns
         },
+        "diagnostics": diagnostics_data,
         "summary": {
             "total_brokerage": total_brok,
             "total_taxes": total_tax,
@@ -2138,7 +2276,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
             continue
 
         # df_symbol is already corporate action adjusted (via pre-adjusted daily cache or get_ticker_data_duckdb)
-        if timeframe not in ['1d', 'daily', 'day']:
+        if timeframe not in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth'] and not getattr(df_symbol, '_is_split_adjusted', False):
             df_symbol = adjust_parquet_splits(df_symbol, symbol)
         if len(df_symbol) < 5:
             continue
@@ -2584,7 +2722,8 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
         "overall_report": analytics["overall_report"],
         "year_wise_returns": analytics["year_wise_returns"],
         "drawdown_chart": analytics["drawdown_chart"],
-        "summary": analytics["summary"]
+        "summary": analytics["summary"],
+        "diagnostics": analytics.get("diagnostics", {})
     }
 
 
@@ -2608,8 +2747,22 @@ def api_status():
     latest_date = None
     oldest_date = None
     total_sessions = 0
+
+    try:
+        p = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
+        if not os.path.exists(p):
+            p = get_ticker_parquet_path('RELIANCE')
+        if p and os.path.exists(p):
+            con = get_duckdb_connection()
+            res = con.execute("SELECT MIN(CAST(date AS DATE))::VARCHAR, MAX(CAST(date AS DATE))::VARCHAR, COUNT(DISTINCT CAST(date AS DATE)) FROM read_parquet(?)", [p.replace('\\', '/')]).fetchone()
+            if res and res[0] and res[1]:
+                oldest_date = str(res[0])[:10]
+                latest_date = str(res[1])[:10]
+                total_sessions = int(res[2])
+    except Exception as e:
+        logger.warning(f"Error querying date bounds from parquet: {e}")
     
-    if not df.empty:
+    if not latest_date and not df.empty:
         dates = sorted(df['Date'].unique().tolist(), reverse=True)
         latest_date = dates[0] if dates else None
         oldest_date = dates[-1] if dates else None
@@ -2629,20 +2782,23 @@ def api_status():
 
 @app.route('/api/dates', methods=['GET'])
 def api_dates():
+    # Prefer accurate DuckDB dates from adjusted daily/minute parquet
+    try:
+        p = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
+        if not os.path.exists(p):
+            p = get_ticker_parquet_path('RELIANCE')
+        if p and os.path.exists(p):
+            con = get_duckdb_connection()
+            dates = con.execute("SELECT DISTINCT CAST(date AS DATE)::VARCHAR as d FROM read_parquet(?) ORDER BY d DESC", [p.replace('\\', '/')]).fetchdf()['d'].tolist()
+            if dates:
+                return jsonify({"dates": dates})
+    except Exception as e:
+        logger.warning(f"Error fetching dates from duckdb: {e}")
+
     df = load_database()
     if not df.empty:
         dates = sorted(df['Date'].unique().tolist(), reverse=True)
         return jsonify({"dates": dates})
-    
-    # Fallback to duckdb dates from sample ticker
-    try:
-        con = get_duckdb_connection()
-        p = get_ticker_parquet_path('RELIANCE')
-        if p:
-            dates = con.execute("SELECT DISTINCT CAST(date AS DATE)::VARCHAR as d FROM read_parquet(?) ORDER BY d DESC", [p.replace('\\', '/')]).fetchdf()['d'].tolist()
-            return jsonify({"dates": dates})
-    except Exception:
-        pass
         
     return jsonify({"dates": []})
 
@@ -2729,7 +2885,7 @@ def api_chart_data():
             if not df_match.empty:
                 df_symbol = df_match.copy().sort_values(by='Date', ascending=True)
                 df_symbol = adjust_parquet_splits(df_symbol, symbol)
-    elif timeframe in ['1d', 'daily', 'day'] and not df_db.empty:
+    elif timeframe in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth'] and not df_db.empty:
         # Supplement any newly synced dates from consolidated DB
         df_match = df_db[df_db['Symbol'] == symbol]
         if not df_match.empty:
@@ -2918,6 +3074,31 @@ def api_backtest_recalculate():
         month_filter=month_filter
     )
     return jsonify({"status": "success", **analytics})
+
+@app.route('/api/backtest/diagnostics', methods=['POST'])
+def api_backtest_diagnostics():
+    data = request.get_json() or {}
+    trades = data.get('trades', [])
+    capital = float(data.get('capital_per_trade', 100000.0))
+    slippage = float(data.get('slippage_pct', 0.5))
+    inc_brokerage = bool(data.get('include_brokerage', True))
+    inc_taxes = bool(data.get('include_taxes', True))
+    brokerage = float(data.get('brokerage_per_order', 20.0))
+
+    analytics = compute_backtest_analytics(
+        trades,
+        slippage_pct=slippage,
+        include_brokerage=inc_brokerage,
+        include_taxes=inc_taxes,
+        brokerage_per_order=brokerage,
+        capital_per_trade=capital,
+        compute_diagnostics=True
+    )
+    return jsonify({
+        "status": "success",
+        "diagnostics": analytics.get("diagnostics", {}),
+        "overall_report": analytics.get("overall_report", {})
+    })
 
 # --- Zerodha Parquet & Data Manager APIs ---
 
@@ -3256,10 +3437,10 @@ def generate_backtest_pdf(report_data):
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(A4),
-        leftMargin=25,
-        rightMargin=25,
-        topMargin=25,
-        bottomMargin=25
+        leftMargin=24,
+        rightMargin=24,
+        topMargin=20,
+        bottomMargin=20
     )
     
     styles = getSampleStyleSheet()
@@ -3267,31 +3448,42 @@ def generate_backtest_pdf(report_data):
         'DocTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=18,
+        fontSize=16,
         textColor=colors.HexColor('#0f172a'),
-        spaceAfter=4
+        spaceAfter=3
     )
     subtitle_style = ParagraphStyle(
         'DocSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10,
+        fontSize=8.5,
         textColor=colors.HexColor('#475569'),
-        spaceAfter=12
+        spaceAfter=8
     )
     section_title = ParagraphStyle(
         'SectionTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=12,
+        fontSize=10.5,
         textColor=colors.HexColor('#1e293b'),
-        spaceBefore=10,
+        spaceBefore=8,
+        spaceAfter=4
+    )
+    banner_style = ParagraphStyle(
+        'BannerTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        textColor=colors.HexColor('#0f172a'),
+        spaceBefore=4,
         spaceAfter=6
     )
     
     elements = []
     
-    # 1. Title & Metadata
+    # ----------------------------------------------------
+    # PAGE 1: TITLE, OVERALL REPORT & YEAR-WISE RETURNS
+    # ----------------------------------------------------
     strat_name = report_data.get('strategy_name', 'Backtest Strategy')
     timeframe = str(report_data.get('timeframe', '1d')).upper()
     capital = float(report_data.get('capital_per_trade', 100000.0))
@@ -3305,14 +3497,17 @@ def generate_backtest_pdf(report_data):
         f"Slippage: <b>{slippage}%</b> | Brokerage: <b>Rs {brokerage:.1f}/order</b> | Generated: <b>{gen_time}</b>"
     )
     elements.append(Paragraph(meta_text, subtitle_style))
-    elements.append(Spacer(1, 4))
     
-    # 2. Overall Report (4-column institutional layout)
     rep = report_data.get('overall_report', {})
-    elements.append(Paragraph("Overall Performance Summary", section_title))
-    
     ov_profit = rep.get('overall_profit', 0.0)
     profit_color = colors.HexColor('#16a34a') if ov_profit >= 0 else colors.HexColor('#dc2626')
+    
+    # Format win & loss counts with percentage
+    win_cnt = rep.get('win_trades', 0)
+    loss_cnt = rep.get('loss_trades', 0)
+    win_pct = rep.get('win_pct', 0.0)
+    loss_pct = rep.get('loss_pct', 0.0)
+    win_loss_display = f"{win_cnt} ({win_pct:.1f}%) / {loss_cnt} ({loss_pct:.1f}%)"
     
     col1 = [
         ["Returns & Win Rates", "Value"],
@@ -3320,7 +3515,7 @@ def generate_backtest_pdf(report_data):
         ["CAGR / Ann. Return", f"{rep.get('cagr_pct', 0.0):.2f}%"],
         ["Closed Trades", str(rep.get('no_of_trades', 0))],
         ["Running Trades (EOD)", str(rep.get('open_trades', 0))],
-        ["Win % / Loss %", f"{rep.get('win_pct', 0.0):.1f}% / {rep.get('loss_pct', 0.0):.1f}%"],
+        ["Win / Loss Trades", win_loss_display],
         ["Avg Profit / Trade", f"Rs {rep.get('avg_profit_per_trade', 0.0):,.2f}"],
         ["Avg Win", f"Rs {rep.get('avg_profit_on_winning', 0.0):,.2f}"],
         ["Avg Loss", f"Rs {rep.get('avg_loss_on_losing', 0.0):,.2f}"],
@@ -3331,9 +3526,10 @@ def generate_backtest_pdf(report_data):
         ["Calmar Ratio", f"{rep.get('calmar_ratio', 0.0):.2f}"],
         ["Sharpe Ratio (Ann.)", f"{rep.get('sharpe_ratio', 0.0):.2f}"],
         ["Sortino Ratio (Ann.)", f"{rep.get('sortino_ratio', 0.0):.2f}"],
+        ["Recovery Factor", f"{rep.get('recovery_factor', 0.0):.2f}x"],
+        ["Ulcer Index (UI)", f"{rep.get('ulcer_index', 0.0):.2f}"],
         ["Reward to Risk", f"{rep.get('reward_to_risk_ratio', 0.0):.2f}"],
         ["Expectancy Ratio", f"{rep.get('expectancy_ratio', 0.0):.2f}"],
-        ["Return over Max DD", f"{rep.get('return_over_max_dd', 0.0):.2f}"],
         ["Max Drawdown", f"Rs {rep.get('max_drawdown', 0.0):,.2f}"],
     ]
     col3 = [
@@ -3341,14 +3537,16 @@ def generate_backtest_pdf(report_data):
         ["Peak Capital Deployed", f"Rs {rep.get('peak_capital_deployed', 0.0):,.0f}"],
         ["Max Concurrent Pos", str(rep.get('max_concurrent_positions', 1))],
         ["Capital Utilization", f"{rep.get('capital_utilization_pct', 0.0):.1f}%"],
-        ["Top 5 Concentration", str(rep.get('symbol_concentration_str', '-'))],
+        ["Top 5 Concentration", str(rep.get('symbol_concentration_str', '-'))[:18]],
         ["Max Trades in DD", str(rep.get('max_trades_in_drawdown', 0))],
         ["Max Single Profit", f"Rs {rep.get('max_profit_single', 0.0):,.2f}"],
         ["Max Single Loss", f"Rs {rep.get('max_loss_single', 0.0):,.2f}"],
         ["Duration of Max DD", str(rep.get('duration_of_max_drawdown', '-'))[:15]],
+        ["Return over Max DD", f"{rep.get('return_over_max_dd', 0.0):.2f}"],
     ]
     col4 = [
-        ["Trade Diagnostics", "Value"],
+        ["Trade Quality & Consistency", "Value"],
+        ["Time Under Water %", f"{rep.get('time_under_water_pct', 0.0):.1f}%"],
         ["Avg MAE (Adverse)", f"-{rep.get('avg_mae_pct', 0.0):.2f}%"],
         ["Avg MFE (Favorable)", f"+{rep.get('avg_mfe_pct', 0.0):.2f}%"],
         ["Profitable Months", str(rep.get('profitable_months_str', '-'))],
@@ -3360,14 +3558,14 @@ def generate_backtest_pdf(report_data):
     ]
     
     def make_sub_table(data_matrix, highlight_first_val=False):
-        t = Table(data_matrix, colWidths=[118, 77])
+        t = Table(data_matrix, colWidths=[118, 80])
         t_style = [
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
-            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
         ]
@@ -3382,17 +3580,18 @@ def generate_backtest_pdf(report_data):
     t3 = make_sub_table(col3)
     t4 = make_sub_table(col4)
     
-    summary_table = Table([[t1, t2, t3, t4]], colWidths=[195, 195, 195, 195])
+    elements.append(Paragraph("<b>Executive Performance Summary</b>", section_title))
+    summary_table = Table([[t1, t2, t3, t4]], colWidths=[198, 198, 198, 198])
     summary_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(summary_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 6))
     
-    # 3. Year-wise Returns Matrix Table
-    elements.append(Paragraph("Year-wise & Month-wise Returns (Rs)", section_title))
+    # Year-wise Matrix Table
+    elements.append(Paragraph("<b>Year-wise & Month-wise Returns (Rs)</b>", section_title))
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     headers = ['Year'] + months + ['Total', 'Max DD', 'Days for MDD', 'CAGR']
     
@@ -3403,9 +3602,9 @@ def generate_backtest_pdf(report_data):
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 7.5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('FONTSIZE', (0, 0), (-1, -1), 6.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
         ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
         ('ALIGN', (0, 0), (0, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
@@ -3449,44 +3648,325 @@ def generate_backtest_pdf(report_data):
     if len(rows_data) == 1:
         rows_data.append(['No data'] + ['-'] * 16)
         
-    col_w = [38] + [42]*12 + [54, 52, 72, 44]
+    col_w = [38] + [42]*12 + [54, 52, 72, 46]
     matrix_table = Table(rows_data, colWidths=col_w)
     matrix_table.setStyle(TableStyle(style_commands))
     elements.append(matrix_table)
     
-    # 4. Summary Costs Footer
     summary = report_data.get('summary', {})
     tot_brok = summary.get('total_brokerage', 0.0)
     tot_tax = summary.get('total_taxes', 0.0)
-    elements.append(Spacer(1, 8))
+    elements.append(Spacer(1, 4))
     footer_text = f"Total Estimated Brokerage: <b>Rs {tot_brok:,.2f}</b> | Total Taxes & Regulatory Charges: <b>Rs {tot_tax:,.2f}</b>"
-    elements.append(Paragraph(footer_text, ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#64748b'))))
-
-    # 5. Drawdown Section & Chart
+    elements.append(Paragraph(footer_text, ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7.5, textColor=colors.HexColor('#64748b'))))
+    
+    # ----------------------------------------------------
+    # OPTIONAL PAGES: ROBUSTNESS & PORTFOLIO DIAGNOSTICS
+    # (Included in PDF only if user calculated diagnostics)
+    # ----------------------------------------------------
+    diag = report_data.get('diagnostics', {})
+    has_diagnostics = bool(diag and (
+        diag.get('benchmark_comparison') or
+        diag.get('out_of_sample_split') or
+        diag.get('monte_carlo') or
+        diag.get('position_sizing') or
+        diag.get('regime_split')
+    ))
+    
+    if has_diagnostics:
+        elements.append(PageBreak())
+        elements.append(Paragraph("<b>🛡️ Robustness & Validation Suite</b>", banner_style))
+        
+        # 1. Benchmark Comparison (Nifty 50)
+        bench = diag.get('benchmark_comparison', {})
+        elements.append(Paragraph("<b>1. Benchmark Comparison (Nifty 50 Index)</b>", section_title))
+        
+        strat_cagr = bench.get('strategy_cagr', 0.0)
+        nifty_cagr = bench.get('nifty_cagr', 0.0)
+        alpha = bench.get('alpha', 0.0)
+        beta = bench.get('beta', 0.0)
+        corr = bench.get('correlation', 0.0)
+        
+        bench_rows = [
+            ["Metric", "Strategy Portfolio", "Nifty 50 Benchmark", "Relative Edge / Interpretation"],
+            ["CAGR / Ann. Return", f"{strat_cagr:+.2f}%", f"{nifty_cagr:+.2f}%", f"{strat_cagr - nifty_cagr:+.2f}% Outperformance"],
+            ["Annualized Alpha (α)", f"{alpha:+.2f}%", "—", "Excess risk-adjusted return over market exposure"],
+            ["Beta to Nifty 50 (β)", f"{beta:.2f}", "1.00", "Market sensitivity (< 0.50 indicates high diversification)"],
+            ["Correlation (r)", f"{corr:.2f}", "1.00", "Daily return co-movement (-1.00 to +1.00)"]
+        ]
+        t_bench = Table(bench_rows, colWidths=[160, 150, 150, 332])
+        t_bench.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(t_bench)
+        elements.append(Spacer(1, 6))
+        
+        # 2. Out-of-Sample / Walk-Forward Split
+        oos = diag.get('out_of_sample_split', {})
+        elements.append(Paragraph("<b>2. Out-of-Sample / Walk-Forward Split (65% In-Sample / 35% Out-of-Sample)</b>", section_title))
+        
+        is_data = oos.get('in_sample', {})
+        oos_data = oos.get('out_of_sample', {})
+        deg_ratio = oos.get('degradation_ratio', 0.0)
+        
+        oos_rows = [
+            ["Performance Metric", "In-Sample (Train 65%)", "Out-of-Sample (Test 35%)", f"Edge Retention (Degradation Ratio: {deg_ratio:.2f})"],
+            ["Closed Trades", str(is_data.get('trades', 0)), str(oos_data.get('trades', 0)), f"{oos_data.get('trades', 0) / max(1, is_data.get('trades', 1)) * 100:.1f}% sample size"],
+            ["Win Rate %", f"{is_data.get('win_pct', 0.0):.1f}%", f"{oos_data.get('win_pct', 0.0):.1f}%", f"{oos_data.get('win_pct', 0.0) - is_data.get('win_pct', 0.0):+.1f}% variance"],
+            ["Profit Factor", f"{is_data.get('profit_factor', 0.0):.2f}", f"{oos_data.get('profit_factor', 0.0):.2f}", f"{oos_data.get('profit_factor', 0.0) / max(0.01, is_data.get('profit_factor', 1)):.2f}x retention"],
+            ["CAGR %", f"{is_data.get('cagr_pct', 0.0):+.2f}%", f"{oos_data.get('cagr_pct', 0.0):+.2f}%", f"{oos_data.get('cagr_pct', 0.0) - is_data.get('cagr_pct', 0.0):+.2f}% annualized diff"],
+            ["Expectancy Ratio", f"{is_data.get('expectancy', 0.0):.2f}", f"{oos_data.get('expectancy', 0.0):.2f}", f"{oos_data.get('expectancy', 0.0) / max(0.01, is_data.get('expectancy', 1)):.2f}x retention"],
+            ["Max Drawdown (Rs)", f"Rs {is_data.get('max_drawdown', 0.0):,.0f}", f"Rs {oos_data.get('max_drawdown', 0.0):,.0f}", "Downside risk comparison"]
+        ]
+        t_oos = Table(oos_rows, colWidths=[160, 150, 150, 332])
+        t_oos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(t_oos)
+        elements.append(Spacer(1, 6))
+        
+        # 3. Monte Carlo Simulation (1,000x Bootstrap Resampling)
+        mc = diag.get('monte_carlo', {})
+        mc_stats = mc.get('stats', {})
+        elements.append(Paragraph("<b>3. Monte Carlo Simulation (1,000 Randomized Bootstrap Resamplings)</b>", section_title))
+        
+        mc_rows = [
+            ["Monte Carlo Stress Metric", "Simulated Level", "Institutional Risk Assessment"],
+            ["Median Max Drawdown", f"Rs {mc_stats.get('median_mdd', 0.0):,.2f}", "Typical expected drawdown across 50% of simulated alternative histories"],
+            ["95th %ile Worst Drawdown", f"Rs {mc_stats.get('p95_worst_case_mdd', 0.0):,.2f}", "Value-at-Risk boundary (Only 5% chance of worse drawdown under trade reshuffle)"],
+            ["99th %ile Stress Drawdown", f"Rs {mc_stats.get('p99_stress_mdd', 0.0):,.2f}", "Extreme tail-risk stress boundary (1-in-100 adverse trade clustering)"],
+            ["Probability (Drawdown > 20%)", f"{mc_stats.get('prob_mdd_over_20pct', 0.0):.1f}%", "Likelihood of severe capital impairment (> 20% equity drawdown)"]
+        ]
+        t_mc = Table(mc_rows, colWidths=[200, 160, 432])
+        t_mc.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('TEXTCOLOR', (1, 1), (1, 3), colors.HexColor('#dc2626')),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(t_mc)
+        elements.append(Spacer(1, 6))
+        
+        # 4. Market Regime Breakdown
+        regime = diag.get('regime_split', {})
+        regime_list = regime.get('regimes', [])
+        elements.append(Paragraph("<b>4. Market Regime Breakdown (Nifty 50 200 SMA Trend)</b>", section_title))
+        
+        reg_rows = [["Market Regime", "Trades", "Win Rate %", "Profit Factor", "Net Profit (Rs)", "Avg Profit / Trade"]]
+        for rg in regime_list:
+            reg_rows.append([
+                rg.get('regime', '-'),
+                str(rg.get('trades', 0)),
+                f"{rg.get('win_pct', 0.0):.1f}%",
+                f"{rg.get('profit_factor', 0.0):.2f}",
+                f"Rs {rg.get('net_profit', 0.0):,.2f}",
+                f"Rs {rg.get('avg_profit_trade', 0.0):,.2f}"
+            ])
+        if len(reg_rows) == 1:
+            reg_rows.append(["No regime data", "-", "-", "-", "-", "-"])
+            
+        t_reg = Table(reg_rows, colWidths=[180, 80, 100, 110, 160, 162])
+        t_reg.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ]))
+        elements.append(t_reg)
+        
+        # ----------------------------------------------------
+        # PAGE 3: TRADE & PORTFOLIO DIAGNOSTICS
+        # ----------------------------------------------------
+        elements.append(PageBreak())
+        elements.append(Paragraph("<b>📊 Trade & Portfolio Diagnostics</b>", banner_style))
+        
+        # 1. Position Sizing Comparison
+        pos_sizing = diag.get('position_sizing', {})
+        models = pos_sizing.get('models', {})
+        elements.append(Paragraph("<b>1. Position Sizing Models Comparison</b>", section_title))
+        
+        m_fixed = models.get('fixed', {})
+        m_comp = models.get('compounding', {})
+        m_vol = models.get('volatility_scaled', {})
+        
+        pos_rows = [
+            ["Model Architecture", "Capital Allocation Sizing Logic", "Net Profit (Rs)", "Max Drawdown %", "CAGR %", "Final Capital (Rs)"],
+            ["Fixed Capital per Trade", f"Rs {capital:,.0f} baseline allocation per signal", f"Rs {m_fixed.get('net_profit', 0.0):,.2f}", f"{m_fixed.get('max_dd_pct', 0.0):.2f}%", f"{m_fixed.get('cagr_pct', 0.0):.2f}%", f"Rs {m_fixed.get('final_equity', 0.0):,.2f}"],
+            ["Compounding Active Equity", "5% dynamic reinvestment of running active equity", f"Rs {m_comp.get('net_profit', 0.0):,.2f}", f"{m_comp.get('max_dd_pct', 0.0):.2f}%", f"{m_comp.get('cagr_pct', 0.0):.2f}%", f"Rs {m_comp.get('final_equity', 0.0):,.2f}"],
+            ["Volatility / ATR-Scaled", "0.5% account risk scaled by ATR stop distance", f"Rs {m_vol.get('net_profit', 0.0):,.2f}", f"{m_vol.get('max_dd_pct', 0.0):.2f}%", f"{m_vol.get('cagr_pct', 0.0):.2f}%", f"Rs {m_vol.get('final_equity', 0.0):,.2f}"]
+        ]
+        t_pos = Table(pos_rows, colWidths=[150, 192, 110, 100, 90, 150])
+        t_pos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(t_pos)
+        elements.append(Spacer(1, 8))
+        
+        # 2. Sector & Market Cap Concentration (Two side-by-side tables)
+        elements.append(Paragraph("<b>2. Sector & Market Capitalization Concentration</b>", section_title))
+        sec_mcap = diag.get('sector_mcap', {})
+        mcap_list = sec_mcap.get('market_cap', [])
+        sector_list = sec_mcap.get('sectors', [])
+        
+        mcap_rows = [["Market Cap Tier", "Trades", "Win %", "Net Profit (Rs)"]]
+        for mc_item in mcap_list:
+            mcap_rows.append([
+                mc_item.get('tier', '-'),
+                str(mc_item.get('trades', 0)),
+                f"{mc_item.get('win_pct', 0.0):.1f}%",
+                f"Rs {mc_item.get('profit', 0.0):,.0f}"
+            ])
+        if len(mcap_rows) == 1:
+            mcap_rows.append(["No Mcap Data", "-", "-", "-"])
+            
+        t_mcap = Table(mcap_rows, colWidths=[140, 60, 60, 110])
+        t_mcap.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ]))
+        
+        sec_rows = [["Top Sectors", "Trades", "Win %", "Net Profit (Rs)"]]
+        for s_item in sector_list[:5]:
+            sec_rows.append([
+                str(s_item.get('sector', '-'))[:22],
+                str(s_item.get('trades', 0)),
+                f"{s_item.get('win_pct', 0.0):.1f}%",
+                f"Rs {s_item.get('profit', 0.0):,.0f}"
+            ])
+        if len(sec_rows) == 1:
+            sec_rows.append(["No Sector Data", "-", "-", "-"])
+            
+        t_sec = Table(sec_rows, colWidths=[172, 60, 60, 110])
+        t_sec.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ]))
+        
+        side_by_side = Table([[t_mcap, t_sec]], colWidths=[385, 407])
+        side_by_side.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        elements.append(side_by_side)
+        elements.append(Spacer(1, 8))
+        
+        # 3. P&L Distribution, Skewness, Kurtosis & Capital Exposure
+        pnl_dist = diag.get('pnl_distribution', {})
+        timeline = diag.get('concurrent_timeline', {})
+        elements.append(Paragraph("<b>3. Trade Return Distribution & Portfolio Dynamics</b>", section_title))
+        
+        skew = pnl_dist.get('skewness', 0.0)
+        kurt = pnl_dist.get('kurtosis', 0.0)
+        fat_tail = pnl_dist.get('fat_tail_comment', '-')
+        peak_pos = timeline.get('peak_positions', 0)
+        avg_util = timeline.get('avg_utilization', 0.0)
+        
+        dist_rows = [
+            ["Diagnostic Parameter", "Calculated Value", "Statistical & Operational Meaning"],
+            ["Return Skewness", f"{skew:+.2f}", "Positive skew: Right-tailed payoff (occasional massive winners, tightly capped losses)"],
+            ["Excess Kurtosis", f"{kurt:+.2f}", "Leptokurtic fat tails: Higher frequency of outlier trend moves than normal Gaussian curve"],
+            ["Fat Tail Risk Assessment", str(fat_tail), "Identifies whether profits rely on rare outlier multi-bagger runners"],
+            ["Peak Concurrent Positions", str(peak_pos), f"Maximum simultaneous open trades (Required peak liquidity: Rs {peak_pos * capital:,.0f})"],
+            ["Average Capital Utilized", f"{avg_util:.1f}%", f"Time-weighted mean capital deployed (Remaining {100 - avg_util:.1f}% in liquid reserves)"]
+        ]
+        t_dist = Table(dist_rows, colWidths=[180, 140, 472])
+        t_dist.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#93c5fd')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
+            ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#f8fafc')),
+        ]))
+        elements.append(t_dist)
+    
+    # ----------------------------------------------------
+    # PAGE 4: UNDERWATER DRAWDOWN ANALYSIS & TIMELINE CHART
+    # ----------------------------------------------------
     dd_data = report_data.get('drawdown_chart', {})
     dd_dates = dd_data.get('dates', [])
     dd_vals = dd_data.get('drawdowns', [])
-
+    
     if dd_dates and dd_vals:
         elements.append(PageBreak())
-        elements.append(Paragraph("<b>Underwater Drawdown Analysis</b>", section_title))
-
-        # Summary Box for Drawdown
+        elements.append(Paragraph("<b>Underwater Drawdown Analysis & Timeline</b>", banner_style))
+        
         mdd_val = rep.get('max_drawdown', 0.0)
         mdd_dur = rep.get('duration_of_max_drawdown', '-')
         trades_in_dd = rep.get('max_trades_in_drawdown', 0)
         ret_mdd = rep.get('return_over_max_dd', 0.0)
-
+        rec_fac = rep.get('recovery_factor', 0.0)
+        ulc_idx = rep.get('ulcer_index', 0.0)
+        tuw_pct = rep.get('time_under_water_pct', 0.0)
+        
         dd_summary_matrix = [
-            ["Max Drawdown (Rs)", "Duration of Max Drawdown", "Max Trades in Drawdown", "Return / Max DD"],
-            [f"Rs {mdd_val:,.2f}", str(mdd_dur), str(trades_in_dd), f"{ret_mdd:.2f}"]
+            ["Max Drawdown (Rs)", "Duration of MDD", "Max Trades in DD", "Return / Max DD", "Recovery Factor", "Ulcer Index (UI)", "Time Under Water %"],
+            [f"Rs {mdd_val:,.2f}", str(mdd_dur), str(trades_in_dd), f"{ret_mdd:.2f}", f"{rec_fac:.2f}x", f"{ulc_idx:.2f}", f"{tuw_pct:.1f}%"]
         ]
-        dd_summary_table = Table(dd_summary_matrix, colWidths=[195, 235, 175, 175])
+        dd_summary_table = Table(dd_summary_matrix, colWidths=[118, 128, 106, 110, 110, 110, 110])
         dd_summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
@@ -3494,9 +3974,8 @@ def generate_backtest_pdf(report_data):
             ('TEXTCOLOR', (0, 1), (0, 1), colors.HexColor('#dc2626')),
         ]))
         elements.append(dd_summary_table)
-        elements.append(Spacer(1, 12))
-
-        # Render Drawdown Chart using Matplotlib
+        elements.append(Spacer(1, 10))
+        
         try:
             import matplotlib
             matplotlib.use('Agg')
@@ -3506,7 +3985,7 @@ def generate_backtest_pdf(report_data):
             fig, ax = plt.subplots(figsize=(10.5, 3.8), dpi=130)
             fig.patch.set_facecolor('#ffffff')
             ax.set_facecolor('#f8fafc')
-
+            
             parsed_dates = []
             valid_vals = []
             for d_str, v in zip(dd_dates, dd_vals):
@@ -3517,29 +3996,37 @@ def generate_backtest_pdf(report_data):
                         valid_vals.append(float(v))
                 except Exception:
                     continue
-
+                    
             if parsed_dates:
-                ax.plot(parsed_dates, valid_vals, color='#ef4444', linewidth=1.5, label='Underwater Drawdown (₹)')
+                ax.plot(parsed_dates, valid_vals, color='#ef4444', linewidth=1.5, label='Underwater Drawdown (Rs)')
                 ax.fill_between(parsed_dates, 0, valid_vals, color='#ef4444', alpha=0.18)
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
                 fig.autofmt_xdate(rotation=20)
                 ax.grid(True, linestyle='--', alpha=0.5, color='#cbd5e1')
                 ax.axhline(0, color='#64748b', linestyle='-', linewidth=0.8)
-                ax.set_ylabel('Drawdown (₹)', fontsize=9, fontweight='bold', color='#334155')
-                ax.set_title('Drawdown Timeline Over Backtest Horizon', fontsize=11, fontweight='bold', color='#0f172a', pad=10)
+                ax.set_ylabel('Drawdown (Rs)', fontsize=9, fontweight='bold', color='#334155')
+                ax.set_title('Continuous Underwater Drawdown Timeline Over Strategy Horizon', fontsize=11, fontweight='bold', color='#0f172a', pad=10)
                 ax.legend(loc='lower left', framealpha=0.9, fontsize=8)
-
+                
                 plt.tight_layout()
                 chart_buf = io.BytesIO()
                 fig.savefig(chart_buf, format='png', bbox_inches='tight')
                 plt.close(fig)
                 chart_buf.seek(0)
-
+                
                 elements.append(RLImage(chart_buf, width=780, height=270))
         except Exception as e:
             logger.error(f"Failed to plot drawdown chart for PDF: {e}")
 
-    doc.build(elements)
+    def add_page_decorations(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 7)
+        canvas.setFillColor(colors.HexColor('#94a3b8'))
+        canvas.drawString(24, 10, "ChethanQuant Institutional Backtest & Diagnostics Report | Confidential")
+        canvas.drawRightString(842 - 24, 10, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc.build(elements, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
     buffer.seek(0)
     return buffer.getvalue()
 

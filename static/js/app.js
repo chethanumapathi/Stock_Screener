@@ -21,6 +21,7 @@ const AppState = {
     backtestFilterMonths: new Set(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']),
     rawBacktestTrades: null,
     rawYearWiseRows: null,
+    diagnosticsActive: false,
     currentChartSymbol: 'RELIANCE',
     activeTab: 'screener',
     currentStrategyIdx: 0,
@@ -100,6 +101,33 @@ const elements = {
     btBtnExportCsv: document.getElementById('bt-btn-export-csv'),
     btSavedStrategiesBar: document.getElementById('bt-saved-strategies-bar'),
     btSavedStrategiesList: document.getElementById('bt-saved-strategies-list'),
+    btReportReadyModal: document.getElementById('bt-report-ready-modal'),
+    btnCloseBtReadyModal: document.getElementById('btn-close-bt-ready-modal'),
+    btnBtReadyDismiss: document.getElementById('btn-bt-ready-dismiss'),
+    btnBtReadyView: document.getElementById('btn-bt-ready-view'),
+    btnBtReadyPrint: document.getElementById('btn-bt-ready-print'),
+    btReadySubtitle: document.getElementById('bt-ready-subtitle'),
+    btReadyNetPnl: document.getElementById('bt-ready-net-pnl'),
+    btReadyRoi: document.getElementById('bt-ready-roi'),
+    btReadyWinrate: document.getElementById('bt-ready-winrate'),
+    btReadyWinLoss: document.getElementById('bt-ready-win-loss'),
+    btReadyTrades: document.getElementById('bt-ready-trades'),
+    btReadyTradesStatus: document.getElementById('bt-ready-trades-status'),
+    btReadyPf: document.getElementById('bt-ready-pf'),
+    btReadyMaxdd: document.getElementById('bt-ready-maxdd'),
+    btReadyTimeframe: document.getElementById('bt-ready-timeframe'),
+    btReadySegment: document.getElementById('bt-ready-segment'),
+    btReadyDuration: document.getElementById('bt-ready-duration'),
+    btReadyDaterange: document.getElementById('bt-ready-daterange'),
+
+    // Diagnostics Suite Controls
+    btnToggleDiagnostics: document.getElementById('btn-toggle-diagnostics'),
+    btnToggleDiagnosticsIcon: document.getElementById('btn-toggle-diagnostics-icon'),
+    btnToggleDiagnosticsText: document.getElementById('btn-toggle-diagnostics-text'),
+    diagStandbyPlaceholder: document.getElementById('diag-standby-placeholder'),
+    btnRunDiagnosticsHero: document.getElementById('btn-run-diagnostics-hero'),
+    diagMasterTabsWrap: document.getElementById('diag-master-tabs-wrap'),
+    diagContentWrapper: document.getElementById('diag-content-wrapper'),
 
     // GenAI Strategy Template Modal
     scLinkGenaiTemplate: document.getElementById('sc-link-genai-template'),
@@ -159,6 +187,8 @@ const elements = {
     metricCalmarRatio: document.getElementById('metric-calmar-ratio'),
     metricSharpeRatio: document.getElementById('metric-sharpe-ratio'),
     metricSortinoRatio: document.getElementById('metric-sortino-ratio'),
+    metricRecoveryFactor: document.getElementById('metric-recovery-factor'),
+    metricUlcerIndex: document.getElementById('metric-ulcer-index'),
     metricPeakCapital: document.getElementById('metric-peak-capital'),
     metricMaxConcurrent: document.getElementById('metric-max-concurrent'),
     metricCapitalUtilization: document.getElementById('metric-capital-utilization'),
@@ -166,6 +196,7 @@ const elements = {
     metricAvgMae: document.getElementById('metric-avg-mae'),
     metricAvgMfe: document.getElementById('metric-avg-mfe'),
     metricProfitableMonths: document.getElementById('metric-profitable-months'),
+    metricTimeUnderWater: document.getElementById('metric-time-under-water'),
     metricAvgHolding: document.getElementById('metric-avg-holding'),
     
     // Technical Chart
@@ -355,11 +386,19 @@ async function loadStatus() {
             const count = data.parquet_symbols_count || data.total_symbols;
             if (elements.dbStatusText) elements.dbStatusText.textContent = `● DuckDB: ${formatNumber(count)} Tickers Ready`;
             
-            if (data.oldest_date && data.latest_date) {
+            if (data.latest_date) {
+                if (elements.screenEndDate) {
+                    elements.screenEndDate.value = data.latest_date;
+                    elements.screenEndDate.max = data.latest_date;
+                }
+                if (elements.btScreenEndDate) {
+                    elements.btScreenEndDate.value = data.latest_date;
+                    elements.btScreenEndDate.max = data.latest_date;
+                }
+            }
+            if (data.oldest_date) {
                 if (elements.screenStartDate) elements.screenStartDate.value = data.oldest_date;
-                if (elements.screenEndDate) elements.screenEndDate.value = data.latest_date;
                 if (elements.btScreenStartDate) elements.btScreenStartDate.value = data.oldest_date;
-                if (elements.btScreenEndDate) elements.btScreenEndDate.value = data.latest_date;
             }
         } else {
             if (elements.dbStatusPill) elements.dbStatusPill.classList.add('loading');
@@ -406,6 +445,16 @@ async function loadDates() {
                 AppState.currentDate = AppState.dates[0];
                 elements.sessionDateSelect.value = AppState.currentDate;
                 await loadSessionSummary(AppState.currentDate);
+            }
+
+            const latestTradingDate = AppState.dates[0];
+            if (elements.screenEndDate) {
+                elements.screenEndDate.value = latestTradingDate;
+                elements.screenEndDate.max = latestTradingDate;
+            }
+            if (elements.btScreenEndDate) {
+                elements.btScreenEndDate.value = latestTradingDate;
+                elements.btScreenEndDate.max = latestTradingDate;
             }
             
             const todayStr = new Date().toISOString().split('T')[0];
@@ -1056,6 +1105,7 @@ async function runBacktest() {
     if (elements.btBtnRunBacktest) elements.btBtnRunBacktest.disabled = true;
     if (elements.btScreenerLoading) elements.btScreenerLoading.style.display = 'block';
     if (elements.btTradeLogContainer) elements.btTradeLogContainer.style.display = 'none';
+    resetDiagnosticsUI();
 
     try {
         const res = await fetch('/api/backtest', {
@@ -1085,6 +1135,7 @@ async function runBacktest() {
             AppState.rawBacktestTrades = (data.trades && Array.isArray(data.trades)) ? [...data.trades] : [];
             showToast(`Backtest complete: ${data.total_trades} trades on ${timeframe} in ${data.duration_seconds}s`, 'success');
             renderBacktestResults(data);
+            showBacktestReadyModal(data);
         }
     } catch (err) {
         showToast(`Failed to execute backtest: ${err.message}`, 'error');
@@ -1207,8 +1258,22 @@ function renderBacktestResults(data) {
     // 4. Render Underwater Drawdown Chart (Image 3)
     renderDrawdownChart(data.drawdown_chart || { dates: [], drawdowns: [] });
 
-    // 5. Render 3-Column Overall Report (Image 4)
+    // 5. Render Overall Report
     renderOverallReport(data.overall_report || {});
+
+    // 6. Institutional Quantitative Diagnostics & Robustness Suite (deferred on-demand)
+    if (data.diagnostics && Object.keys(data.diagnostics).length > 0) {
+        AppState.diagnosticsActive = true;
+        if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'none';
+        if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'block';
+        if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'flex';
+        if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.classList.add('btn-active-diag');
+        if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '✅';
+        if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Diagnostics Active (Toggle)';
+        renderDiagnosticsSuite(data.diagnostics);
+    } else {
+        resetDiagnosticsUI();
+    }
 }
 
 function renderYearWiseTable(rows) {
@@ -1456,6 +1521,16 @@ function renderOverallReport(rep) {
     if (elements.metricRewardRisk) elements.metricRewardRisk.textContent = Number(rep.reward_to_risk_ratio || 0).toFixed(2);
     if (elements.metricExpectancy) elements.metricExpectancy.textContent = Number(rep.expectancy_ratio || 0).toFixed(2);
     if (elements.metricReturnMdd) elements.metricReturnMdd.textContent = Number(rep.return_over_max_dd || 0).toFixed(2);
+    if (elements.metricRecoveryFactor) {
+        const rf = Number(rep.recovery_factor || 0);
+        elements.metricRecoveryFactor.textContent = `${rf.toFixed(2)}x`;
+        elements.metricRecoveryFactor.className = `cell-val ${rf >= 3.0 ? 'text-green' : 'text-neutral'}`;
+    }
+    if (elements.metricUlcerIndex) {
+        const ui = Number(rep.ulcer_index || 0);
+        elements.metricUlcerIndex.textContent = ui.toFixed(2);
+        elements.metricUlcerIndex.className = `cell-val ${ui < 10.0 ? 'text-green' : (ui > 20.0 ? 'text-red' : 'text-neutral')}`;
+    }
     if (elements.metricMaxDrawdown) elements.metricMaxDrawdown.textContent = formatRupee(rep.max_drawdown);
 
     // Column 3: Capital & Exposure
@@ -1490,6 +1565,11 @@ function renderOverallReport(rep) {
         elements.metricProfitableMonths.textContent = rep.profitable_months_str || '-';
         const pmPct = Number(rep.profitable_months_pct || 0);
         elements.metricProfitableMonths.className = `cell-val ${pmPct >= 50 ? 'text-green' : 'text-neutral'}`;
+    }
+    if (elements.metricTimeUnderWater) {
+        const tuw = Number(rep.time_under_water_pct || 0);
+        elements.metricTimeUnderWater.textContent = `${tuw.toFixed(1)}%`;
+        elements.metricTimeUnderWater.className = `cell-val ${tuw < 50.0 ? 'text-green' : 'text-neutral'}`;
     }
     if (elements.metricAvgHolding) {
         elements.metricAvgHolding.textContent = rep.avg_holding_str || '-';
@@ -1673,6 +1753,7 @@ async function exportBacktestPdf() {
             overall_report: AppState.backtestResults.overall_report || {},
             year_wise_returns: AppState.backtestResults.year_wise_returns || [],
             drawdown_chart: AppState.backtestResults.drawdown_chart || { dates: [], drawdowns: [] },
+            diagnostics: (AppState.diagnosticsActive && AppState.backtestResults.diagnostics) ? AppState.backtestResults.diagnostics : {},
             summary: AppState.backtestResults.summary || {}
         };
 
@@ -2444,6 +2525,154 @@ function initEventListeners() {
             window.location.href = '/api/export-database';
         });
     }
+
+    // Initialize Backtest Ready Pop-out Modal
+    initBacktestReadyModal();
+}
+
+/* ==========================================================================
+   Backtest Ready Pop-out Notification System
+   ========================================================================== */
+
+function playReportReadyChime() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        gain1.gain.setValueAtTime(0.08, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.18);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.1); // A5
+        gain2.gain.setValueAtTime(0.12, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.45);
+    } catch (e) {
+        // Audio playback gracefully ignored if user has not interacted with audio yet
+    }
+}
+
+function showBacktestReadyModal(data) {
+    if (!elements.btReportReadyModal) return;
+
+    const trades = data.trades || [];
+    const openTradesCount = trades.filter(isEndOfDataTrade).length;
+    const closedTradesCount = trades.length - openTradesCount;
+    const winsCount = data.winning_trades || 0;
+    const lossesCount = data.losing_trades || 0;
+    const netPnl = Number(data.net_pnl) || 0;
+    const roiPct = Number(data.return_pct) || 0;
+    const winRate = Number(data.win_rate_pct) || 0;
+    const pf = (data.profit_factor !== null && data.profit_factor !== undefined) ? Number(data.profit_factor).toFixed(2) : '-';
+    const maxDd = (data.max_drawdown_pct !== null && data.max_drawdown_pct !== undefined) ? `${Number(data.max_drawdown_pct).toFixed(2)}%` : '-';
+    const tf = String(data.timeframe || '1d').toUpperCase();
+    const seg = String(data.segment || 'nifty50').toUpperCase();
+    const duration = data.duration_seconds ? `${data.duration_seconds}s` : 'Instant';
+
+    if (elements.btReadySubtitle) {
+        elements.btReadySubtitle.textContent = `Completed ${trades.length} simulation trades across ${seg} on ${tf === '1W' ? 'WEEKLY' : (tf === '1MO' ? 'MONTHLY' : tf)} timeframe.`;
+    }
+
+    if (elements.btReadyNetPnl) {
+        elements.btReadyNetPnl.textContent = `${netPnl >= 0 ? '+' : ''}₹${formatNumber(netPnl)}`;
+        elements.btReadyNetPnl.className = `bt-ready-kpi-val ${netPnl >= 0 ? 'positive' : 'negative'}`;
+    }
+    if (elements.btReadyRoi) {
+        elements.btReadyRoi.textContent = `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(2)}% Net Return`;
+    }
+    if (elements.btReadyWinrate) {
+        elements.btReadyWinrate.textContent = `${winRate.toFixed(1)}%`;
+    }
+    if (elements.btReadyWinLoss) {
+        elements.btReadyWinLoss.textContent = `${winsCount} Wins / ${lossesCount} Losses`;
+    }
+    if (elements.btReadyTrades) {
+        elements.btReadyTrades.textContent = `${trades.length}`;
+    }
+    if (elements.btReadyTradesStatus) {
+        elements.btReadyTradesStatus.textContent = openTradesCount > 0 ? `${closedTradesCount} Closed | ${openTradesCount} Running` : `${closedTradesCount} Closed Trades`;
+    }
+    if (elements.btReadyPf) {
+        elements.btReadyPf.textContent = pf;
+    }
+    if (elements.btReadyMaxdd) {
+        elements.btReadyMaxdd.textContent = `Max DD: ${maxDd}`;
+    }
+    if (elements.btReadyTimeframe) {
+        elements.btReadyTimeframe.textContent = tf === '1W' ? 'Weekly' : (tf === '1MO' ? 'Monthly' : (tf === '1D' ? 'Daily (EOD)' : tf));
+    }
+    if (elements.btReadySegment) {
+        elements.btReadySegment.textContent = seg;
+    }
+    if (elements.btReadyDuration) {
+        elements.btReadyDuration.textContent = duration;
+    }
+    if (elements.btReadyDaterange) {
+        const s = elements.btScreenStartDate ? elements.btScreenStartDate.value : '';
+        const e = elements.btScreenEndDate ? elements.btScreenEndDate.value : '';
+        elements.btReadyDaterange.textContent = (s && e) ? `${s} to ${e}` : (e ? `Up to ${e}` : 'Full Available History');
+    }
+
+    elements.btReportReadyModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    playReportReadyChime();
+}
+
+function closeBacktestReadyModal() {
+    if (elements.btReportReadyModal) {
+        elements.btReportReadyModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function initBacktestReadyModal() {
+    if (elements.btnCloseBtReadyModal) {
+        elements.btnCloseBtReadyModal.addEventListener('click', closeBacktestReadyModal);
+    }
+    if (elements.btnBtReadyDismiss) {
+        elements.btnBtReadyDismiss.addEventListener('click', closeBacktestReadyModal);
+    }
+    if (elements.btnBtReadyView) {
+        elements.btnBtReadyView.addEventListener('click', () => {
+            closeBacktestReadyModal();
+            if (elements.btTradeLogContainer) {
+                elements.btTradeLogContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+    if (elements.btnBtReadyPrint) {
+        elements.btnBtReadyPrint.addEventListener('click', () => {
+            closeBacktestReadyModal();
+            exportBacktestPdf();
+        });
+    }
+    if (elements.btReportReadyModal) {
+        elements.btReportReadyModal.addEventListener('click', (e) => {
+            if (e.target === elements.btReportReadyModal) {
+                closeBacktestReadyModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && elements.btReportReadyModal && elements.btReportReadyModal.style.display === 'flex') {
+            closeBacktestReadyModal();
+        }
+    });
 }
 
 /**
@@ -2989,6 +3218,1040 @@ function startDailyCachePolling() {
     }, 1200);
 }
 
+// ---------------------------------------------------------------------
+// Institutional Quantitative Diagnostics & Robustness Suite
+// ---------------------------------------------------------------------
+let _currentDiagnostics = null;
+
+function formatRupeeVal(val) {
+    if (val === undefined || val === null || isNaN(val)) return '₹ 0.00';
+    const num = Number(val);
+    const sign = num < 0 ? '-₹ ' : '₹ ';
+    return `${sign}${Math.abs(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const PLOTLY_DARK_LAYOUT = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: {
+        family: 'Outfit, Plus Jakarta Sans, sans-serif',
+        color: '#94a3b8',
+        size: 11
+    },
+    margin: { l: 55, r: 25, t: 25, b: 40 },
+    xaxis: {
+        gridcolor: 'rgba(255, 255, 255, 0.05)',
+        zerolinecolor: 'rgba(255, 255, 255, 0.1)',
+        tickfont: { color: '#94a3b8', size: 10 }
+    },
+    yaxis: {
+        gridcolor: 'rgba(255, 255, 255, 0.05)',
+        zerolinecolor: 'rgba(255, 255, 255, 0.1)',
+        tickfont: { color: '#94a3b8', size: 10 }
+    },
+    legend: {
+        font: { color: '#cbd5e1', size: 10 },
+        bgcolor: 'rgba(15, 23, 42, 0.75)',
+        bordercolor: 'rgba(255, 255, 255, 0.1)',
+        borderwidth: 1
+    }
+};
+
+const PLOTLY_CONFIG = {
+    responsive: true,
+    displayModeBar: false
+};
+
+function triggerSubviewRender(svId) {
+    if (!_currentDiagnostics) return;
+    if (svId === 'view-benchmark' && _currentDiagnostics.benchmark_comparison) {
+        renderBenchmarkComparison(_currentDiagnostics.benchmark_comparison);
+    } else if (svId === 'view-oos' && _currentDiagnostics.out_of_sample_split) {
+        renderOosSplit(_currentDiagnostics.out_of_sample_split);
+    } else if (svId === 'view-heatmap' && _currentDiagnostics.parameter_sensitivity) {
+        renderParameterHeatmap(_currentDiagnostics.parameter_sensitivity);
+    } else if (svId === 'view-montecarlo' && _currentDiagnostics.monte_carlo) {
+        renderMonteCarlo(_currentDiagnostics.monte_carlo);
+    } else if (svId === 'view-regime' && _currentDiagnostics.regime_split) {
+        renderRegimeSplit(_currentDiagnostics.regime_split);
+    } else if (svId === 'view-pnldist' && _currentDiagnostics.pnl_distribution) {
+        renderPnlDistribution(_currentDiagnostics.pnl_distribution);
+    } else if (svId === 'view-sectormcap' && _currentDiagnostics.sector_mcap) {
+        renderSectorMcap(_currentDiagnostics.sector_mcap);
+    } else if (svId === 'view-timeline' && _currentDiagnostics.concurrent_timeline) {
+        renderConcurrentTimeline(_currentDiagnostics.concurrent_timeline);
+    } else if (svId === 'view-rolling' && _currentDiagnostics.rolling_metrics) {
+        renderRollingMetrics(_currentDiagnostics.rolling_metrics);
+    } else if (svId === 'view-sizing' && _currentDiagnostics.position_sizing) {
+        renderPositionSizingComparison(_currentDiagnostics.position_sizing);
+    }
+}
+
+function resetDiagnosticsUI() {
+    AppState.diagnosticsActive = false;
+    _currentDiagnostics = null;
+    if (AppState.backtestResults) {
+        AppState.backtestResults.diagnostics = null;
+    }
+    if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'flex';
+    if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'none';
+    if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'none';
+    
+    if (elements.btnToggleDiagnostics) {
+        elements.btnToggleDiagnostics.classList.remove('btn-active-diag');
+        elements.btnToggleDiagnostics.disabled = false;
+    }
+    if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '⚡';
+    if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Calculate Diagnostics';
+    if (elements.btnRunDiagnosticsHero) {
+        elements.btnRunDiagnosticsHero.disabled = false;
+        elements.btnRunDiagnosticsHero.innerHTML = '<span>⚡ Calculate &amp; Populate Diagnostics</span>';
+    }
+}
+
+async function toggleOrCalculateDiagnostics() {
+    if (!AppState.backtestResults || !AppState.backtestResults.trades || AppState.backtestResults.trades.length === 0) {
+        showToast('Please run a backtest first before computing quantitative diagnostics', 'warning');
+        return;
+    }
+
+    // If diagnostics already computed in memory:
+    const hasCachedData = AppState.backtestResults.diagnostics && Object.keys(AppState.backtestResults.diagnostics).length > 0;
+    
+    if (hasCachedData) {
+        AppState.diagnosticsActive = !AppState.diagnosticsActive;
+        if (AppState.diagnosticsActive) {
+            if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'none';
+            if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'block';
+            if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'flex';
+            if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.classList.add('btn-active-diag');
+            if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '✅';
+            if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Diagnostics Active (Toggle)';
+            
+            const activeMaster = document.querySelector('.diag-master-pill.active');
+            const targetId = activeMaster ? activeMaster.getAttribute('data-panel') : 'panel-robustness';
+            const panel = document.getElementById(targetId);
+            if (panel) {
+                const activeSub = panel.querySelector('.diag-subpill.active');
+                if (activeSub) {
+                    triggerSubviewRender(activeSub.getAttribute('data-subview'));
+                }
+            }
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+            showToast('Quantitative diagnostics visible & included in PDF report', 'info');
+        } else {
+            if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'flex';
+            if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'none';
+            if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'none';
+            if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.classList.remove('btn-active-diag');
+            if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '⚡';
+            if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Show Diagnostics';
+            showToast('Quantitative diagnostics hidden & excluded from PDF report', 'info');
+        }
+        return;
+    }
+
+    // Not yet calculated: call backend to compute diagnostics on demand
+    const rawTrades = AppState.rawBacktestTrades || AppState.backtestResults.trades || [];
+    const capital = elements.btCapitalInput ? Number(elements.btCapitalInput.value) || 100000 : 100000;
+    const slippage = elements.btSlippageInput ? Number(elements.btSlippageInput.value) || 0.5 : 0.5;
+    const incBrokerage = elements.btToggleBrokerage ? elements.btToggleBrokerage.checked : true;
+    const incTaxes = elements.btToggleTaxes ? elements.btToggleTaxes.checked : true;
+    const brokerageVal = elements.btBrokerageInput ? Number(elements.btBrokerageInput.value) || 20 : 20;
+
+    if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.disabled = true;
+    if (elements.btnRunDiagnosticsHero) elements.btnRunDiagnosticsHero.disabled = true;
+    if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '⏳';
+    if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Calculating...';
+    if (elements.btnRunDiagnosticsHero) elements.btnRunDiagnosticsHero.innerHTML = '<span>⏳ Computing Monte Carlo &amp; Robustness (1,000x)...</span>';
+
+    showToast('Calculating Institutional Quantitative Diagnostics & Robustness...', 'info');
+
+    try {
+        const res = await fetch('/api/backtest/diagnostics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                trades: rawTrades,
+                capital_per_trade: capital,
+                slippage_pct: slippage,
+                include_brokerage: incBrokerage,
+                include_taxes: incTaxes,
+                brokerage_per_order: brokerageVal
+            })
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+            AppState.backtestResults.diagnostics = data.diagnostics || {};
+            AppState.diagnosticsActive = true;
+
+            if (data.overall_report) {
+                AppState.backtestResults.overall_report = {
+                    ...AppState.backtestResults.overall_report,
+                    ...data.overall_report
+                };
+                renderOverallReport(AppState.backtestResults.overall_report);
+            }
+
+            if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'none';
+            if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'block';
+            if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'flex';
+            if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.classList.add('btn-active-diag');
+            if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '✅';
+            if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Diagnostics Active (Toggle)';
+
+            renderDiagnosticsSuite(data.diagnostics);
+
+            const activeMaster = document.querySelector('.diag-master-pill.active');
+            const targetId = activeMaster ? activeMaster.getAttribute('data-panel') : 'panel-robustness';
+            const panel = document.getElementById(targetId);
+            if (panel) {
+                const activeSub = panel.querySelector('.diag-subpill.active');
+                if (activeSub) {
+                    triggerSubviewRender(activeSub.getAttribute('data-subview'));
+                }
+            }
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+            showToast('Institutional diagnostics & robustness suite calculated successfully!', 'success');
+        } else {
+            showToast(`Failed to calculate diagnostics: ${data.message || 'Unknown error'}`, 'error');
+        }
+    } catch (err) {
+        showToast(`Diagnostics error: ${err.message}`, 'error');
+    } finally {
+        if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.disabled = false;
+        if (elements.btnRunDiagnosticsHero) {
+            elements.btnRunDiagnosticsHero.disabled = false;
+            elements.btnRunDiagnosticsHero.innerHTML = '<span>⚡ Calculate &amp; Populate Diagnostics</span>';
+        }
+    }
+}
+
+function initDiagnosticsTabs() {
+    // Master Tabs: Robustness vs Portfolio Diagnostics
+    const masterPills = document.querySelectorAll('.diag-master-pill');
+    masterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            masterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            
+            const targetId = pill.getAttribute('data-panel');
+            document.querySelectorAll('.diag-panel').forEach(panel => {
+                if (panel.id === targetId) {
+                    panel.style.display = 'block';
+                    panel.classList.add('active');
+                    // Find active subpill and trigger render
+                    const activeSub = panel.querySelector('.diag-subpill.active');
+                    if (activeSub) {
+                        const svId = activeSub.getAttribute('data-subview');
+                        triggerSubviewRender(svId);
+                    }
+                } else {
+                    panel.style.display = 'none';
+                    panel.classList.remove('active');
+                }
+            });
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 50);
+        });
+    });
+
+    // Subtabs in each panel
+    const subpills = document.querySelectorAll('.diag-subpill');
+    subpills.forEach(subpill => {
+        subpill.addEventListener('click', () => {
+            const panel = subpill.closest('.diag-panel');
+            if (!panel) return;
+
+            panel.querySelectorAll('.diag-subpill').forEach(sp => sp.classList.remove('active'));
+            subpill.classList.add('active');
+
+            const targetViewId = subpill.getAttribute('data-subview');
+            panel.querySelectorAll('.diag-view-pane').forEach(pane => {
+                if (pane.id === targetViewId) {
+                    pane.style.display = 'block';
+                    pane.classList.add('active');
+                } else {
+                    pane.style.display = 'none';
+                    pane.classList.remove('active');
+                }
+            });
+
+            triggerSubviewRender(targetViewId);
+
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 50);
+        });
+    });
+
+    // Heatmap filter selectors
+    const selectTp = document.getElementById('select-heatmap-tp');
+    const selectMetric = document.getElementById('select-heatmap-metric');
+    if (selectTp) {
+        selectTp.addEventListener('change', () => {
+            if (_currentDiagnostics && _currentDiagnostics.parameter_sensitivity) {
+                renderParameterHeatmap(_currentDiagnostics.parameter_sensitivity);
+            }
+        });
+    }
+    if (selectMetric) {
+        selectMetric.addEventListener('change', () => {
+            if (_currentDiagnostics && _currentDiagnostics.parameter_sensitivity) {
+                renderParameterHeatmap(_currentDiagnostics.parameter_sensitivity);
+            }
+        });
+    }
+
+    // On-demand toggle and hero button
+    const btnToggleDiag = document.getElementById('btn-toggle-diagnostics');
+    if (btnToggleDiag) {
+        btnToggleDiag.addEventListener('click', toggleOrCalculateDiagnostics);
+    }
+    const btnHeroDiag = document.getElementById('btn-run-diagnostics-hero');
+    if (btnHeroDiag) {
+        btnHeroDiag.addEventListener('click', toggleOrCalculateDiagnostics);
+    }
+
+    resetDiagnosticsUI();
+}
+
+function renderDiagnosticsSuite(diag) {
+    if (!diag) return;
+    _currentDiagnostics = diag;
+
+    if (diag.benchmark_comparison) renderBenchmarkComparison(diag.benchmark_comparison);
+    if (diag.out_of_sample_split) renderOosSplit(diag.out_of_sample_split);
+    if (diag.parameter_sensitivity) renderParameterHeatmap(diag.parameter_sensitivity);
+    if (diag.monte_carlo) renderMonteCarlo(diag.monte_carlo);
+    if (diag.regime_split) renderRegimeSplit(diag.regime_split);
+    if (diag.pnl_distribution) renderPnlDistribution(diag.pnl_distribution);
+    if (diag.sector_mcap) renderSectorMcap(diag.sector_mcap);
+    if (diag.concurrent_timeline) renderConcurrentTimeline(diag.concurrent_timeline);
+    if (diag.rolling_metrics) renderRollingMetrics(diag.rolling_metrics);
+    if (diag.position_sizing) renderPositionSizingComparison(diag.position_sizing);
+}
+
+function renderBenchmarkComparison(data) {
+    const elStratCagr = document.getElementById('kpi-strat-cagr');
+    const elNiftyCagr = document.getElementById('kpi-nifty-cagr');
+    const elAlpha = document.getElementById('kpi-alpha');
+    const elBeta = document.getElementById('kpi-beta');
+    const elCorr = document.getElementById('kpi-corr');
+
+    const stratCagr = Number(data.strategy_cagr !== undefined ? data.strategy_cagr : (data.strat_cagr || 0));
+    const niftyCagr = Number(data.nifty_cagr || 0);
+    const alpha = Number(data.alpha || 0);
+
+    if (elStratCagr) {
+        elStratCagr.textContent = `${stratCagr >= 0 ? '+' : ''}${stratCagr.toFixed(2)}%`;
+        elStratCagr.className = `diag-kpi-val ${stratCagr >= 0 ? 'text-green' : 'text-red'}`;
+    }
+    if (elNiftyCagr) {
+        elNiftyCagr.textContent = `${niftyCagr >= 0 ? '+' : ''}${niftyCagr.toFixed(2)}%`;
+    }
+    if (elAlpha) {
+        elAlpha.textContent = `${alpha >= 0 ? '+' : ''}${alpha.toFixed(2)}%`;
+        elAlpha.className = `diag-kpi-val ${alpha >= 0 ? 'text-green' : 'text-red'}`;
+    }
+    if (elBeta) {
+        elBeta.textContent = Number(data.beta || 0).toFixed(2);
+    }
+    if (elCorr) {
+        elCorr.textContent = Number(data.correlation || 0).toFixed(2);
+    }
+
+    const container = document.getElementById('chart-benchmark-container');
+    const stratEquity = data.strategy_equity || data.strat_rebased;
+    const niftyEquity = data.nifty_equity || data.nifty_rebased;
+
+    if (container && window.Plotly && data.dates && data.dates.length > 0 && stratEquity && niftyEquity) {
+        const traceStrat = {
+            x: data.dates,
+            y: stratEquity,
+            name: 'Strategy Equity (Base 100)',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#3b82f6', width: 2.5 }
+        };
+        const traceNifty = {
+            x: data.dates,
+            y: niftyEquity,
+            name: 'Nifty 50 Buy & Hold (Base 100)',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#f59e0b', width: 1.8, dash: 'dash' }
+        };
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            hovermode: 'x unified',
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Relative Performance (Base 100)'
+            },
+            legend: {
+                ...PLOTLY_DARK_LAYOUT.legend,
+                orientation: 'h',
+                x: 0,
+                y: 1.12
+            }
+        };
+
+        Plotly.react(container, [traceStrat, traceNifty], layout, PLOTLY_CONFIG);
+    }
+}
+
+function renderOosSplit(data) {
+    const elInfo = document.getElementById('oos-split-info');
+    const elBadge = document.getElementById('oos-degradation-badge');
+    const tbody = document.getElementById('tbody-oos-comparison');
+
+    const is = data.in_sample || {};
+    const oos = data.out_of_sample || {};
+    const ratio = Number(data.degradation_ratio || 0);
+
+    if (elInfo) {
+        if (data.in_sample) {
+            elInfo.textContent = `In-Sample (65%): ${is.trades || 0} trades [${is.start_date || '-'} to ${is.end_date || '-'}] | Out-of-Sample (35%): ${oos.trades || 0} trades [${oos.start_date || '-'} to ${oos.end_date || '-'}]`;
+        } else {
+            elInfo.textContent = `In-Sample (65%): ${data.is_trades_count || 0} trades [${data.is_period || '-'}] | Out-of-Sample (35%): ${data.oos_trades_count || 0} trades [${data.oos_period || '-'}]`;
+        }
+    }
+    if (elBadge) {
+        const status = data.status ? ` (${data.status})` : '';
+        elBadge.textContent = `${(ratio * 100).toFixed(1)}% Retention${status}`;
+        elBadge.className = `badge-tag ${ratio >= 0.7 ? 'badge-green' : (ratio >= 0.5 ? 'badge-yellow' : 'badge-red')}`;
+    }
+    if (tbody) {
+        if (data.in_sample && data.out_of_sample) {
+            const metrics = [
+                { metric: 'Total Trades', is: `${is.trades}`, oos: `${oos.trades}`, retention: '-' },
+                { metric: 'Win Rate %', is: `${is.win_pct}%`, oos: `${oos.win_pct}%`, retention: `${is.win_pct > 0 ? (oos.win_pct / is.win_pct * 100).toFixed(1) : 0}%` },
+                { metric: 'Profit Factor', is: `${Number(is.profit_factor).toFixed(2)}`, oos: `${Number(oos.profit_factor).toFixed(2)}`, retention: `${is.profit_factor > 0 ? (oos.profit_factor / is.profit_factor * 100).toFixed(1) : 0}%` },
+                { metric: 'CAGR %', is: `${is.cagr_pct}%`, oos: `${oos.cagr_pct}%`, retention: `${is.cagr_pct > 0 ? (oos.cagr_pct / is.cagr_pct * 100).toFixed(1) : 0}%` },
+                { metric: 'Max Drawdown %', is: `${is.max_drawdown}%`, oos: `${oos.max_drawdown}%`, retention: '-' },
+                { metric: 'Total Net Profit', is: formatRupeeVal(is.total_profit), oos: formatRupeeVal(oos.total_profit), retention: '-' },
+                { metric: 'Expectancy Ratio', is: `${Number(is.expectancy).toFixed(2)}`, oos: `${Number(oos.expectancy).toFixed(2)}`, retention: '-' },
+                { metric: 'Sharpe Ratio', is: `${Number(is.sharpe).toFixed(2)}`, oos: `${Number(oos.sharpe).toFixed(2)}`, retention: '-' }
+            ];
+            tbody.innerHTML = metrics.map(m => `
+                <tr>
+                    <td style="font-weight: 600; color: #cbd5e1;">${m.metric}</td>
+                    <td style="color: #60a5fa; font-weight: 500;">${m.is}</td>
+                    <td style="color: #c084fc; font-weight: 500;">${m.oos}</td>
+                    <td><span class="badge-tag ${parseFloat(m.retention) >= 70 ? 'badge-green' : (parseFloat(m.retention) >= 50 ? 'badge-yellow' : 'badge-neutral')}">${m.retention}</span></td>
+                </tr>
+            `).join('');
+        } else if (data.metrics) {
+            tbody.innerHTML = data.metrics.map(m => {
+                const retNum = parseFloat(m.retention);
+                let badgeClass = 'badge-green';
+                if (isNaN(retNum) || retNum < 50) badgeClass = 'badge-red';
+                else if (retNum < 70) badgeClass = 'badge-yellow';
+
+                return `
+                    <tr>
+                        <td style="font-weight: 600; color: #cbd5e1;">${m.metric}</td>
+                        <td style="color: #60a5fa; font-weight: 500;">${m.is}</td>
+                        <td style="color: #c084fc; font-weight: 500;">${m.oos}</td>
+                        <td><span class="badge-tag ${badgeClass}">${m.retention}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+}
+
+function renderParameterHeatmap(data) {
+    const container = document.getElementById('chart-heatmap-container');
+    const grids = data.grids || data.matrices;
+    if (!container || !window.Plotly || !grids) return;
+
+    const selectTp = document.getElementById('select-heatmap-tp');
+    const selectMetric = document.getElementById('select-heatmap-metric');
+    const selectedTp = (selectTp && selectTp.value) || data.default_tp || '100%';
+    const selectedMetric = (selectMetric && selectMetric.value) || 'profit_factor';
+
+    const matrixData = grids[selectedTp] ? grids[selectedTp][selectedMetric] : null;
+    if (!matrixData) return;
+
+    const emaArr = data.ema_values || data.ema_lengths || [20, 25, 30, 35, 40];
+    const rsiArr = data.rsi_values || data.rsi_thresholds || [70, 75, 80, 85];
+    const xLabels = emaArr.map(l => `EMA ${l}`);
+    const yLabels = rsiArr.map(r => `RSI > ${r}`);
+
+    const annotations = [];
+    for (let i = 0; i < yLabels.length; i++) {
+        for (let j = 0; j < xLabels.length; j++) {
+            if (matrixData[i] && matrixData[i][j] !== undefined) {
+                const val = matrixData[i][j];
+                const textVal = selectedMetric === 'profit_factor' 
+                    ? Number(val).toFixed(2) 
+                    : formatRupeeVal(val);
+
+                annotations.push({
+                    x: xLabels[j],
+                    y: yLabels[i],
+                    text: textVal,
+                    font: {
+                        family: 'Outfit, sans-serif',
+                        size: 11,
+                        color: '#ffffff',
+                        weight: 600
+                    },
+                    showarrow: false
+                });
+            }
+        }
+    }
+
+    const colorscale = selectedMetric === 'profit_factor'
+        ? [
+            [0.0, '#1e1b4b'],
+            [0.3, '#312e81'],
+            [0.6, '#2563eb'],
+            [1.0, '#10b981']
+          ]
+        : [
+            [0.0, '#7f1d1d'],
+            [0.4, '#1e293b'],
+            [0.7, '#065f46'],
+            [1.0, '#10b981']
+          ];
+
+    const trace = {
+        z: matrixData,
+        x: xLabels,
+        y: yLabels,
+        type: 'heatmap',
+        colorscale: colorscale,
+        showscale: true,
+        colorbar: {
+            tickfont: { color: '#94a3b8' },
+            outlinecolor: 'rgba(0,0,0,0)',
+            len: 0.8
+        },
+        hoverongaps: false
+    };
+
+    const layout = {
+        ...PLOTLY_DARK_LAYOUT,
+        annotations: annotations,
+        xaxis: {
+            ...PLOTLY_DARK_LAYOUT.xaxis,
+            type: 'category',
+            title: 'Trailing Exit EMA Length'
+        },
+        yaxis: {
+            ...PLOTLY_DARK_LAYOUT.yaxis,
+            type: 'category',
+            title: 'Entry RSI Threshold'
+        }
+    };
+
+    Plotly.react(container, [trace], layout, PLOTLY_CONFIG);
+}
+
+function renderMonteCarlo(data) {
+    const elMedian = document.getElementById('kpi-mc-median-dd');
+    const elP95 = document.getElementById('kpi-mc-p95-dd');
+    const elP99 = document.getElementById('kpi-mc-p99-dd');
+    const elProb = document.getElementById('kpi-mc-prob-20');
+
+    const stats = data.stats || data.kpis || {};
+    const medianDd = stats.median_mdd !== undefined ? stats.median_mdd : (stats.median_max_dd || 0);
+    const p95Dd = stats.p95_worst_case_mdd !== undefined ? stats.p95_worst_case_mdd : (stats.p95_worst_dd || 0);
+    const p99Dd = stats.p99_stress_mdd !== undefined ? stats.p99_stress_mdd : (stats.p99_stress_dd || 0);
+    const prob20 = stats.prob_dd_over_20_pct !== undefined ? `${stats.prob_dd_over_20_pct}%` : (stats.prob_dd_over_20 || '0.0%');
+
+    if (elMedian) elMedian.textContent = formatRupeeVal(medianDd);
+    if (elP95) elP95.textContent = formatRupeeVal(p95Dd);
+    if (elP99) elP99.textContent = formatRupeeVal(p99Dd);
+    if (elProb) elProb.textContent = prob20;
+
+    const container = document.getElementById('chart-montecarlo-container');
+    const fanCurves = data.percentiles || data.fan_curves;
+    const x = data.steps || data.trade_indices;
+
+    if (container && window.Plotly && fanCurves && x) {
+        const traces = [
+            {
+                x: x,
+                y: fanCurves.p5,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: 'rgba(59, 130, 246, 0.25)', width: 1 },
+                name: '5th %ile (Worst 5%)',
+                showlegend: false
+            },
+            {
+                x: x,
+                y: fanCurves.p95,
+                type: 'scatter',
+                mode: 'lines',
+                fill: 'tonexty',
+                fillcolor: 'rgba(59, 130, 246, 0.10)',
+                line: { color: 'rgba(59, 130, 246, 0.25)', width: 1 },
+                name: '90% Confidence Band (5th - 95th %ile)'
+            },
+            {
+                x: x,
+                y: fanCurves.p25,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: 'rgba(99, 102, 241, 0.4)', width: 1 },
+                name: '25th %ile',
+                showlegend: false
+            },
+            {
+                x: x,
+                y: fanCurves.p75,
+                type: 'scatter',
+                mode: 'lines',
+                fill: 'tonexty',
+                fillcolor: 'rgba(99, 102, 241, 0.20)',
+                line: { color: 'rgba(99, 102, 241, 0.4)', width: 1 },
+                name: '50% Confidence Band (25th - 75th %ile)'
+            },
+            {
+                x: x,
+                y: fanCurves.p50,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#06b6d4', width: 2.8 },
+                name: 'Median Simulation (50th %ile)'
+            }
+        ];
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            hovermode: 'x unified',
+            xaxis: {
+                ...PLOTLY_DARK_LAYOUT.xaxis,
+                type: 'linear',
+                title: 'Trades Resampled Sequence'
+            },
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Simulated Portfolio Equity (₹)',
+                tickformat: 's'
+            },
+            legend: {
+                ...PLOTLY_DARK_LAYOUT.legend,
+                orientation: 'h',
+                x: 0,
+                y: 1.12
+            }
+        };
+
+        Plotly.react(container, traces, layout, PLOTLY_CONFIG);
+    }
+}
+
+function renderRegimeSplit(data) {
+    const tbody = document.getElementById('tbody-regime');
+    if (tbody && data.regimes) {
+        tbody.innerHTML = data.regimes.map(r => {
+            const regimeIcon = r.regime.includes('Bull') ? '🐂' : (r.regime.includes('Bear') ? '🐻' : '↔️');
+            const winRate = Number(r.win_pct !== undefined ? r.win_pct : (r.win_rate || 0));
+            const netPnl = Number(r.total_profit !== undefined ? r.total_profit : (r.net_pnl || 0));
+            const avgP = Number(r.avg_profit || 0);
+            const pf = Number(r.profit_factor || 0);
+
+            return `
+                <tr>
+                    <td style="font-weight: 600; color: #cbd5e1;">${regimeIcon} ${r.regime}</td>
+                    <td>${r.trades}</td>
+                    <td class="${winRate >= 50 ? 'text-green' : 'text-neutral'}">${winRate.toFixed(1)}%</td>
+                    <td class="${pf >= 1.5 ? 'text-green' : (pf < 1.0 ? 'text-red' : 'text-neutral')}">${pf.toFixed(2)}</td>
+                    <td class="${netPnl >= 0 ? 'text-green' : 'text-red'}">${formatRupeeVal(netPnl)}</td>
+                    <td class="${avgP >= 0 ? 'text-green' : 'text-red'}">${formatRupeeVal(avgP)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    const container = document.getElementById('chart-regime-container');
+    if (container && window.Plotly && data.regimes) {
+        const netPnls = data.regimes.map(r => Number(r.total_profit !== undefined ? r.total_profit : (r.net_pnl || 0)));
+        const trace = {
+            x: data.regimes.map(r => r.regime),
+            y: netPnls,
+            type: 'bar',
+            marker: {
+                color: netPnls.map(p => p >= 0 ? '#10b981' : '#ef4444'),
+                line: { color: 'rgba(255, 255, 255, 0.1)', width: 1 }
+            }
+        };
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Total Net PnL (₹)',
+                tickformat: 's'
+            }
+        };
+
+        Plotly.react(container, [trace], layout, PLOTLY_CONFIG);
+    }
+}
+
+function renderPnlDistribution(data) {
+    const elSkew = document.getElementById('kpi-dist-skew');
+    const elKurt = document.getElementById('kpi-dist-kurt');
+    const elDesc = document.getElementById('kpi-dist-desc');
+
+    if (elSkew) {
+        const val = Number(data.skewness || 0);
+        elSkew.textContent = `${val >= 0 ? '+' : ''}${val.toFixed(2)}`;
+        elSkew.className = `diag-kpi-val ${val >= 0 ? 'text-green' : 'text-red'}`;
+    }
+    if (elKurt) elKurt.textContent = Number(data.kurtosis || 0).toFixed(2);
+    if (elDesc) elDesc.textContent = data.fat_tail_comment || data.fat_tail_diagnosis || '-';
+
+    const pnlContainer = document.getElementById('chart-pnl-hist-container');
+    if (pnlContainer && window.Plotly) {
+        if (data.histogram) {
+            const traceHist = {
+                x: data.histogram.map(h => h.bin),
+                y: data.histogram.map(h => h.count),
+                type: 'bar',
+                marker: {
+                    color: data.histogram.map(h => h.bin.includes('-') ? '#ef4444' : '#10b981'),
+                    opacity: 0.85
+                }
+            };
+            const layoutHist = {
+                ...PLOTLY_DARK_LAYOUT,
+                title: { text: 'P&L Return Bins', font: { color: '#cbd5e1', size: 12 } },
+                xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: 'Return Bins' },
+                yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: 'Number of Trades' }
+            };
+            Plotly.react(pnlContainer, [traceHist], layoutHist, PLOTLY_CONFIG);
+        } else if (data.pnl_values) {
+            const tracePnl = {
+                x: data.pnl_values,
+                type: 'histogram',
+                nbinsx: 35,
+                marker: {
+                    color: '#3b82f6',
+                    line: { color: '#1d4ed8', width: 1 },
+                    opacity: 0.85
+                }
+            };
+            const layoutPnl = {
+                ...PLOTLY_DARK_LAYOUT,
+                title: { text: 'P&L Distribution (₹)', font: { color: '#cbd5e1', size: 12 } },
+                xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: 'Trade Profit / Loss (₹)' },
+                yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: 'Number of Trades' }
+            };
+            Plotly.react(pnlContainer, [tracePnl], layoutPnl, PLOTLY_CONFIG);
+        }
+    }
+
+    const rContainer = document.getElementById('chart-rmult-hist-container');
+    if (rContainer && window.Plotly && data.r_multiples) {
+        const traceR = {
+            x: data.r_multiples,
+            type: 'histogram',
+            nbinsx: 30,
+            marker: {
+                color: '#8b5cf6',
+                line: { color: '#6d28d9', width: 1 },
+                opacity: 0.85
+            }
+        };
+        const layoutR = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: { text: 'R-Multiple Distribution', font: { color: '#cbd5e1', size: 12 } },
+            xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: 'R-Multiple (Trade Return ÷ Risk)' },
+            yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: 'Number of Trades' }
+        };
+        Plotly.react(rContainer, [traceR], layoutR, PLOTLY_CONFIG);
+    }
+}
+
+function renderSectorMcap(data) {
+    const donutContainer = document.getElementById('chart-mcap-donut-container');
+    const mcapTiers = data.market_cap || data.mcap_tiers;
+    if (donutContainer && window.Plotly && mcapTiers) {
+        const traceDonut = {
+            type: 'pie',
+            hole: 0.55,
+            labels: mcapTiers.map(t => t.tier),
+            values: mcapTiers.map(t => t.trades !== undefined ? t.trades : t.count),
+            marker: {
+                colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+            },
+            textinfo: 'label+percent',
+            textposition: 'outside',
+            showlegend: false
+        };
+        const layoutDonut = {
+            ...PLOTLY_DARK_LAYOUT,
+            margin: { l: 20, r: 20, t: 20, b: 20 }
+        };
+        Plotly.react(donutContainer, [traceDonut], layoutDonut, PLOTLY_CONFIG);
+    }
+
+    const barContainer = document.getElementById('chart-sector-bar-container');
+    if (barContainer && window.Plotly && data.sectors) {
+        const topSectors = [...data.sectors].sort((a, b) => {
+            const pA = a.profit !== undefined ? a.profit : (a.net_pnl || 0);
+            const pB = b.profit !== undefined ? b.profit : (b.net_pnl || 0);
+            return pB - pA;
+        }).slice(0, 8);
+
+        const profits = topSectors.map(s => Number(s.profit !== undefined ? s.profit : (s.net_pnl || 0)));
+        const traceBar = {
+            type: 'bar',
+            orientation: 'h',
+            y: topSectors.map(s => s.sector).reverse(),
+            x: profits.reverse(),
+            marker: {
+                color: profits.map(p => p >= 0 ? '#10b981' : '#ef4444').reverse()
+            }
+        };
+        const layoutBar = {
+            ...PLOTLY_DARK_LAYOUT,
+            margin: { l: 110, r: 25, t: 15, b: 35 },
+            xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: 'Net Profit (₹)', tickformat: 's' }
+        };
+        Plotly.react(barContainer, [traceBar], layoutBar, PLOTLY_CONFIG);
+    }
+
+    const tbody = document.getElementById('tbody-sector-breakdown');
+    if (tbody && data.sectors) {
+        tbody.innerHTML = data.sectors.map(s => {
+            const p = Number(s.profit !== undefined ? s.profit : (s.net_pnl || 0));
+            const winRate = Number(s.win_pct !== undefined ? s.win_pct : (s.win_rate || 0));
+            return `
+                <tr>
+                    <td style="font-weight: 600; color: #cbd5e1;">${s.sector}</td>
+                    <td>${s.trades}</td>
+                    <td class="${winRate >= 50 ? 'text-green' : 'text-neutral'}">${winRate.toFixed(1)}%</td>
+                    <td class="${p >= 0 ? 'text-green' : 'text-red'}">${formatRupeeVal(p)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
+function renderConcurrentTimeline(data) {
+    const elPeak = document.getElementById('kpi-timeline-peak-pos');
+    const elAvg = document.getElementById('kpi-timeline-avg-util');
+    const elDesc = document.getElementById('kpi-timeline-desc');
+
+    const peakPos = data.peak_positions !== undefined ? data.peak_positions : (data.peak_concurrent || 0);
+    const avgUtil = data.avg_utilization !== undefined ? data.avg_utilization : (data.avg_utilization_pct || 0);
+
+    if (elPeak) elPeak.textContent = `${peakPos} Positions`;
+    if (elAvg) elAvg.textContent = `${Number(avgUtil).toFixed(1)}%`;
+    if (elDesc && data.insight) elDesc.textContent = data.insight;
+
+    const container = document.getElementById('chart-concurrent-timeline-container');
+    const positions = data.positions || data.concurrent_positions;
+    const utilization = data.utilization_pct || data.capital_deployed;
+
+    if (container && window.Plotly && data.dates && positions) {
+        const tracePositions = {
+            x: data.dates,
+            y: positions,
+            name: 'Active Positions Count',
+            type: 'scatter',
+            mode: 'lines',
+            fill: 'tozeroy',
+            fillcolor: 'rgba(139, 92, 246, 0.15)',
+            line: { color: '#8b5cf6', width: 2 }
+        };
+
+        const traces = [tracePositions];
+        if (utilization) {
+            traces.push({
+                x: data.dates,
+                y: utilization,
+                name: 'Capital Deployed / Utilization %',
+                yaxis: 'y2',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#10b981', width: 2 }
+            });
+        }
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            hovermode: 'x unified',
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Open Positions Count',
+                side: 'left'
+            },
+            yaxis2: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Capital / Utilization',
+                side: 'right',
+                overlaying: 'y',
+                gridcolor: 'rgba(0,0,0,0)',
+                tickformat: 's'
+            },
+            legend: {
+                ...PLOTLY_DARK_LAYOUT.legend,
+                orientation: 'h',
+                x: 0,
+                y: 1.12
+            }
+        };
+
+        Plotly.react(container, traces, layout, PLOTLY_CONFIG);
+    }
+}
+
+function renderRollingMetrics(data) {
+    const container = document.getElementById('chart-rolling-metrics-container');
+    if (container && window.Plotly && data.dates && data.dates.length > 0) {
+        const traceSharpe6m = {
+            x: data.dates,
+            y: data.sharpe_6m,
+            name: 'Rolling 6M Sharpe',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#60a5fa', width: 2 }
+        };
+        const traceSharpe12m = {
+            x: data.dates,
+            y: data.sharpe_12m,
+            name: 'Rolling 12M Sharpe',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#3b82f6', width: 2.5 }
+        };
+        const traceWin6m = {
+            x: data.dates,
+            y: data.win_rate_6m,
+            name: 'Rolling 6M Win %',
+            yaxis: 'y2',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#34d399', width: 1.8, dash: 'dot' }
+        };
+        const traceWin12m = {
+            x: data.dates,
+            y: data.win_rate_12m,
+            name: 'Rolling 12M Win %',
+            yaxis: 'y2',
+            type: 'scatter',
+            mode: 'lines',
+            line: { color: '#059669', width: 2, dash: 'dash' }
+        };
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            hovermode: 'x unified',
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Sharpe Ratio'
+            },
+            yaxis2: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Win Rate (%)',
+                side: 'right',
+                overlaying: 'y',
+                gridcolor: 'rgba(0,0,0,0)',
+                range: [0, 100]
+            },
+            legend: {
+                ...PLOTLY_DARK_LAYOUT.legend,
+                orientation: 'h',
+                x: 0,
+                y: 1.12
+            }
+        };
+
+        Plotly.react(container, [traceSharpe6m, traceSharpe12m, traceWin6m, traceWin12m], layout, PLOTLY_CONFIG);
+    }
+}
+
+function renderPositionSizingComparison(data) {
+    const tbody = document.getElementById('tbody-sizing-comparison');
+    if (tbody && data.models) {
+        const rows = [
+            { name: 'Fixed ₹100,000 / Trade (Current Baseline)', model: data.models.fixed },
+            { name: 'Compounding 5% Active Equity', model: data.models.compounding },
+            { name: 'Volatility-Scaled (0.5% Risk / Trade)', model: data.models.volatility_scaled }
+        ];
+
+        tbody.innerHTML = rows.map(r => {
+            const m = r.model || {};
+            return `
+                <tr>
+                    <td style="font-weight: 600; color: #cbd5e1;">${r.name}</td>
+                    <td class="${(m.net_profit || 0) >= 0 ? 'text-green' : 'text-red'}">${formatRupeeVal(m.net_profit || 0)}</td>
+                    <td class="${(m.cagr_pct || 0) >= 0 ? 'text-green' : 'text-red'}">${Number(m.cagr_pct || 0).toFixed(2)}%</td>
+                    <td class="text-red">${Number(m.max_dd_pct || 0).toFixed(2)}%</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    const container = document.getElementById('chart-sizing-comparison-container');
+    if (container && window.Plotly && data.dates) {
+        const traces = [
+            {
+                x: data.dates,
+                y: data.fixed_capital_curve,
+                name: 'Fixed ₹100k / Trade',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#94a3b8', width: 1.8 }
+            },
+            {
+                x: data.dates,
+                y: data.compounding_equity_curve,
+                name: 'Compounding 5% Equity',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#3b82f6', width: 2.5 }
+            },
+            {
+                x: data.dates,
+                y: data.volatility_scaled_curve,
+                name: 'Volatility-Scaled (0.5% Risk)',
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#10b981', width: 2.5 }
+            }
+        ];
+
+        const layout = {
+            ...PLOTLY_DARK_LAYOUT,
+            title: false,
+            hovermode: 'x unified',
+            yaxis: {
+                ...PLOTLY_DARK_LAYOUT.yaxis,
+                title: 'Portfolio Equity (₹)',
+                tickformat: 's'
+            },
+            legend: {
+                ...PLOTLY_DARK_LAYOUT.legend,
+                orientation: 'h',
+                x: 0,
+                y: 1.12
+            }
+        };
+
+        Plotly.react(container, traces, layout, PLOTLY_CONFIG);
+    }
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
@@ -2997,6 +4260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initGenAITemplateModal();
     initFundamentalsSystem();
     initDailyCacheSystem();
+    initDiagnosticsTabs();
     
     // Pre-cache all tickers in background for instant autosuggest
     loadAllSymbols();
