@@ -1256,12 +1256,15 @@ function renderYearWiseTable(rows) {
         const totalCls = activeRowTotal > 0 ? 'text-green' : (activeRowTotal < 0 ? 'text-red' : 'text-neutral');
         const mddCls = r.max_drawdown < 0 ? 'text-red' : 'text-neutral';
 
-        let activeRMdd = 0;
-        if (r.max_drawdown < 0) {
-            activeRMdd = (activeRowTotal / Math.abs(r.max_drawdown)).toFixed(2);
-        } else {
-            activeRMdd = activeRowTotal !== 0 ? activeRowTotal.toFixed(2) : '0.00';
+        const baseCap = (AppState.backtestResults && AppState.backtestResults.overall_report && AppState.backtestResults.overall_report.peak_capital_deployed) || (AppState.rawBacktestSummary && AppState.rawBacktestSummary.base_capital) || 100000;
+        let cagrVal = 0.0;
+        if (r.cagr !== undefined && r.cagr !== null) {
+            cagrVal = Number(r.cagr);
+        } else if (baseCap > 0) {
+            cagrVal = Math.round((activeRowTotal / baseCap) * 10000) / 100;
         }
+        const cagrCls = cagrVal > 0 ? 'text-green' : (cagrVal < 0 ? 'text-red' : 'text-neutral');
+        const cagrStr = `${cagrVal >= 0 ? '+' : ''}${cagrVal.toFixed(2)}%`;
 
         tr.innerHTML = `
             <td><strong>${r.year}</strong></td>
@@ -1269,7 +1272,7 @@ function renderYearWiseTable(rows) {
             <td class="${totalCls}" style="font-weight: 700;">${Number(activeRowTotal).toLocaleString('en-IN')}</td>
             <td class="${mddCls}">${Number(r.max_drawdown).toLocaleString('en-IN')}</td>
             <td style="color: var(--text-dark); font-size: 0.8rem;">${r.days_for_mdd}</td>
-            <td style="color: #93c5fd; font-weight: 600;">${activeRMdd}</td>
+            <td class="${cagrCls}" style="font-weight: 700; font-family: var(--font-mono);">${cagrStr}</td>
         `;
         elements.btYearWiseTbody.appendChild(tr);
     });
@@ -1288,6 +1291,7 @@ function updateYearWiseTableTotals() {
     if (!rows || rows.length === 0) return;
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const baseCap = (AppState.backtestResults && AppState.backtestResults.overall_report && AppState.backtestResults.overall_report.peak_capital_deployed) || (AppState.rawBacktestSummary && AppState.rawBacktestSummary.base_capital) || 100000;
 
     trs.forEach((tr, idx) => {
         const r = rows[idx];
@@ -1317,16 +1321,15 @@ function updateYearWiseTableTotals() {
             totalCell.textContent = Number(activeRowTotal).toLocaleString('en-IN');
         }
 
-        // R:MDD cell (cell index 16)
-        const rmddCell = tr.cells[16];
-        if (rmddCell) {
-            let activeRMdd = 0;
-            if (r.max_drawdown < 0) {
-                activeRMdd = (activeRowTotal / Math.abs(r.max_drawdown)).toFixed(2);
-            } else {
-                activeRMdd = activeRowTotal !== 0 ? activeRowTotal.toFixed(2) : '0.00';
-            }
-            rmddCell.textContent = activeRMdd;
+        // CAGR cell (cell index 16)
+        const cagrCell = tr.cells[16];
+        if (cagrCell) {
+            const cagrVal = baseCap > 0 ? Math.round((activeRowTotal / baseCap) * 10000) / 100 : 0.0;
+            const cagrCls = cagrVal > 0 ? 'text-green' : (cagrVal < 0 ? 'text-red' : 'text-neutral');
+            cagrCell.className = cagrCls;
+            cagrCell.style.fontWeight = '700';
+            cagrCell.style.fontFamily = 'var(--font-mono)';
+            cagrCell.textContent = `${cagrVal >= 0 ? '+' : ''}${cagrVal.toFixed(2)}%`;
         }
     });
 }
@@ -1411,8 +1414,18 @@ function renderOverallReport(rep) {
             elements.metricNoOfTrades.textContent = rep.no_of_trades || 0;
         }
     }
-    if (elements.metricWinPct) elements.metricWinPct.textContent = Number(rep.win_pct || 0).toFixed(2);
-    if (elements.metricLossPct) elements.metricLossPct.textContent = Number(rep.loss_pct || 0).toFixed(2);
+    if (elements.metricWinPct) {
+        const winCount = rep.win_trades !== undefined ? rep.win_trades : Math.round(((rep.win_pct || 0) / 100) * (rep.no_of_trades || 0));
+        const winPct = Number(rep.win_pct || 0).toFixed(2);
+        elements.metricWinPct.textContent = `${winCount} (${winPct}%)`;
+        elements.metricWinPct.className = 'cell-val text-green';
+    }
+    if (elements.metricLossPct) {
+        const lossCount = rep.loss_trades !== undefined ? rep.loss_trades : Math.round(((rep.loss_pct || 0) / 100) * (rep.no_of_trades || 0));
+        const lossPct = Number(rep.loss_pct || 0).toFixed(2);
+        elements.metricLossPct.textContent = `${lossCount} (${lossPct}%)`;
+        elements.metricLossPct.className = 'cell-val text-red';
+    }
     if (elements.metricAvgProfitPerTrade) {
         elements.metricAvgProfitPerTrade.textContent = formatRupee(rep.avg_profit_per_trade);
         elements.metricAvgProfitPerTrade.className = `cell-val ${rep.avg_profit_per_trade >= 0 ? 'text-green' : 'text-red'}`;

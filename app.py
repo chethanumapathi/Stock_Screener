@@ -1626,6 +1626,8 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
                 "no_of_trades": 0,
                 "open_trades": len(open_trades),
                 "avg_profit_per_trade": 0.0,
+                "win_trades": 0,
+                "loss_trades": 0,
                 "win_pct": 0.0,
                 "loss_pct": 0.0,
                 "avg_profit_on_winning": 0.0,
@@ -1763,6 +1765,68 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
     duration_of_mdd = f"{mdd_days} [{p_dt_str} to {t_dt_str}]" if overall_max_dd < 0 else "-"
     return_over_max_dd = round(overall_profit / abs(overall_max_dd), 2) if overall_max_dd < 0 else 0.0
 
+    total_brok = round(sum(t['brokerage'] for t in sorted_trades if t.get('brokerage') is not None), 2)
+    total_tax = round(sum(t['taxes'] for t in sorted_trades if t.get('taxes') is not None), 2)
+
+    # -----------------------------------------------------------------
+    # Capital, Timeline & Max Concurrent Open Positions
+    # -----------------------------------------------------------------
+    all_trade_intervals = []
+    for t in adjusted_trades:
+        try:
+            d_in = parse_date_flexible(t.get('entry_date'))
+            d_out = parse_date_flexible(t.get('exit_date'))
+            if d_in and d_out:
+                all_trade_intervals.append((d_in, d_out, t))
+        except Exception:
+            continue
+
+    max_concurrent_positions = 1
+    peak_capital_deployed = float(capital_per_trade)
+    avg_capital_utilization = 0.0
+    span_years = 1.0
+
+    if all_trade_intervals:
+        min_date = min(x[0] for x in all_trade_intervals)
+        max_date = max(x[1] for x in all_trade_intervals)
+        span_years = max(0.0833, (max_date - min_date).days / 365.25)
+
+        # Timeline event sweep
+        events = []
+        for d_in, d_out, _ in all_trade_intervals:
+            events.append((d_in, 1))
+            events.append((d_out + timedelta(days=1), -1))
+        events.sort(key=lambda x: (x[0], -x[1]))
+
+        curr_pos = 0
+        max_pos = 0
+        for ev_dt, change in events:
+            curr_pos += change
+            if curr_pos > max_pos:
+                max_pos = curr_pos
+
+        max_concurrent_positions = max(1, max_pos)
+        peak_capital_deployed = round(max_concurrent_positions * capital_per_trade, 2)
+
+        # Capital utilization over active calendar span
+        curr_p = 0
+        ev_idx = 0
+        daily_p_list = []
+        curr_day = min_date
+        while curr_day <= max_date:
+            while ev_idx < len(events) and events[ev_idx][0] <= curr_day:
+                curr_p += events[ev_idx][1]
+                ev_idx += 1
+            daily_p_list.append(curr_p)
+            curr_day += timedelta(days=1)
+
+        if daily_p_list and max_concurrent_positions > 0:
+            avg_capital_utilization = round((float(np.mean(daily_p_list)) / max_concurrent_positions) * 100.0, 2)
+        else:
+            avg_capital_utilization = 0.0
+
+    base_capital = max(peak_capital_deployed, capital_per_trade)
+
     # Year-wise & Month-wise Returns Matrix
     years_dict = {
         yr: {
@@ -1832,18 +1896,18 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             yr_days_str = "-"
             yr_r_mdd = 0.0
 
+        yr_cagr = round((yr_total / base_capital) * 100.0, 2) if base_capital > 0 else 0.0
+
         row = {
             "year": yr,
             **m_vals,
             "total": yr_total,
             "max_drawdown": round(yr_max_dd, 2),
             "days_for_mdd": yr_days_str,
-            "r_mdd": yr_r_mdd
+            "r_mdd": yr_r_mdd,
+            "cagr": yr_cagr
         }
         year_wise_rows.append(row)
-
-    total_brok = round(sum(t['brokerage'] for t in sorted_trades if t.get('brokerage') is not None), 2)
-    total_tax = round(sum(t['taxes'] for t in sorted_trades if t.get('taxes') is not None), 2)
 
     # -----------------------------------------------------------------
     # Advanced Institutional & Risk-Adjusted Analytics (10 Metrics)
@@ -1858,63 +1922,7 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
     else:
         profit_factor = 0.0
 
-    # 2. Capital, Timeline & Max Concurrent Open Positions
-    all_trade_intervals = []
-    for t in adjusted_trades:
-        try:
-            d_in = parse_date_flexible(t.get('entry_date'))
-            d_out = parse_date_flexible(t.get('exit_date'))
-            if d_in and d_out:
-                all_trade_intervals.append((d_in, d_out, t))
-        except Exception:
-            continue
-
-    max_concurrent_positions = 1
-    peak_capital_deployed = float(capital_per_trade)
-    avg_capital_utilization = 0.0
-    span_years = 1.0
-
-    if all_trade_intervals:
-        min_date = min(x[0] for x in all_trade_intervals)
-        max_date = max(x[1] for x in all_trade_intervals)
-        span_years = max(0.0833, (max_date - min_date).days / 365.25)
-
-        # Timeline event sweep
-        events = []
-        for d_in, d_out, _ in all_trade_intervals:
-            events.append((d_in, 1))
-            events.append((d_out + timedelta(days=1), -1))
-        events.sort(key=lambda x: (x[0], -x[1]))
-
-        curr_pos = 0
-        max_pos = 0
-        for ev_dt, change in events:
-            curr_pos += change
-            if curr_pos > max_pos:
-                max_pos = curr_pos
-
-        max_concurrent_positions = max(1, max_pos)
-        peak_capital_deployed = round(max_concurrent_positions * capital_per_trade, 2)
-
-        # Capital utilization over active calendar span
-        curr_p = 0
-        ev_idx = 0
-        daily_p_list = []
-        curr_day = min_date
-        while curr_day <= max_date:
-            while ev_idx < len(events) and events[ev_idx][0] <= curr_day:
-                curr_p += events[ev_idx][1]
-                ev_idx += 1
-            daily_p_list.append(curr_p)
-            curr_day += timedelta(days=1)
-
-        if daily_p_list and max_concurrent_positions > 0:
-            avg_capital_utilization = round((float(np.mean(daily_p_list)) / max_concurrent_positions) * 100.0, 2)
-        else:
-            avg_capital_utilization = 0.0
-
     # 3. CAGR / Annualized Return % (Based on peak capital deployed)
-    base_capital = max(peak_capital_deployed, capital_per_trade)
     total_ret_ratio = overall_profit / base_capital if base_capital > 0 else 0.0
     if (1.0 + total_ret_ratio) > 0:
         cagr_pct = round(((1.0 + total_ret_ratio) ** (1.0 / span_years) - 1.0) * 100.0, 2)
@@ -2034,6 +2042,8 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             "no_of_trades": total_trades,
             "open_trades": len(open_trades),
             "avg_profit_per_trade": avg_profit_per_trade,
+            "win_trades": len(winning),
+            "loss_trades": len(losing),
             "win_pct": win_pct,
             "loss_pct": loss_pct,
             "avg_profit_on_winning": avg_profit_on_winning,
@@ -3384,7 +3394,7 @@ def generate_backtest_pdf(report_data):
     # 3. Year-wise Returns Matrix Table
     elements.append(Paragraph("Year-wise & Month-wise Returns (Rs)", section_title))
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    headers = ['Year'] + months + ['Total', 'Max DD', 'Days for MDD', 'R/MDD']
+    headers = ['Year'] + months + ['Total', 'Max DD', 'Days for MDD', 'CAGR']
     
     rows_data = [headers]
     yw_rows = report_data.get('year_wise_returns', [])
@@ -3412,9 +3422,10 @@ def generate_backtest_pdf(report_data):
         mdd = r.get('max_drawdown', 0)
         mdd_str = f"{mdd:,.0f}" if mdd != 0 else '-'
         days_str = str(r.get('days_for_mdd', '-'))
-        r_mdd_str = str(r.get('r_mdd', '0'))
+        cagr_val = r.get('cagr', 0.0)
+        cagr_str = f"{cagr_val:+.2f}%" if cagr_val != 0 else "0.00%"
         
-        row_cells = [year_str] + m_vals + [tot_str, mdd_str, days_str, r_mdd_str]
+        row_cells = [year_str] + m_vals + [tot_str, mdd_str, days_str, cagr_str]
         rows_data.append(row_cells)
         
         bg = colors.HexColor('#f8fafc') if row_idx % 2 == 1 else colors.white
@@ -3423,6 +3434,10 @@ def generate_backtest_pdf(report_data):
         tot_color = colors.HexColor('#16a34a') if tot > 0 else (colors.HexColor('#dc2626') if tot < 0 else colors.HexColor('#64748b'))
         style_commands.append(('TEXTCOLOR', (13, row_idx), (13, row_idx), tot_color))
         style_commands.append(('FONTNAME', (13, row_idx), (13, row_idx), 'Helvetica-Bold'))
+        
+        cagr_color = colors.HexColor('#16a34a') if cagr_val > 0 else (colors.HexColor('#dc2626') if cagr_val < 0 else colors.HexColor('#64748b'))
+        style_commands.append(('TEXTCOLOR', (16, row_idx), (16, row_idx), cagr_color))
+        style_commands.append(('FONTNAME', (16, row_idx), (16, row_idx), 'Helvetica-Bold'))
         
         for m_col_idx, m in enumerate(months, start=1):
             m_val = r.get(m, 0)

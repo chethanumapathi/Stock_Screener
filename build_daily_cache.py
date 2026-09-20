@@ -75,6 +75,8 @@ def apply_splits_to_daily_df(df: pd.DataFrame, symbol: str, splits_cache: dict =
     """
     Applies split adjustments to aggregated daily DataFrame.
     Inspects price continuity around split dates to avoid double adjustment.
+    Also resolves data stitch seam discontinuities (2023-09-12 vs 2023-09-13)
+    where older Kotak data was unadjusted while newer Zerodha data was already split-adjusted.
     """
     if df.empty:
         return df
@@ -121,6 +123,26 @@ def apply_splits_to_daily_df(df: pd.DataFrame, symbol: str, splits_cache: dict =
                     df_adj.loc[mask_before, col] = (df_adj.loc[mask_before, col] / ratio).round(2)
             if 'volume' in df_adj.columns:
                 df_adj.loc[mask_before, 'volume'] = (df_adj.loc[mask_before, 'volume'] * ratio).round(0)
+
+    # Secondary check: If a corporate action occurred on or after the data stitch boundary (2023-09-13),
+    # Zerodha's feed already retrospectively adjusted post-2023-09-13 data, leaving the pre-2023-09-13
+    # Kotak feed unadjusted. Detect and fix this stitch seam discontinuity.
+    mask_seam_before = df_adj['date_str'] <= '2023-09-12'
+    mask_seam_after = df_adj['date_str'] >= '2023-09-13'
+    if mask_seam_before.any() and mask_seam_after.any():
+        c_seam_before = df_adj.loc[mask_seam_before, 'close'].iloc[-1]
+        c_seam_after = df_adj.loc[mask_seam_after, 'close'].iloc[0]
+        if c_seam_after > 0:
+            seam_ratio = c_seam_before / c_seam_after
+            for split_date, ratio in sorted_splits:
+                ratio = float(ratio)
+                if split_date >= '2023-09-13' and abs(seam_ratio - ratio) < (0.25 * ratio):
+                    for col in ['open', 'high', 'low', 'close']:
+                        if col in df_adj.columns:
+                            df_adj.loc[mask_seam_before, col] = (df_adj.loc[mask_seam_before, col] / ratio).round(2)
+                    if 'volume' in df_adj.columns:
+                        df_adj.loc[mask_seam_before, 'volume'] = (df_adj.loc[mask_seam_before, 'volume'] * ratio).round(0)
+                    break
 
     df_adj = df_adj.drop(columns=['date_str'], errors='ignore')
     return df_adj

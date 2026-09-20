@@ -1672,8 +1672,8 @@ input:checked + .slider:before {
 /* Overall Report Grid (Image 4) */
 .overall-report-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .report-column {
@@ -1690,7 +1690,7 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0.85rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-weight: 700;
@@ -1709,10 +1709,10 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.7rem 0.95rem;
+  padding: 0.65rem 0.85rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 0.84rem;
-  gap: 0.6rem;
+  gap: 0.45rem;
   transition: background 0.15s ease;
 }
 
@@ -1722,6 +1722,37 @@ input:checked + .slider:before {
 
 .report-card-cell:last-child {
   border-bottom: none;
+}
+
+.report-card-cell.cell-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.report-card-cell.cell-stacked .cell-label-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.report-card-cell.cell-stacked .cell-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.report-card-cell.cell-stacked .cell-val {
+  margin-left: 0;
+  text-align: right;
+  font-size: 0.82rem;
+  white-space: normal;
+  word-break: break-word;
+  color: #93c5fd;
 }
 
 .cell-label-group {
