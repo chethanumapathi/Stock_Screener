@@ -31,8 +31,35 @@ import random
 import logging
 import threading
 from queue import Queue, Empty
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple, Any
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def is_market_open(dt: Optional[datetime] = None) -> bool:
+    """
+    Checks if Indian Stock Market (NSE/BSE) is in regular trading hours:
+    Monday through Friday, 09:15 to 15:30 IST.
+    Returns False on weekends (Saturday, Sunday) or outside 09:15 - 15:30 IST.
+    """
+    if dt is None:
+        now = datetime.now(IST)
+    else:
+        if dt.tzinfo is None:
+            now = dt.replace(tzinfo=IST)
+        else:
+            now = dt.astimezone(IST)
+
+    # Weekends: Saturday (5), Sunday (6)
+    if now.weekday() >= 5:
+        return False
+
+    market_open = now.replace(hour=9, minute=15, second=0, microsecond=0)
+    market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
+
+    return market_open <= now <= market_close
+
 
 import duckdb
 import pandas as pd
@@ -595,15 +622,28 @@ class OrderFlowEngine:
         if loaded_real_data:
             return
 
-        # Fallback simulation if broker API is unavailable
-        now_dt = datetime.now()
-        mkt_open_dt = now_dt.replace(hour=9, minute=15, second=0, microsecond=0)
-        if now_dt < mkt_open_dt:
-            mkt_open_dt = mkt_open_dt - timedelta(days=1)
-            bars_count = 180
+        # Fallback baseline seeding when broker API is unavailable
+        now_dt = datetime.now(IST)
+        target_date = now_dt.date()
+
+        # Handle weekends & pre-market: determine the active or latest completed session
+        if now_dt.weekday() == 5:  # Saturday -> Friday session
+            target_date = target_date - timedelta(days=1)
+        elif now_dt.weekday() == 6:  # Sunday -> Friday session
+            target_date = target_date - timedelta(days=2)
+        elif now_dt.time() < datetime.strptime("09:15", "%H:%M").time():
+            # Before market open on weekday -> use previous trading day
+            target_date = target_date - timedelta(days=3 if now_dt.weekday() == 0 else 1)
+
+        mkt_open_dt = datetime.combine(target_date, datetime.strptime("09:15", "%H:%M").time(), tzinfo=IST)
+        mkt_close_dt = datetime.combine(target_date, datetime.strptime("15:30", "%H:%M").time(), tzinfo=IST)
+
+        if now_dt >= mkt_close_dt or now_dt.date() > target_date:
+            # Market closed for the session: full session of 375 1-min bars (09:15 to 15:30)
+            bars_count = 375
         else:
             mins_elapsed = int((now_dt - mkt_open_dt).total_seconds() // 60)
-            bars_count = min(max(mins_elapsed, 45), 375)
+            bars_count = min(max(mins_elapsed, 1), 375)
 
         start_time = mkt_open_dt.timestamp()
         
@@ -714,6 +754,10 @@ class OrderFlowEngine:
             if not isinstance(message, dict):
                 return
             
+            # Guard: do not process off-market ticks
+            if not self.is_market_open():
+                return
+            
             token = str(message.get('instrument_token') or message.get('token') or '')
             sym = self.token_to_symbol.get(token, self.active_symbol)
             agg = self._get_or_create_aggregator(sym)
@@ -769,14 +813,26 @@ class OrderFlowEngine:
                 self.subscribers.remove(q)
 
     def _start_simulation_worker(self):
-        """Runs background generator producing realistic order flow ticks when idle."""
+        """Runs background generator producing realistic order flow ticks only when market is open and idle."""
         if self.sim_thread and self.sim_thread.is_alive():
             return
 
         def run_sim():
-            self.is_simulating = True
             while not self.stop_requested:
                 try:
+                    # Do NOT simulate if market is closed
+                    if not self.is_market_open():
+                        self.is_simulating = False
+                        time.sleep(3)
+                        continue
+
+                    # If Kotak WebSocket is connected and streaming real ticks, do not simulate
+                    if self.is_connected:
+                        self.is_simulating = False
+                        time.sleep(3)
+                        continue
+
+                    self.is_simulating = True
                     sym = self.active_symbol
                     agg = self._get_or_create_aggregator(sym)
                     
@@ -825,13 +881,19 @@ class OrderFlowEngine:
         self.sim_thread.start()
         logger.info("OrderFlow live stream worker running.")
 
+    @staticmethod
+    def is_market_open(dt: Optional[datetime] = None) -> bool:
+        return is_market_open(dt)
+
     def get_status(self) -> dict:
         """Returns connection and stream health status."""
         agg = self.aggregators.get(self.active_symbol)
+        mkt_open = self.is_market_open()
         return {
             'active_symbol': self.active_symbol,
             'is_connected': self.is_connected,
-            'is_simulating': self.is_simulating,
+            'is_simulating': self.is_simulating and mkt_open,
+            'market_open': mkt_open,
             'kotak_available': self.kotak_client is not None,
             'total_ticks': agg.total_ticks if agg else 0,
             'session_delta': agg.session_delta if agg else 0,

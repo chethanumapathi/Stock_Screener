@@ -1841,9 +1841,9 @@ function updateDeltaMarkers(deltaBars) {
 
     // Filter markers dynamically when zoomed out to avoid text collision
     let barsToMark = deltaBars;
-    if (deltaBars.length > 25) {
+    if (deltaBars.length > 30) {
         const absVals = deltaBars.map(b => Math.abs(b.value || 0)).sort((a, b) => a - b);
-        const threshold = absVals[Math.floor(absVals.length * 0.55)] || 0;
+        const threshold = absVals[Math.floor(absVals.length * 0.45)] || 0;
         barsToMark = deltaBars.filter((b, idx) => Math.abs(b.value || 0) >= threshold || idx >= deltaBars.length - 4);
     }
 
@@ -1851,11 +1851,11 @@ function updateDeltaMarkers(deltaBars) {
         const isPos = bar.value >= 0;
         return {
             time: bar.time,
-            position: 'aboveBar',
+            position: isPos ? 'aboveBar' : 'belowBar',
             color: isPos ? '#34d399' : '#f87171',
             shape: isPos ? 'arrowUp' : 'arrowDown',
             text: formatDeltaMarkerText(bar.value),
-            size: 0.7
+            size: 0
         };
     });
     OrderFlowState.deltaSeries.setMarkers(markers);
@@ -2097,7 +2097,6 @@ async function loadOrderFlowChart(symbol, timeframe = null) {
         }
         if (OrderFlowState.deltaSeries && shiftedDelta.length > 0) {
             OrderFlowState.deltaSeries.setData(shiftedDelta);
-            // Render numeric data labels directly on top of each delta bar
             updateDeltaMarkers(shiftedDelta);
         }
         if (OrderFlowState.cvdSeries && shiftedCvd.length > 0) {
@@ -2153,14 +2152,34 @@ function connectOrderFlowStream() {
                 if (msg.type === 'handshake' || msg.type === 'connected') {
                     const st = msg.status || {};
                     if (elements.liveStreamStatusText) {
-                        if (st.is_connected) {
+                        if (!st.market_open) {
+                            elements.liveStreamStatusText.textContent = 'MARKET CLOSED';
+                            if (elements.liveStreamStatus) {
+                                elements.liveStreamStatus.classList.add('closed');
+                            }
+                            if (elements.ofTapeStatus) {
+                                elements.ofTapeStatus.textContent = 'Market closed (09:15 - 15:30 IST)';
+                            }
+                        } else if (st.is_connected) {
                             elements.liveStreamStatusText.textContent = 'LIVE (KOTAK NEO)';
-                            elements.liveStreamStatus.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-                            elements.liveStreamStatus.style.color = '#34d399';
+                            if (elements.liveStreamStatus) {
+                                elements.liveStreamStatus.classList.remove('closed');
+                                elements.liveStreamStatus.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                                elements.liveStreamStatus.style.color = '#34d399';
+                            }
+                            if (elements.ofTapeStatus) {
+                                elements.ofTapeStatus.textContent = 'Sub-second trade prints';
+                            }
                         } else {
-                            elements.liveStreamStatusText.textContent = 'SIMULATED (MKT CLOSED)';
-                            elements.liveStreamStatus.style.borderColor = 'rgba(251, 191, 36, 0.4)';
-                            elements.liveStreamStatus.style.color = '#fbbf24';
+                            elements.liveStreamStatusText.textContent = 'SIMULATED (LIVE)';
+                            if (elements.liveStreamStatus) {
+                                elements.liveStreamStatus.classList.remove('closed');
+                                elements.liveStreamStatus.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+                                elements.liveStreamStatus.style.color = '#fbbf24';
+                            }
+                            if (elements.ofTapeStatus) {
+                                elements.ofTapeStatus.textContent = 'Simulated order flow prints';
+                            }
                         }
                     }
                 } else if (msg.type === 'tick') {
@@ -2217,16 +2236,16 @@ function connectOrderFlowStream() {
                                 color: delta >= 0 ? '#10b981' : '#ef4444'
                             });
 
-                            // Live update the data label marker on top of the active forming delta bar
+                            // Live update the delta number label on the active forming delta bar (size: 0 = no arrow)
                             if (OrderFlowState.currentDeltaMarkers) {
                                 const isPos = delta >= 0;
                                 const newMarker = {
                                     time: t,
-                                    position: 'aboveBar',
+                                    position: isPos ? 'aboveBar' : 'belowBar',
                                     color: isPos ? '#34d399' : '#f87171',
                                     shape: isPos ? 'arrowUp' : 'arrowDown',
                                     text: formatDeltaMarkerText(delta),
-                                    size: 0.6
+                                    size: 0
                                 };
                                 const existingIdx = OrderFlowState.currentDeltaMarkers.findIndex(m => m.time === t);
                                 if (existingIdx !== -1) {
