@@ -104,6 +104,15 @@ class KotakClientManager:
             consumer_key=self.consumer_key,
             environment="prod"
         )
+        # Suppress neo_api_client file handler to avoid Windows [WinError 32] log-rotation lock conflicts
+        neo_log = logging.getLogger("neo_api_client")
+        for h in list(neo_log.handlers):
+            if isinstance(h, logging.FileHandler):
+                try:
+                    h.close()
+                    neo_log.removeHandler(h)
+                except Exception:
+                    pass
         self.is_authenticated = False
 
     def authenticate(self) -> bool:

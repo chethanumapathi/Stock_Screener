@@ -95,7 +95,7 @@ def sync_minute_data(
     tier: str = 'all',
     symbols_str: Optional[str] = None,
     target_date: str = '2026-09-18',
-    sleep_interval: float = 0.20,
+    sleep_interval: float = 0.35,
     rebuild_daily: bool = True
 ):
     print("=" * 70)
@@ -221,8 +221,8 @@ def main():
                         help="Specific comma-separated symbols (e.g. 'RELIANCE,TCS,INFY')")
     parser.add_argument("--target-date", type=str, default="2026-09-18",
                         help="Target sync date (YYYY-MM-DD, default: 2026-09-18)")
-    parser.add_argument("--sleep", type=float, default=0.20,
-                        help="Sleep between API calls (default: 0.20s)")
+    parser.add_argument("--sleep", type=float, default=0.35,
+                        help="Sleep between API calls (default: 0.35s)")
     parser.add_argument("--no-daily-cache", action="store_true",
                         help="Skip rebuilding daily cache")
     args = parser.parse_args()

@@ -876,6 +876,11 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
     Executes user's custom python screen(df) logic across multiple timeframes (1m, 5m, 15m, 1h, 1d)
     using DuckDB for high performance.
     """
+    # Auto-detect if strategy explicitly requires 5-minute data but timeframe was left as '1d'
+    if timeframe in ['1d', 'daily', 'day'] and ('VOLUME_LOOKBACK_5MIN' in code_str or '5 min' in code_str.lower() or '5-min' in code_str.lower()):
+        logger.info("Auto-switching screener timeframe to '5m' based on strategy requirements...")
+        timeframe = '5m'
+
     symbols = []
     if segment == 'nifty50':
         symbols = fetch_nifty50_symbols()

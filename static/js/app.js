@@ -653,6 +653,19 @@ function selectStrategy(index) {
         if (elements.strategyNameInput) elements.strategyNameInput.value = strat.name;
         if (elements.strategySelect) elements.strategySelect.value = index;
         updateActiveStrategyLink(index);
+
+        // Auto-configure recommended Timeframe and Segment based on strategy requirements
+        const is5m = strat.code.includes('VOLUME_LOOKBACK_5MIN') || strat.name.toLowerCase().includes('5 min');
+        if (is5m && elements.timeframeSelect) {
+            elements.timeframeSelect.value = '5m';
+        }
+        if (strat.code.includes('MIN_MARKET_CAP_CR = 5000') || strat.name.toLowerCase().includes('5 min')) {
+            if (elements.minMcapInput) elements.minMcapInput.value = '5000';
+            if (elements.minMcapSelect) elements.minMcapSelect.value = '5000';
+            if (elements.segmentSelect && elements.segmentSelect.value === 'nifty50') {
+                elements.segmentSelect.value = 'nifty500';
+            }
+        }
     } else {
         if (elements.codeEditor) elements.codeEditor.value = '';
         if (elements.strategyNameInput) elements.strategyNameInput.value = '';
