@@ -1133,6 +1133,273 @@ select.form-control option {
   gap: 0.75rem;
 }
 
+/* Quick Watchlist Pills */
+.quick-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.quick-pill-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-pill-btn:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}
+
+.quick-pill-btn.active {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+}
+
+/* Live Status Pill with Pulse */
+.live-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: #34d399;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  animation: livePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes livePulse {
+  0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Order Flow HUD Grid */
+.orderflow-hud-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.orderflow-hud-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hud-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.hud-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.hud-val {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.hud-pill {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hud-pill-delta {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.hud-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  font-family: var(--font-body);
+}
+
+/* Aggression Bar (Buyers vs Sellers) */
+.aggression-bar-wrapper {
+  margin-top: 0.35rem;
+}
+
+.aggression-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 0.4rem;
+}
+
+.aggression-buy {
+  background: linear-gradient(90deg, #059669, #10b981);
+  transition: width 0.3s ease;
+}
+
+.aggression-sell {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  transition: width 0.3s ease;
+}
+
+.aggression-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+/* Dedicated Storage Isolation Notice */
+.orderflow-storage-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  margin-bottom: 1.25rem;
+}
+
+/* Floating Chart Legend Overlay */
+.chart-legend-overlay {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.5rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10, 12, 24, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.legend-symbol {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: #60a5fa;
+  font-size: 0.9rem;
+}
+
+.legend-metric {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+/* Live Tick Tape */
+.tick-tape-container {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tick-tape-header {
+  display: grid;
+  grid-template-columns: 100px 110px 90px 90px 100px 1fr;
+  padding: 0.5rem 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.tick-tape-body {
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.tick-tape-row {
+  display: grid;
+  grid-template-columns: 100px 110px 90px 90px 100px 1fr;
+  padding: 0.4rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  align-items: center;
+  transition: background 0.2s ease;
+  animation: tickFlash 0.4s ease-out;
+}
+
+@keyframes tickFlash {
+  0% { background: rgba(99, 102, 241, 0.25); }
+  100% { background: transparent; }
+}
+
+.tick-buy {
+  color: #34d399;
+  font-weight: 700;
+}
+
+.tick-sell {
+  color: #f87171;
+  font-weight: 700;
+}
+
+@media (max-width: 992px) {
+  .orderflow-hud-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .orderflow-hud-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ==========================================================================
    Data Manager View (Tab 4)
    ========================================================================== */

@@ -13,6 +13,8 @@
   
   <!-- Plotly.js for interactive technical charts -->
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <!-- Lightweight Charts for high-speed live candlesticks and order flow delta charts -->
+  <script src="/static/js/lightweight-charts.standalone.production.js"></script>
   
   <!-- Custom Stylesheet matching ChethanQuant aesthetic -->
   <link rel="stylesheet" href="/static/css/styles.css">
@@ -52,6 +54,16 @@
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
               Screener & Backtest
+            </button>
+          </li>
+          <li>
+            <button class="nav-tab-btn" data-tab="chart">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              Technical Chart
             </button>
           </li>
           <li>
@@ -1286,6 +1298,104 @@
 
     </section>
 
+    <!-- TAB 3: TECHNICAL CHART (LIVE CANDLESTICKS & ORDER FLOW DELTA) -->
+    <section class="tab-pane" id="tab-chart">
+      
+      <!-- Top Chart Controls & Symbol Selector -->
+      <div class="chart-header-bar">
+        <div class="ticker-search-group">
+          <!-- Symbol Search Input -->
+          <div class="ticker-search-wrapper">
+            <input type="text" id="chart-symbol-input" class="form-control" placeholder="Search symbol (e.g. RELIANCE)..." autocomplete="off" value="RELIANCE">
+            <div class="symbol-suggestions-dropdown" id="symbol-suggestions-dropdown"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-load-chart">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Load
+          </button>
+
+          <!-- Quick Watchlist Pills -->
+          <div class="quick-pills-group">
+            <button class="quick-pill-btn active" data-symbol="RELIANCE">RELIANCE</button>
+            <button class="quick-pill-btn" data-symbol="TCS">TCS</button>
+            <button class="quick-pill-btn" data-symbol="INFY">INFY</button>
+            <button class="quick-pill-btn" data-symbol="HDFCBANK">HDFCBANK</button>
+            <button class="quick-pill-btn" data-symbol="ICICIBANK">ICICIBANK</button>
+            <button class="quick-pill-btn" data-symbol="NIFTY">NIFTY</button>
+          </div>
+        </div>
+
+        <!-- Timeframe & Live Stream Controls -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <div class="tf-btn-group">
+            <button class="tf-btn" data-tf="5s">5s</button>
+            <button class="tf-btn active" data-tf="1m">1m</button>
+            <button class="tf-btn" data-tf="3m">3m</button>
+            <button class="tf-btn" data-tf="5m">5m</button>
+            <button class="tf-btn" data-tf="15m">15m</button>
+            <button class="tf-btn" data-tf="1d">1D</button>
+          </div>
+
+          <!-- Connection Status Pill -->
+          <div class="live-status-pill" id="live-stream-status">
+            <span class="live-pulse-dot"></span>
+            <span id="live-stream-status-text">Connecting...</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <button class="btn btn-ghost btn-sm" id="btn-chart-reset" title="Reset Zoom">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M15 9l-6 6"></path><path d="M9 9h6v6"></path></svg>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Dedicated Isolated Database Notice -->
+      <div class="orderflow-storage-pill">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span><strong>Dedicated Order Flow DB:</strong> <code style="color: #60a5fa;">data/orderflow/orderflow.duckdb</code> (Isolated from Zerodha 1-min historical storage)</span>
+        <span class="badge-tag" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: #a5b4fc; margin-left: auto;">
+          Kotak Neo Real-Time Stream
+        </span>
+      </div>
+
+      <!-- Multi-Pane Lightweight Chart Container -->
+      <div class="chart-box" style="position: relative; padding: 1rem; min-height: 640px;">
+        <div id="lightweight-chart-container" style="width: 100%; height: 600px;"></div>
+        
+        <!-- Legend Overlay -->
+        <div class="chart-legend-overlay">
+          <span class="legend-symbol" id="legend-symbol">RELIANCE</span>
+          <span class="legend-metric" id="legend-quote" style="color: #ffffff; font-weight: 700; font-size: 0.85rem;">₹0.00 (0.00%)</span>
+          <span class="legend-metric" id="legend-ohlc">O: 0.00 H: 0.00 L: 0.00 C: 0.00</span>
+          <span class="legend-metric" id="legend-delta">Delta: 0</span>
+          <span class="legend-metric" id="legend-cvd">CVD: 0</span>
+        </div>
+      </div>
+
+      <!-- Live Tick Tape / Recent Trades Strip -->
+      <div class="glass-panel" style="margin-top: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+          <h3 class="panel-title" style="margin-bottom: 0; font-size: 1rem;">⚡ Live Order Flow Tick Stream (Lee-Ready Aggression)</h3>
+          <span style="color: var(--text-muted); font-size: 0.82rem;" id="of-tape-status">Sub-second trade prints</span>
+        </div>
+        <div class="tick-tape-container" id="tick-tape-container">
+          <div class="tick-tape-header">
+            <span>TIME</span>
+            <span>PRICE</span>
+            <span>QTY</span>
+            <span>SIDE</span>
+            <span>DELTA</span>
+            <span>BEST BID / ASK</span>
+          </div>
+          <div class="tick-tape-body" id="tick-tape-body">
+            <!-- Ticks will be dynamically prepended here -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
     <!-- TAB 2: DATA MANAGER (ZERODHA PARQUET & DUCKDB) -->
     <section class="tab-pane" id="tab-manager">
       <div class="sync-grid">
@@ -2333,7 +2443,7 @@ screen = backtest</code></pre>
   </footer>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js?v=20260920-bt-ready-popup"></script>
+  <script src="/static/js/app.js?v=20260922-orderflow-clean"></script>
 
   <style>
     @keyframes spin {

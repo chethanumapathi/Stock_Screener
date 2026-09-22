@@ -185,8 +185,8 @@ class KotakClientManager:
                 if isinstance(res, dict):
                     if "error" in res or "Error" in res:
                         err_msg = res.get("error") or res.get("Error")
-                        status = res.get("StatusCode")
-                        if status in [429, 503, 504]:
+                        status = res.get("StatusCode") or res.get("code")
+                        if status in [429, 503, 504] or str(status) == "429":
                             logger.warning(f"Server returned {status} for {neo_symbol} ({from_date} to {to_date}). Retrying in {backoff_delay}s...")
                             time.sleep(backoff_delay)
                             backoff_delay *= 2

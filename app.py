@@ -11,8 +11,10 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import duckdb
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, Response, stream_with_context
+from queue import Empty
 import backtest_diagnostics as bd
+from orderflow_engine import OrderFlowEngine
 
 try:
     from reportlab.lib.pagesizes import landscape, A4
@@ -2940,6 +2942,102 @@ def api_chart_data():
             "total_bars": len(df_symbol)
         }
     })
+
+# --- Live Order Flow & Technical Chart APIs (Dedicated DuckDB Order Flow Storage) ---
+
+@app.route('/api/orderflow/status', methods=['GET'])
+def api_orderflow_status():
+    """Returns status of the live Kotak Neo / OrderFlow engine."""
+    engine = OrderFlowEngine.get_instance()
+    return jsonify({
+        "status": "ok",
+        "data": engine.get_status()
+    })
+
+@app.route('/api/orderflow/symbols', methods=['GET'])
+def api_orderflow_symbols():
+    """Returns available symbols for the technical order flow chart."""
+    engine = OrderFlowEngine.get_instance()
+    active_syms = list(engine.aggregators.keys())
+    # Also include Nifty 50 symbols if available
+    n50_file = os.path.join(DATA_DIR, 'nifty50.csv')
+    all_syms = set(active_syms)
+    if os.path.exists(n50_file):
+        try:
+            df50 = pd.read_csv(n50_file)
+            for s in df50['Symbol'].dropna():
+                all_syms.add(s.strip().upper())
+        except Exception:
+            pass
+    return jsonify({
+        "status": "ok",
+        "active_symbol": engine.active_symbol,
+        "symbols": sorted(list(all_syms))
+    })
+
+@app.route('/api/orderflow/subscribe', methods=['POST'])
+def api_orderflow_subscribe():
+    """Switches or subscribes to a specific symbol for real-time order flow streaming."""
+    data = request.get_json() or {}
+    symbol = data.get('symbol', '').strip().upper()
+    if not symbol:
+        return jsonify({"status": "error", "message": "Symbol is required"}), 400
+
+    engine = OrderFlowEngine.get_instance()
+    success = engine.subscribe_symbol(symbol)
+    return jsonify({
+        "status": "ok" if success else "error",
+        "symbol": symbol,
+        "active_symbol": engine.active_symbol
+    })
+
+@app.route('/api/orderflow/chart-data', methods=['GET'])
+def api_orderflow_chart_data():
+    """Returns candle series with Delta and CVD for Lightweight Charts."""
+    symbol = request.args.get('symbol', 'RELIANCE').strip().upper()
+    timeframe = request.args.get('timeframe', '1m').strip().lower()
+
+    engine = OrderFlowEngine.get_instance()
+    agg = engine._get_or_create_aggregator(symbol)
+    engine._seed_baseline_if_empty(symbol)
+    chart_data = agg.get_chart_series(timeframe=timeframe)
+
+    return jsonify({
+        "status": "ok",
+        "data": chart_data
+    })
+
+@app.route('/api/orderflow/stream', methods=['GET'])
+def api_orderflow_stream():
+    """Real-time Server-Sent Events (SSE) stream for sub-second ticks & candle updates."""
+    engine = OrderFlowEngine.get_instance()
+    client_q = engine.register_client()
+
+    def event_stream():
+        try:
+            # Initial handshake message
+            yield f"data: {json.dumps({'type': 'handshake', 'status': engine.get_status()})}\n\n"
+            while True:
+                try:
+                    msg = client_q.get(timeout=15)
+                    yield msg
+                except Empty:
+                    # Keep-alive heartbeat ping
+                    yield ": ping\n\n"
+        except GeneratorExit:
+            engine.unregister_client(client_q)
+        finally:
+            engine.unregister_client(client_q)
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive"
+        }
+    )
 
 @app.route('/api/strategies', methods=['GET'])
 def api_get_strategies():

@@ -199,20 +199,33 @@ const elements = {
     metricTimeUnderWater: document.getElementById('metric-time-under-water'),
     metricAvgHolding: document.getElementById('metric-avg-holding'),
     
-    // Technical Chart
+    // Technical Chart & Live Order Flow
     chartSymbolInput: document.getElementById('chart-symbol-input'),
     symbolSuggestionsDropdown: document.getElementById('symbol-suggestions-dropdown'),
     btnLoadChart: document.getElementById('btn-load-chart'),
     chartTimeframeButtons: document.querySelectorAll('.tf-btn'),
-    chartSplitAlert: document.getElementById('chart-split-alert'),
-    chartSplitDetails: document.getElementById('chart-split-details'),
-    quotePrice: document.getElementById('quote-price'),
-    quoteChange: document.getElementById('quote-change'),
-    quoteVolume: document.getElementById('quote-volume'),
-    quoteRange: document.getElementById('quote-range'),
-    plotlyContainer: document.getElementById('plotly-chart-container'),
-    rawTableContainer: document.getElementById('raw-table-container'),
-    rawTableBody: document.getElementById('raw-table-body'),
+    btnChartReset: document.getElementById('btn-chart-reset'),
+    lightweightChartContainer: document.getElementById('lightweight-chart-container'),
+    liveStreamStatus: document.getElementById('live-stream-status'),
+    liveStreamStatusText: document.getElementById('live-stream-status-text'),
+    quickPills: document.querySelectorAll('.quick-pill-btn'),
+    ofLtp: document.getElementById('of-ltp'),
+    ofPctChange: document.getElementById('of-pct-change'),
+    ofDayRange: document.getElementById('of-day-range'),
+    ofSessionDelta: document.getElementById('of-session-delta'),
+    ofDeltaBadge: document.getElementById('of-delta-badge'),
+    ofBarBuy: document.getElementById('of-bar-buy'),
+    ofBarSell: document.getElementById('of-bar-sell'),
+    ofBuyPct: document.getElementById('of-buy-pct'),
+    ofSellPct: document.getElementById('of-sell-pct'),
+    ofDivergenceVal: document.getElementById('of-divergence-val'),
+    ofTicksCount: document.getElementById('of-ticks-count'),
+    legendSymbol: document.getElementById('legend-symbol'),
+    legendQuote: document.getElementById('legend-quote'),
+    legendOhlc: document.getElementById('legend-ohlc'),
+    legendDelta: document.getElementById('legend-delta'),
+    legendCvd: document.getElementById('legend-cvd'),
+    tickTapeBody: document.getElementById('tick-tape-body'),
     
     // Data Manager
     parquetTickersCount: document.getElementById('parquet-tickers-count'),
@@ -365,11 +378,16 @@ function switchTab(tabId) {
         p.classList.toggle('active', p.id === `tab-${tabId}`);
     });
     
-    // If switching to chart tab, resize Plotly chart
-    if (tabId === 'chart' && window.Plotly && elements.plotlyContainer) {
+    // If switching to chart tab, ensure Order Flow chart is initialized and visible
+    if (tabId === 'chart') {
         setTimeout(() => {
-            Plotly.Plots.resize(elements.plotlyContainer);
-        }, 100);
+            if (!OrderFlowState.chart) {
+                initLightweightOrderFlowChart();
+                loadOrderFlowChart(OrderFlowState.activeSymbol, OrderFlowState.timeframe);
+            } else {
+                resizeOrderFlowChart();
+            }
+        }, 80);
     }
 }
 window.switchTab = switchTab;
@@ -1783,163 +1801,516 @@ async function exportBacktestPdf() {
     }
 }
 
-// Technical Chart View Across Timeframes (Fallback / Safe Guard)
-async function loadChartForSymbol(symbol, timeframe = null) {
-    if (!symbol || !elements.chartSymbolInput || !document.getElementById('plotly-chart-container')) return;
-    symbol = symbol.trim().toUpperCase();
-    AppState.currentChartSymbol = symbol;
-    elements.chartSymbolInput.value = symbol;
-    
-    if (timeframe) {
-        AppState.chartTimeframe = timeframe;
+// ==========================================================================
+// Live Technical Chart with Tick-Level Order Flow & Delta (Kotak Neo)
+// ==========================================================================
+
+const IST_OFFSET_SECONDS = 19800; // 5 hours 30 mins (IST = UTC + 5:30)
+
+const OrderFlowState = {
+    chart: null,
+    candlestickSeries: null,
+    volumeSeries: null,
+    deltaSeries: null,
+    cvdSeries: null,
+    eventSource: null,
+    activeSymbol: 'RELIANCE',
+    timeframe: '1m',
+    isStreaming: false,
+    lastCandle: null,
+    latestStats: null,
+    currentDeltaMarkers: []
+};
+
+function formatDeltaMarkerText(val) {
+    if (val === undefined || val === null) return '';
+    const absVal = Math.abs(val);
+    let txt = '';
+    if (absVal >= 1000000) {
+        txt = (val / 1000000).toFixed(1) + 'M';
+    } else if (absVal >= 1000) {
+        txt = (val / 1000).toFixed(1) + 'k';
+    } else {
+        txt = val.toString();
+    }
+    return (val > 0 ? '+' : '') + txt;
+}
+
+function updateDeltaMarkers(deltaBars) {
+    if (!OrderFlowState.deltaSeries || !deltaBars) return;
+
+    // Filter markers dynamically when zoomed out to avoid text collision
+    let barsToMark = deltaBars;
+    if (deltaBars.length > 25) {
+        const absVals = deltaBars.map(b => Math.abs(b.value || 0)).sort((a, b) => a - b);
+        const threshold = absVals[Math.floor(absVals.length * 0.55)] || 0;
+        barsToMark = deltaBars.filter((b, idx) => Math.abs(b.value || 0) >= threshold || idx >= deltaBars.length - 4);
+    }
+
+    const markers = barsToMark.map(bar => {
+        const isPos = bar.value >= 0;
+        return {
+            time: bar.time,
+            position: 'aboveBar',
+            color: isPos ? '#34d399' : '#f87171',
+            shape: isPos ? 'arrowUp' : 'arrowDown',
+            text: formatDeltaMarkerText(bar.value),
+            size: 0.7
+        };
+    });
+    OrderFlowState.deltaSeries.setMarkers(markers);
+    OrderFlowState.currentDeltaMarkers = markers;
+}
+
+function initLightweightOrderFlowChart() {
+    if (!window.LightweightCharts) {
+        console.warn('LightweightCharts library not loaded yet, retrying in 200ms...');
+        setTimeout(initLightweightOrderFlowChart, 200);
+        return;
     }
     
-    // Update active timeframe button in chart
-    elements.chartTimeframeButtons.forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-tf') === AppState.chartTimeframe);
-    });
+    const container = elements.lightweightChartContainer;
+    if (!container) return;
     
-    try {
-        const res = await fetch(`/api/chart-data?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(AppState.chartTimeframe)}`);
-        const data = await res.json();
-        
-        if (data.status !== 'ok') {
-            showToast(data.message || `No data found for ${symbol}`, 'error');
+    // Clear any previous chart instances
+    container.innerHTML = '';
+    
+    const width = container.clientWidth || 900;
+    const height = 620;
+
+    const chart = LightweightCharts.createChart(container, {
+        width: width,
+        height: height,
+        layout: {
+            background: { type: 'solid', color: 'rgba(5, 6, 15, 0.7)' },
+            textColor: '#94a3b8',
+            fontSize: 11,
+            fontFamily: "'JetBrains Mono', 'Plus Jakarta Sans', monospace"
+        },
+        grid: {
+            vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+            horzLines: { color: 'rgba(255, 255, 255, 0.04)' }
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+            vertLine: { color: 'rgba(99, 102, 241, 0.5)', width: 1, style: 3 },
+            horzLine: { color: 'rgba(99, 102, 241, 0.5)', width: 1, style: 3 }
+        },
+        rightPriceScale: {
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            scaleMargins: { top: 0.04, bottom: 0.44 }
+        },
+        timeScale: {
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            timeVisible: true,
+            secondsVisible: OrderFlowState.timeframe === '5s',
+            tickMarkFormatter: (time) => {
+                const d = new Date(time * 1000);
+                const hours = String(d.getUTCHours()).padStart(2, '0');
+                const mins = String(d.getUTCMinutes()).padStart(2, '0');
+                if (OrderFlowState.timeframe === '5s') {
+                    const secs = String(d.getUTCSeconds()).padStart(2, '0');
+                    return `${hours}:${mins}:${secs}`;
+                }
+                return `${hours}:${mins}`;
+            }
+        },
+        localization: {
+            timeFormatter: (time) => {
+                const d = new Date(time * 1000);
+                const hours = String(d.getUTCHours()).padStart(2, '0');
+                const mins = String(d.getUTCMinutes()).padStart(2, '0');
+                const secs = String(d.getUTCSeconds()).padStart(2, '0');
+                return `${hours}:${mins}:${secs} IST`;
+            }
+        }
+    });
+
+    // 1. Candlestick Price Series (Top Pane)
+    const candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        borderVisible: false,
+        wickUpColor: '#10b981',
+        wickDownColor: '#ef4444'
+    });
+
+    // 2. Volume Overlay Series
+    const volumeSeries = chart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'vol_scale'
+    });
+    chart.priceScale('vol_scale').applyOptions({
+        scaleMargins: { top: 0.45, bottom: 0.38 }
+    });
+
+    // 3. Order Flow Delta Histogram Series (Middle Sub-pane with room for top labels)
+    const deltaSeries = chart.addHistogramSeries({
+        priceScaleId: 'delta_scale',
+        title: 'Delta'
+    });
+    chart.priceScale('delta_scale').applyOptions({
+        scaleMargins: { top: 0.58, bottom: 0.18 }
+    });
+
+    // 4. Cumulative Volume Delta (CVD) Line Series (Bottom Sub-pane)
+    const cvdSeries = chart.addLineSeries({
+        color: '#6366f1',
+        lineWidth: 2,
+        priceScaleId: 'cvd_scale',
+        title: 'CVD'
+    });
+    chart.priceScale('cvd_scale').applyOptions({
+        scaleMargins: { top: 0.84, bottom: 0.02 }
+    });
+
+    // Crosshair Sync for Floating Legend
+    chart.subscribeCrosshairMove(param => {
+        if (!param || !param.time) {
+            if (OrderFlowState.lastCandle) {
+                updateLegendValues(OrderFlowState.lastCandle);
+            }
             return;
         }
-        
-        // Update quote stats
-        const latest = data.latest;
-        elements.quotePrice.textContent = `₹${latest.close.toFixed(2)}`;
-        
-        if (latest.pct_change > 0) {
-            elements.quoteChange.innerHTML = `<span style="color: var(--accent-green)">+${latest.pct_change}%</span>`;
-        } else if (latest.pct_change < 0) {
-            elements.quoteChange.innerHTML = `<span style="color: var(--accent-red)">${latest.pct_change}%</span>`;
-        } else {
-            elements.quoteChange.textContent = `${latest.pct_change}%`;
-        }
-        
-        elements.quoteVolume.textContent = formatNumber(latest.volume);
-        elements.quoteRange.textContent = `₹${latest.low_period.toFixed(2)} - ₹${latest.high_period.toFixed(2)}`;
-        
-        // Split alert
-        if (data.splits && Object.keys(data.splits).length > 0) {
-            elements.chartSplitAlert.style.display = 'flex';
-            const splitsStr = Object.entries(data.splits).map(([dt, ratio]) => `${dt} (Ratio: ${ratio})`).join(', ');
-            elements.chartSplitDetails.textContent = splitsStr;
-        } else {
-            elements.chartSplitAlert.style.display = 'none';
-        }
-        
-        // Plotly Candlestick + Volume chart
-        renderPlotlyChart(data);
-        
-        // Render raw table
-        renderRawDataTable(data);
-        
-    } catch (err) {
-        console.error('Error loading chart data:', err);
-        showToast(`Chart error: ${err.message}`, 'error');
-    }
-}
+        const ohlc = param.seriesData.get(candlestickSeries);
+        const delta = param.seriesData.get(deltaSeries);
+        const cvd = param.seriesData.get(cvdSeries);
 
-function renderPlotlyChart(data) {
-    if (!window.Plotly) return;
-    
-    const volumeColors = [];
-    for (let i = 0; i < data.close.length; i++) {
-        const c = data.close[i];
-        const pc = data.prev_close[i] || c;
-        volumeColors.push(c >= pc ? '#10b981' : '#ef4444');
-    }
-    
-    const candlestickTrace = {
-        x: data.dates,
-        open: data.open,
-        high: data.high,
-        low: data.low,
-        close: data.close,
-        type: 'candlestick',
-        name: 'Price',
-        increasing: { line: { color: '#10b981' } },
-        decreasing: { line: { color: '#ef4444' } },
-        xaxis: 'x',
-        yaxis: 'y'
-    };
-    
-    const volumeTrace = {
-        x: data.dates,
-        y: data.volume,
-        type: 'bar',
-        name: 'Volume',
-        marker: { color: volumeColors },
-        opacity: 0.75,
-        xaxis: 'x',
-        yaxis: 'y2'
-    };
-    
-    const isIntraday = data.timeframe !== '1d' && data.timeframe !== 'daily';
-    
-    const layout = {
-        dragmode: 'zoom',
-        showlegend: false,
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(5, 6, 15, 0.4)',
-        margin: { t: 20, b: 30, l: 50, r: 20 },
-        xaxis: {
-            rangeslider: { visible: false },
-            type: 'category',
-            gridcolor: 'rgba(255, 255, 255, 0.05)',
-            tickfont: { color: '#9ca3af', family: 'Plus Jakarta Sans', size: 10 },
-            nticks: isIntraday ? 12 : 10
-        },
-        yaxis: {
-            domain: [0.28, 1],
-            title: { text: 'Price (₹)', font: { color: '#9ca3af' } },
-            gridcolor: 'rgba(255, 255, 255, 0.05)',
-            tickfont: { color: '#9ca3af', family: 'Plus Jakarta Sans' }
-        },
-        yaxis2: {
-            domain: [0, 0.22],
-            title: { text: 'Volume', font: { color: '#9ca3af' } },
-            gridcolor: 'rgba(255, 255, 255, 0.05)',
-            tickfont: { color: '#9ca3af', family: 'Plus Jakarta Sans' }
-        },
-        hovermode: 'x unified',
-        font: { family: 'Plus Jakarta Sans', color: '#f3f4f6' }
-    };
-    
-    Plotly.newPlot(elements.plotlyContainer, [candlestickTrace, volumeTrace], layout, {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+        if (ohlc) {
+            updateLegendValues({
+                open: ohlc.open,
+                high: ohlc.high,
+                low: ohlc.low,
+                close: ohlc.close,
+                delta: delta ? delta.value : 0,
+                cvd: cvd ? cvd.value : 0
+            });
+        }
     });
+
+    OrderFlowState.chart = chart;
+    OrderFlowState.candlestickSeries = candlestickSeries;
+    OrderFlowState.volumeSeries = volumeSeries;
+    OrderFlowState.deltaSeries = deltaSeries;
+    OrderFlowState.cvdSeries = cvdSeries;
+
+    // Window Resize Observer
+    const ro = new ResizeObserver(() => {
+        resizeOrderFlowChart();
+    });
+    ro.observe(container);
 }
 
-function renderRawDataTable(data) {
-    elements.rawTableBody.innerHTML = '';
-    const len = data.dates.length;
-    const limit = Math.min(len, 60);
+function resizeOrderFlowChart() {
+    if (!OrderFlowState.chart || !elements.lightweightChartContainer) return;
+    const w = elements.lightweightChartContainer.clientWidth;
+    if (w > 0) {
+        OrderFlowState.chart.applyOptions({ width: w, height: 620 });
+    }
+}
+
+function updateLegendValues(c) {
+    if (!c) return;
+    if (elements.legendSymbol) elements.legendSymbol.textContent = OrderFlowState.activeSymbol;
     
-    for (let i = len - 1; i >= len - limit; i--) {
-        const tr = document.createElement('tr');
-        const c = data.close[i];
-        const pc = data.prev_close[i] || c;
-        const change = pc > 0 ? ((c - pc) / pc * 100).toFixed(2) : '0.00';
-        const isUp = c >= pc;
+    // Update live quote pill in legend overlay
+    if (elements.legendQuote) {
+        const stats = OrderFlowState.latestStats;
+        const p = stats && stats.price ? stats.price : c.close;
+        const pct = stats && stats.pct_change !== undefined ? stats.pct_change : 0;
+        const isUp = pct >= 0;
+        elements.legendQuote.textContent = `₹${p.toFixed(2)} (${isUp ? '+' : ''}${pct.toFixed(2)}%)`;
+        elements.legendQuote.style.color = isUp ? '#34d399' : '#f87171';
+    }
+
+    if (elements.legendOhlc) {
+        elements.legendOhlc.textContent = `O: ₹${c.open.toFixed(2)}  H: ₹${c.high.toFixed(2)}  L: ₹${c.low.toFixed(2)}  C: ₹${c.close.toFixed(2)}`;
+    }
+    if (elements.legendDelta) {
+        const d = c.delta || 0;
+        const color = d >= 0 ? '#10b981' : '#ef4444';
+        elements.legendDelta.innerHTML = `Delta: <span style="color:${color}; font-weight:700;">${d > 0 ? '+' : ''}${formatNumber(d)}</span>`;
+    }
+    if (elements.legendCvd) {
+        const cvd = c.cvd !== undefined ? c.cvd : (c.cum_delta || 0);
+        elements.legendCvd.innerHTML = `CVD: <span style="color:#818cf8; font-weight:700;">${formatNumber(cvd)}</span>`;
+    }
+}
+
+async function loadOrderFlowChart(symbol, timeframe = null) {
+    if (!symbol) return;
+    symbol = symbol.trim().toUpperCase();
+    OrderFlowState.activeSymbol = symbol;
+    if (timeframe) OrderFlowState.timeframe = timeframe;
+
+    if (elements.chartSymbolInput) elements.chartSymbolInput.value = symbol;
+    
+    // Update Quick Pills UI
+    if (elements.quickPills) {
+        elements.quickPills.forEach(p => {
+            p.classList.toggle('active', p.getAttribute('data-symbol') === symbol);
+        });
+    }
+
+    // Update Timeframe Buttons UI
+    if (elements.chartTimeframeButtons) {
+        elements.chartTimeframeButtons.forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-tf') === OrderFlowState.timeframe);
+        });
+    }
+
+    if (!OrderFlowState.chart) {
+        initLightweightOrderFlowChart();
+    }
+
+    // Adjust seconds visibility for 5s timeframe
+    if (OrderFlowState.chart) {
+        OrderFlowState.chart.applyOptions({
+            timeScale: { secondsVisible: OrderFlowState.timeframe === '5s' }
+        });
+    }
+
+    try {
+        const res = await fetch(`/api/orderflow/chart-data?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(OrderFlowState.timeframe)}`);
+        const result = await res.json();
         
-        tr.innerHTML = `
-            <td style="font-family: var(--font-mono); color: var(--text-muted);">${data.dates[i]}</td>
-            <td style="font-family: var(--font-mono);">₹${data.open[i].toFixed(2)}</td>
-            <td style="font-family: var(--font-mono);">₹${data.high[i].toFixed(2)}</td>
-            <td style="font-family: var(--font-mono);">₹${data.low[i].toFixed(2)}</td>
-            <td style="font-family: var(--font-mono); font-weight: 600;">₹${c.toFixed(2)}</td>
-            <td><span class="${isUp ? 'badge-green' : 'badge-red'}">${isUp ? '+' : ''}${change}%</span></td>
-            <td style="font-family: var(--font-mono); color: var(--text-muted);">${formatNumber(data.volume[i])}</td>
-        `;
-        elements.rawTableBody.appendChild(tr);
+        if (result.status !== 'ok' || !result.data) {
+            showToast(`No order flow data found for ${symbol}`, 'info');
+            return;
+        }
+
+        const d = result.data;
+        
+        // Shift timestamps by +5:30 (IST offset) so Lightweight Charts natively displays Indian Standard Time
+        const shiftedOhlc = (d.ohlc || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
+        const shiftedVolume = (d.volume || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
+        const shiftedDelta = (d.delta || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
+        const shiftedCvd = (d.cvd || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
+
+        // Feed Data to Lightweight Charts
+        if (OrderFlowState.candlestickSeries && shiftedOhlc.length > 0) {
+            OrderFlowState.candlestickSeries.setData(shiftedOhlc);
+            OrderFlowState.lastCandle = shiftedOhlc[shiftedOhlc.length - 1];
+        }
+        if (OrderFlowState.volumeSeries && shiftedVolume.length > 0) {
+            OrderFlowState.volumeSeries.setData(shiftedVolume);
+        }
+        if (OrderFlowState.deltaSeries && shiftedDelta.length > 0) {
+            OrderFlowState.deltaSeries.setData(shiftedDelta);
+            // Render numeric data labels directly on top of each delta bar
+            updateDeltaMarkers(shiftedDelta);
+        }
+        if (OrderFlowState.cvdSeries && shiftedCvd.length > 0) {
+            OrderFlowState.cvdSeries.setData(shiftedCvd);
+        }
+
+        if (d.latest) {
+            OrderFlowState.latestStats = d.latest;
+        }
+        if (OrderFlowState.lastCandle) {
+            updateLegendValues(OrderFlowState.lastCandle);
+        }
+
+        if (OrderFlowState.chart) {
+            OrderFlowState.chart.timeScale().fitContent();
+        }
+
+        // Inform backend streamer to switch active symbol
+        fetch('/api/orderflow/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol: symbol })
+        }).catch(() => {});
+
+        // Connect SSE stream
+        connectOrderFlowStream();
+
+    } catch (err) {
+        console.error('Error loading order flow data:', err);
+        showToast(`Order Flow error: ${err.message}`, 'error');
+    }
+}
+
+function connectOrderFlowStream() {
+    if (OrderFlowState.eventSource) return; // Already connected
+
+    try {
+        const es = new EventSource('/api/orderflow/stream');
+        OrderFlowState.eventSource = es;
+
+        es.onopen = () => {
+            OrderFlowState.isStreaming = true;
+            if (elements.liveStreamStatusText) {
+                elements.liveStreamStatusText.textContent = 'Stream Connected';
+            }
+        };
+
+        es.onmessage = (e) => {
+            if (!e.data) return;
+            try {
+                const msg = JSON.parse(e.data);
+                
+                if (msg.type === 'handshake' || msg.type === 'connected') {
+                    const st = msg.status || {};
+                    if (elements.liveStreamStatusText) {
+                        if (st.is_connected) {
+                            elements.liveStreamStatusText.textContent = 'LIVE (KOTAK NEO)';
+                            elements.liveStreamStatus.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                            elements.liveStreamStatus.style.color = '#34d399';
+                        } else {
+                            elements.liveStreamStatusText.textContent = 'SIMULATED (MKT CLOSED)';
+                            elements.liveStreamStatus.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+                            elements.liveStreamStatus.style.color = '#fbbf24';
+                        }
+                    }
+                } else if (msg.type === 'tick') {
+                    const tick = msg.data;
+                    if (!tick || tick.symbol !== OrderFlowState.activeSymbol) return;
+
+                    OrderFlowState.latestStats = {
+                        price: tick.price,
+                        day_open: tick.day_open,
+                        day_high: tick.day_high,
+                        day_low: tick.day_low,
+                        pct_change: tick.day_open > 0 ? ((tick.price - tick.day_open) / tick.day_open * 100) : 0,
+                        session_delta: tick.session_delta,
+                        session_buy_volume: tick.session_buy_volume,
+                        session_sell_volume: tick.session_sell_volume,
+                        total_ticks: tick.total_ticks
+                    };
+
+                    // Update forming candle in Lightweight Chart (with IST offset)
+                    const updatedCandles = tick.updated_candles;
+                    if (updatedCandles && updatedCandles[OrderFlowState.timeframe]) {
+                        const c = updatedCandles[OrderFlowState.timeframe];
+                        const t = parseInt(c.time) + IST_OFFSET_SECONDS;
+                        const open_p = parseFloat(c.open);
+                        const high_p = parseFloat(c.high);
+                        const low_p = parseFloat(c.low);
+                        const close_p = parseFloat(c.close);
+                        const vol = parseInt(c.volume);
+                        const delta = parseInt(c.delta);
+                        const cum_delta = parseInt(c.cum_delta);
+
+                        if (OrderFlowState.candlestickSeries) {
+                            OrderFlowState.candlestickSeries.update({
+                                time: t,
+                                open: open_p,
+                                high: high_p,
+                                low: low_p,
+                                close: close_p
+                            });
+                        }
+
+                        if (OrderFlowState.volumeSeries) {
+                            OrderFlowState.volumeSeries.update({
+                                time: t,
+                                value: vol,
+                                color: close_p >= open_p ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)'
+                            });
+                        }
+
+                        if (OrderFlowState.deltaSeries) {
+                            OrderFlowState.deltaSeries.update({
+                                time: t,
+                                value: delta,
+                                color: delta >= 0 ? '#10b981' : '#ef4444'
+                            });
+
+                            // Live update the data label marker on top of the active forming delta bar
+                            if (OrderFlowState.currentDeltaMarkers) {
+                                const isPos = delta >= 0;
+                                const newMarker = {
+                                    time: t,
+                                    position: 'aboveBar',
+                                    color: isPos ? '#34d399' : '#f87171',
+                                    shape: isPos ? 'arrowUp' : 'arrowDown',
+                                    text: formatDeltaMarkerText(delta),
+                                    size: 0.6
+                                };
+                                const existingIdx = OrderFlowState.currentDeltaMarkers.findIndex(m => m.time === t);
+                                if (existingIdx !== -1) {
+                                    OrderFlowState.currentDeltaMarkers[existingIdx] = newMarker;
+                                } else {
+                                    OrderFlowState.currentDeltaMarkers.push(newMarker);
+                                    if (OrderFlowState.currentDeltaMarkers.length > 400) {
+                                        OrderFlowState.currentDeltaMarkers.shift();
+                                    }
+                                }
+                                OrderFlowState.deltaSeries.setMarkers(OrderFlowState.currentDeltaMarkers);
+                            }
+                        }
+
+                        if (OrderFlowState.cvdSeries) {
+                            OrderFlowState.cvdSeries.update({
+                                time: t,
+                                value: cum_delta
+                            });
+                        }
+
+                        OrderFlowState.lastCandle = {
+                            open: open_p,
+                            high: high_p,
+                            low: low_p,
+                            close: close_p,
+                            delta: delta,
+                            cvd: cum_delta
+                        };
+                        updateLegendValues(OrderFlowState.lastCandle);
+                    }
+
+                    // Prepend to Live Tick Tape with IST timestamp
+                    appendTickToTape(tick);
+                }
+            } catch (err) {
+                console.debug('Error parsing SSE event:', err);
+            }
+        };
+
+        es.onerror = () => {
+            OrderFlowState.isStreaming = false;
+            if (elements.liveStreamStatusText) {
+                elements.liveStreamStatusText.textContent = 'Reconnecting...';
+            }
+        };
+    } catch (e) {
+        console.warn('Could not establish EventSource:', e);
+    }
+}
+
+function appendTickToTape(tick) {
+    if (!elements.tickTapeBody) return;
+    
+    // Format timestamp in IST
+    const date = new Date(tick.timestamp * 1000);
+    const timeStr = date.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    }) + ' IST';
+
+    const isBuy = tick.side === 'BUY';
+    const sideClass = isBuy ? 'tick-buy' : 'tick-sell';
+    const deltaStr = isBuy ? `+${tick.qty}` : `-${tick.qty}`;
+
+    const row = document.createElement('div');
+    row.className = 'tick-tape-row';
+    row.innerHTML = `
+        <span style="color: var(--text-muted);">${timeStr}</span>
+        <span style="font-weight: 700; color: #ffffff;">₹${tick.price.toFixed(2)}</span>
+        <span>${tick.qty}</span>
+        <span class="${sideClass}">${tick.side}</span>
+        <span class="${sideClass}">${deltaStr}</span>
+        <span style="color: var(--text-muted); font-size: 0.74rem;">B: ₹${(tick.price - 0.05).toFixed(2)} / A: ₹${(tick.price + 0.05).toFixed(2)}</span>
+    `;
+
+    elements.tickTapeBody.insertBefore(row, elements.tickTapeBody.firstChild);
+
+    // Keep tape max 25 rows
+    while (elements.tickTapeBody.children.length > 25) {
+        elements.tickTapeBody.removeChild(elements.tickTapeBody.lastChild);
     }
 }
 
@@ -2500,8 +2871,36 @@ function initEventListeners() {
     // Chart controls
     if (elements.btnLoadChart) {
         elements.btnLoadChart.addEventListener('click', () => {
-            const sym = elements.chartSymbolInput.value;
-            loadChartForSymbol(sym);
+            const sym = elements.chartSymbolInput ? elements.chartSymbolInput.value : OrderFlowState.activeSymbol;
+            loadOrderFlowChart(sym, OrderFlowState.timeframe);
+        });
+    }
+
+    if (elements.chartSymbolInput) {
+        elements.chartSymbolInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loadOrderFlowChart(elements.chartSymbolInput.value, OrderFlowState.timeframe);
+            }
+        });
+    }
+
+    // Quick Watchlist Pills
+    if (elements.quickPills) {
+        elements.quickPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const sym = pill.getAttribute('data-symbol');
+                loadOrderFlowChart(sym, OrderFlowState.timeframe);
+            });
+        });
+    }
+
+    // Reset Chart Zoom
+    if (elements.btnChartReset) {
+        elements.btnChartReset.addEventListener('click', () => {
+            if (OrderFlowState.chart) {
+                OrderFlowState.chart.timeScale().fitContent();
+            }
         });
     }
     
@@ -2512,9 +2911,13 @@ function initEventListeners() {
     elements.chartTimeframeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const tf = btn.getAttribute('data-tf');
-            loadChartForSymbol(elements.chartSymbolInput.value, tf);
+            const sym = elements.chartSymbolInput ? elements.chartSymbolInput.value : OrderFlowState.activeSymbol;
+            loadOrderFlowChart(sym, tf);
         });
     });
+
+    window.loadChartForSymbol = loadOrderFlowChart;
+    window.loadOrderFlowChart = loadOrderFlowChart;
     
     // Data Manager controls
     if (elements.btnRefreshSplits) elements.btnRefreshSplits.addEventListener('click', refreshCorporateSplits);
