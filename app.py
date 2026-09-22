@@ -13,6 +13,7 @@ import yfinance as yf
 import duckdb
 from flask import Flask, request, jsonify, render_template, send_file, Response, stream_with_context
 from queue import Empty
+from concurrent.futures import ThreadPoolExecutor
 import backtest_diagnostics as bd
 from orderflow_engine import OrderFlowEngine
 
@@ -286,8 +287,11 @@ def adjust_parquet_splits(df, symbol):
     to verify whether the data is already pre-adjusted. Only applies adjustment if unadjusted,
     preventing erroneous double-adjustments.
     """
+    if getattr(df, '_is_split_adjusted', False) or df.empty:
+        return df
+
     splits = get_splits_for_stock(symbol, fetch_online=False)
-    if not splits or df.empty:
+    if not splits:
         return df
 
     df_adj = df.copy()
@@ -597,7 +601,11 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
         df['Profit_Margin'] = fund.get('profitMargin')
         df['Dividend_Yield'] = fund.get('dividendYield')
 
-    if auto_adjust:
+    # Raw minute Parquet files in ZERODHA_MINUTE_DIR are permanently split-adjusted and seamless
+    if parquet_path and ZERODHA_MINUTE_DIR.lower() in parquet_path.lower():
+        df._is_split_adjusted = True
+
+    if auto_adjust and not getattr(df, '_is_split_adjusted', False):
         df = adjust_parquet_splits(df, symbol)
 
     # Assign DatetimeIndex for resample support (standardize to nanoseconds)
@@ -871,6 +879,28 @@ def compute_r2_cross_date_fallback(df_symbol, match_dt):
         logger.error(f"Error computing fallback R2 date: {e}")
     return "-"
 
+
+def sanitize_nan_values(obj):
+    """
+    Recursively replaces NaN, Inf, -Inf with valid JSON types (None -> null, or '-').
+    Prevents JavaScript JSON.parse syntax errors on NaN tokens.
+    """
+    if isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_nan_values(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [sanitize_nan_values(v) for v in obj]
+    elif isinstance(obj, (np.floating, np.integer)):
+        val = obj.item()
+        if isinstance(val, float) and (np.isnan(val) or np.isinf(val)):
+            return None
+        return val
+    return obj
+
+
 def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None, start_date=None, end_date=None, min_market_cap_cr=2000.0):
     """
     Executes user's custom python screen(df) logic across multiple timeframes (1m, 5m, 15m, 1h, 1d)
@@ -931,17 +961,34 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
     error_count = 0
     last_error = ""
 
-    for symbol in symbols:
-        mcap_cr = get_market_cap_cr(symbol, fetch_online=True)
-        if min_market_cap_cr > 0 and mcap_cr > 0 and mcap_cr < min_market_cap_cr:
-            continue
+    # For intraday timeframes (1m, 5m, 15m, 1h), querying years of 1-minute ticks
+    # (462,000 rows per stock) causes massive query latency and memory consumption.
+    # Instead, use an intelligent capped warm-up window (<= 45 calendar days = ~2,250 5-min candles),
+    # which provides ample warm-up for 300 5-min volume, 200 15-min OBV, and multi-week pivots,
+    # achieving a 30x query speedup and preventing runaway queries.
+    effective_start = start_date
+    if timeframe in ['1m', '5m', '15m', '1h', '60m']:
+        ref_end = pd.to_datetime(end_date) if end_date else pd.Timestamp.now()
+        calc_start = (ref_end - pd.Timedelta(days=45)).strftime('%Y-%m-%d')
+        if start_date:
+            try:
+                s_dt = pd.to_datetime(start_date)
+                if s_dt > (ref_end - pd.Timedelta(days=45)):
+                    calc_start = (s_dt - pd.Timedelta(days=15)).strftime('%Y-%m-%d')
+            except Exception:
+                pass
+        effective_start = calc_start
 
-        # Fetch full history (or up to end_date) so multi-timeframe pivots, rolling volume & EMAs have complete warm-up data
-        df_symbol = get_ticker_data_duckdb(symbol, timeframe=timeframe, start_date=None, end_date=end_date)
-        if df_symbol.empty:
-            continue
-
+    def evaluate_symbol(symbol):
         try:
+            mcap_cr = get_market_cap_cr(symbol, fetch_online=False)
+            if min_market_cap_cr > 0 and mcap_cr > 0 and mcap_cr < min_market_cap_cr:
+                return symbol, [], None
+
+            df_symbol = get_ticker_data_duckdb(symbol, timeframe=timeframe, start_date=effective_start, end_date=end_date)
+            if df_symbol.empty:
+                return symbol, [], None
+
             res = screen_func(df_symbol)
 
             signal_series = None
@@ -980,15 +1027,16 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                 if len(df_symbol) > 0:
                     signal_series.iloc[-1] = bool(res)
             else:
-                continue
+                return symbol, [], None
 
             if signal_series is None or len(signal_series) == 0:
-                continue
+                return symbol, [], None
 
             true_mask = (signal_series == True)
             if not true_mask.any():
-                continue
+                return symbol, [], None
 
+            matches = []
             # Case A: 1-to-1 matching timeline (signal length matches df_symbol)
             if len(signal_series) == len(df_symbol):
                 signal_series.index = df_symbol.index
@@ -1013,7 +1061,12 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                                 val = val.iloc[-1]
                             if hasattr(val, 'item'):
                                 val = val.item()
-                            custom_data[k] = round(val, 2) if isinstance(val, (float, np.floating)) else val
+                            if val is None or pd.isna(val) or (isinstance(val, (float, np.floating)) and (np.isnan(val) or np.isinf(val))):
+                                custom_data[k] = '-'
+                            elif isinstance(val, (float, np.floating)):
+                                custom_data[k] = round(float(val), 2)
+                            else:
+                                custom_data[k] = val
                         except Exception:
                             custom_data[k] = '-'
 
@@ -1029,7 +1082,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                     if not custom_data.get("R2_Cross_Date") or custom_data.get("R2_Cross_Date") == '-':
                         custom_data["R2_Cross_Date"] = compute_r2_cross_date_fallback(df_symbol, date_str)
 
-                    res_item = {
+                    matches.append({
                         "Date": date_str,
                         "Symbol": symbol,
                         "Close": float(row['Close']),
@@ -1037,12 +1090,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                         "Volume": int(row['Volume']),
                         "Market_Cap_Cr": round(float(mcap_cr), 2) if mcap_cr else 0.0,
                         "custom_data": custom_data
-                    }
-
-                    if date_str not in historical_results:
-                        historical_results[date_str] = []
-                    historical_results[date_str].append(res_item)
-                    total_matches += 1
+                    })
 
             # Case B: Multi-timeframe resampled timeline (e.g., 1H signal derived from 1m data)
             else:
@@ -1069,7 +1117,12 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                                 val = val.iloc[-1]
                             if hasattr(val, 'item'):
                                 val = val.item()
-                            custom_data[k] = round(val, 2) if isinstance(val, (float, np.floating)) else val
+                            if val is None or pd.isna(val) or (isinstance(val, (float, np.floating)) and (np.isnan(val) or np.isinf(val))):
+                                custom_data[k] = '-'
+                            elif isinstance(val, (float, np.floating)):
+                                custom_data[k] = round(float(val), 2)
+                            else:
+                                custom_data[k] = val
                         except Exception:
                             custom_data[k] = '-'
 
@@ -1083,7 +1136,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                     if not custom_data.get("R2_Cross_Date") or custom_data.get("R2_Cross_Date") == '-':
                         custom_data["R2_Cross_Date"] = compute_r2_cross_date_fallback(df_symbol, date_str)
 
-                    res_item = {
+                    matches.append({
                         "Date": date_str,
                         "Symbol": symbol,
                         "Close": float(row['Close']),
@@ -1091,17 +1144,28 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
                         "Volume": int(row['Volume']),
                         "Market_Cap_Cr": round(float(mcap_cr), 2) if mcap_cr else 0.0,
                         "custom_data": custom_data
-                    }
+                    })
 
-                    if date_str not in historical_results:
-                        historical_results[date_str] = []
-                    historical_results[date_str].append(res_item)
-                    total_matches += 1
-
+            return symbol, matches, None
         except Exception as e:
+            return symbol, [], f"{type(e).__name__}: {str(e)}"
+
+    # Execute screening across symbols in parallel
+    max_workers = min(8, os.cpu_count() or 4)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        eval_results = list(executor.map(evaluate_symbol, symbols))
+
+    for sym, sym_matches, err in eval_results:
+        if err:
             error_count += 1
-            last_error = f"{type(e).__name__}: {str(e)}"
-            logger.error(f"Error screening symbol {symbol}: {e}")
+            last_error = err
+            logger.debug(f"Error screening symbol {sym}: {err}")
+        for res_item in sym_matches:
+            date_str = res_item["Date"]
+            if date_str not in historical_results:
+                historical_results[date_str] = []
+            historical_results[date_str].append(res_item)
+            total_matches += 1
 
     duration = time.time() - start_time
     logger.info(f"Screening complete. Found {total_matches} matches in {duration:.2f} seconds.")
@@ -1122,7 +1186,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
         for item in historical_results[d_str]:
             flat_matches.append(item)
 
-    return {
+    return sanitize_nan_values({
         "status": "success",
         "timeframe": timeframe,
         "total_matches": total_matches,
@@ -1131,7 +1195,7 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
         "historical_results": historical_results,
         "flat_matches": flat_matches,
         "dates_with_matches": len(historical_results)
-    }
+    })
 
 # --- Strategies Storage ---
 
@@ -3088,7 +3152,7 @@ def api_screen():
         return jsonify({"status": "error", "message": "Screening Python code is required"}), 400
 
     result = run_screener_logic(code_str, segment, timeframe=timeframe, watchlist_symbols=watchlist, start_date=start_date, end_date=end_date, min_market_cap_cr=min_market_cap_cr)
-    return jsonify(result)
+    return jsonify(sanitize_nan_values(result))
 
 @app.route('/api/backtest-strategies', methods=['GET'])
 def api_get_backtest_strategies():

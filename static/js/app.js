@@ -415,7 +415,7 @@ async function loadStatus() {
                 }
             }
             if (data.oldest_date) {
-                if (elements.screenStartDate) elements.screenStartDate.value = data.oldest_date;
+                if (elements.screenStartDate) elements.screenStartDate.value = data.latest_date || data.oldest_date;
                 if (elements.btScreenStartDate) elements.btScreenStartDate.value = data.oldest_date;
             }
         } else {
@@ -469,6 +469,10 @@ async function loadDates() {
             if (elements.screenEndDate) {
                 elements.screenEndDate.value = latestTradingDate;
                 elements.screenEndDate.max = latestTradingDate;
+            }
+            if (elements.screenStartDate) {
+                elements.screenStartDate.value = latestTradingDate;
+                elements.screenStartDate.max = latestTradingDate;
             }
             if (elements.btScreenEndDate) {
                 elements.btScreenEndDate.value = latestTradingDate;
@@ -656,8 +660,11 @@ function selectStrategy(index) {
 
         // Auto-configure recommended Timeframe and Segment based on strategy requirements
         const is5m = strat.code.includes('VOLUME_LOOKBACK_5MIN') || strat.name.toLowerCase().includes('5 min');
-        if (is5m && elements.timeframeSelect) {
-            elements.timeframeSelect.value = '5m';
+        if (is5m) {
+            if (elements.timeframeSelect) elements.timeframeSelect.value = '5m';
+            if (elements.screenStartDate && elements.screenEndDate && elements.screenEndDate.value) {
+                elements.screenStartDate.value = elements.screenEndDate.value;
+            }
         }
         if (strat.code.includes('MIN_MARKET_CAP_CR = 5000') || strat.name.toLowerCase().includes('5 min')) {
             if (elements.minMcapInput) elements.minMcapInput.value = '5000';

@@ -54,6 +54,57 @@ FALLBACK_DATA_DIR = os.path.join(BASE_DIR, "data", "minute")
 SCRIP_CACHE_FILE = os.path.join(BASE_DIR, "data", "kotak_scrip_master_nse_cm.csv")
 NIFTY50_FILE = os.path.join(BASE_DIR, "data", "nifty50.csv")
 NIFTY500_FILE = os.path.join(BASE_DIR, "data", "nifty500.csv")
+SPLITS_CACHE_FILE = os.path.join(BASE_DIR, "data", "splits_cache.json")
+
+_SPLITS_CACHE = None
+
+def load_splits_cache() -> dict:
+    global _SPLITS_CACHE
+    if _SPLITS_CACHE is not None:
+        return _SPLITS_CACHE
+    if os.path.exists(SPLITS_CACHE_FILE):
+        try:
+            with open(SPLITS_CACHE_FILE, "r", encoding="utf-8") as f:
+                _SPLITS_CACHE = json.load(f)
+                return _SPLITS_CACHE
+        except Exception as e:
+            logger.debug(f"Error loading splits cache: {e}")
+    _SPLITS_CACHE = {}
+    return _SPLITS_CACHE
+
+
+def adjust_incoming_candles_for_splits(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+    """
+    Adjusts incoming historical candles fetched from Kotak Neo API for subsequent splits
+    to ensure stitched data is 100% split-adjusted and seamless.
+    """
+    if df.empty:
+        return df
+    try:
+        splits_cache = load_splits_cache()
+        splits = splits_cache.get(symbol.upper().strip(), {})
+        if not splits:
+            return df
+        
+        sorted_splits = sorted([(d, float(r)) for d, r in splits.items() if float(r) > 1.0], key=lambda x: x[0], reverse=True)
+        if not sorted_splits:
+            return df
+
+        df_adj = df.copy()
+        df_dates = pd.to_datetime(df_adj['date']).dt.strftime('%Y-%m-%d')
+        
+        for s_date, ratio in sorted_splits:
+            mask = df_dates < s_date
+            if mask.any():
+                for col in ['open', 'high', 'low', 'close']:
+                    if col in df_adj.columns:
+                        df_adj.loc[mask, col] = (df_adj.loc[mask, col] / ratio).round(2)
+                if 'volume' in df_adj.columns:
+                    df_adj.loc[mask, 'volume'] = (df_adj.loc[mask, 'volume'] * ratio).round(0)
+        return df_adj
+    except Exception as e:
+        logger.debug(f"Error adjusting splits for {symbol}: {e}")
+        return df
 
 
 def load_env_config(env_file_path: str = "kotak_credentials.env") -> Dict[str, str]:
@@ -377,13 +428,20 @@ def generate_date_chunks(start_dt: datetime, end_dt: datetime, chunk_days: int =
     return chunks
 
 
-def stitch_and_save_parquet(existing_path: str, new_df: pd.DataFrame) -> Tuple[bool, int, str]:
+def stitch_and_save_parquet(existing_path: str, new_df: pd.DataFrame, symbol: Optional[str] = None) -> Tuple[bool, int, str]:
     """
     Seamlessly merges newly fetched historical candles with existing Parquet data,
     deduplicates by timestamp, sorts chronologically, and writes atomically.
+    Automatically applies subsequent corporate action split adjustments to incoming candles.
     """
     if new_df.empty:
         return False, 0, "No new data to stitch"
+
+    if symbol is None:
+        symbol = os.path.splitext(os.path.basename(existing_path))[0]
+
+    # Pre-adjust incoming candles for any corporate action splits
+    new_df = adjust_incoming_candles_for_splits(new_df, symbol)
 
     norm_path = existing_path.replace("\\", "/")
     os.makedirs(os.path.dirname(existing_path), exist_ok=True)
