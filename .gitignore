@@ -2,6 +2,9 @@
 data/consolidated_data.csv
 data/bhavcopies/
 data/splits_cache.json
+data/orderflow/
+*.duckdb
+*.duckdb.wal
 
 # Ignore Python bytecode
 __pycache__/

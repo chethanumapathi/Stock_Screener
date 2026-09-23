@@ -94,7 +94,7 @@ def get_prioritized_symbols(tier: str = 'all', specific_symbols: Optional[str] =
 def sync_minute_data(
     tier: str = 'all',
     symbols_str: Optional[str] = None,
-    target_date: str = '2026-09-18',
+    target_date: str = '2026-09-22',
     sleep_interval: float = 0.35,
     rebuild_daily: bool = True
 ):
@@ -214,13 +214,13 @@ def sync_minute_data(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Synchronize 1-Minute Historical Data through 2026-09-18")
+    parser = argparse.ArgumentParser(description="Synchronize 1-Minute Historical Data through 2026-09-22")
     parser.add_argument("--tier", type=str, default="all", choices=["nifty50", "nifty500", "all"],
                         help="Scope: 'nifty50', 'nifty500', or 'all' (default: 'all')")
     parser.add_argument("--symbols", type=str, default=None,
                         help="Specific comma-separated symbols (e.g. 'RELIANCE,TCS,INFY')")
-    parser.add_argument("--target-date", type=str, default="2026-09-18",
-                        help="Target sync date (YYYY-MM-DD, default: 2026-09-18)")
+    parser.add_argument("--target-date", type=str, default="2026-09-22",
+                        help="Target sync date (YYYY-MM-DD, default: 2026-09-22)")
     parser.add_argument("--sleep", type=float, default=0.35,
                         help="Sleep between API calls (default: 0.35s)")
     parser.add_argument("--no-daily-cache", action="store_true",

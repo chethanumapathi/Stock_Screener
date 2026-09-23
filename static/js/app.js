@@ -2101,25 +2101,37 @@ async function loadOrderFlowChart(symbol, timeframe = null) {
 
         const d = result.data;
         
+        // Helper to deduplicate, sort, and sanitize data for Lightweight Charts (requires strictly ascending timestamps)
+        const cleanSeriesData = (arr) => {
+            if (!arr || !Array.isArray(arr) || arr.length === 0) return [];
+            const seen = new Map();
+            for (const item of arr) {
+                if (item && item.time != null && !isNaN(item.time)) {
+                    seen.set(item.time, item);
+                }
+            }
+            return Array.from(seen.values()).sort((a, b) => a.time - b.time);
+        };
+
         // Shift timestamps by +5:30 (IST offset) so Lightweight Charts natively displays Indian Standard Time
-        const shiftedOhlc = (d.ohlc || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
-        const shiftedVolume = (d.volume || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
-        const shiftedDelta = (d.delta || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
-        const shiftedCvd = (d.cvd || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS }));
+        const shiftedOhlc = cleanSeriesData((d.ohlc || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS })));
+        const shiftedVolume = cleanSeriesData((d.volume || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS })));
+        const shiftedDelta = cleanSeriesData((d.delta || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS })));
+        const shiftedCvd = cleanSeriesData((d.cvd || []).map(b => ({ ...b, time: b.time + IST_OFFSET_SECONDS })));
 
         // Feed Data to Lightweight Charts
-        if (OrderFlowState.candlestickSeries && shiftedOhlc.length > 0) {
+        if (OrderFlowState.candlestickSeries) {
             OrderFlowState.candlestickSeries.setData(shiftedOhlc);
-            OrderFlowState.lastCandle = shiftedOhlc[shiftedOhlc.length - 1];
+            OrderFlowState.lastCandle = shiftedOhlc.length > 0 ? shiftedOhlc[shiftedOhlc.length - 1] : null;
         }
-        if (OrderFlowState.volumeSeries && shiftedVolume.length > 0) {
+        if (OrderFlowState.volumeSeries) {
             OrderFlowState.volumeSeries.setData(shiftedVolume);
         }
-        if (OrderFlowState.deltaSeries && shiftedDelta.length > 0) {
+        if (OrderFlowState.deltaSeries) {
             OrderFlowState.deltaSeries.setData(shiftedDelta);
             updateDeltaMarkers(shiftedDelta);
         }
-        if (OrderFlowState.cvdSeries && shiftedCvd.length > 0) {
+        if (OrderFlowState.cvdSeries) {
             OrderFlowState.cvdSeries.setData(shiftedCvd);
         }
 
@@ -2231,6 +2243,10 @@ function connectOrderFlowStream() {
                         const delta = parseInt(c.delta);
                         const cum_delta = parseInt(c.cum_delta);
 
+                        if (OrderFlowState.lastCandle && t < OrderFlowState.lastCandle.time) {
+                            return; // Do not submit out-of-order timestamps to Lightweight Charts
+                        }
+
                         if (OrderFlowState.candlestickSeries) {
                             OrderFlowState.candlestickSeries.update({
                                 time: t,
@@ -2239,6 +2255,7 @@ function connectOrderFlowStream() {
                                 low: low_p,
                                 close: close_p
                             });
+                            OrderFlowState.lastCandle = { time: t, open: open_p, high: high_p, low: low_p, close: close_p };
                         }
 
                         if (OrderFlowState.volumeSeries) {
