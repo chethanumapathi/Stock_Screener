@@ -16,6 +16,7 @@ from queue import Empty
 from concurrent.futures import ThreadPoolExecutor
 import backtest_diagnostics as bd
 from orderflow_engine import OrderFlowEngine
+from live_sync_service import LiveSyncService
 
 try:
     from reportlab.lib.pagesizes import landscape, A4
@@ -818,63 +819,75 @@ def fetch_fno_symbols():
 def compute_r2_cross_date_fallback(df_symbol, match_dt):
     """
     Finds the date when the initial candle crossed above monthly R2
-    prior to or on match_dt.
+    prior to or on match_dt. Cached on df_symbol for high performance.
     """
     try:
-        df = df_symbol.copy()
-        if df.empty:
-            return "-"
-        
-        if not isinstance(df.index, pd.DatetimeIndex):
-            dt_col = 'date' if 'date' in df.columns else ('Date' if 'Date' in df.columns else None)
-            if dt_col:
-                df.index = pd.to_datetime(df[dt_col])
-            else:
-                return "-"
-            
-        daily = df.resample('1D').agg({
-            'open': 'first' if 'open' in df.columns else 'Open',
-            'high': 'max' if 'high' in df.columns else 'High',
-            'low': 'min' if 'low' in df.columns else 'Low',
-            'close': 'last' if 'close' in df.columns else 'Close',
-            'volume': 'sum' if 'volume' in df.columns else 'Volume'
-        }).dropna(subset=['close'])
-        
-        if daily.empty:
+        if df_symbol.empty:
             return "-"
 
-        daily['Month'] = daily.index.to_period('M')
-        monthly = daily.groupby('Month').agg({
-            'high': 'max',
-            'low': 'min',
-            'close': 'last'
-        }).shift(1)
-        
-        monthly['Pivot'] = (monthly['high'] + monthly['low'] + monthly['close']) / 3
-        monthly['R2'] = monthly['Pivot'] + (monthly['high'] - monthly['low'])
-        
-        daily['R2'] = daily['Month'].map(monthly['R2'])
-        
-        raw_cross = (daily['high'] >= daily['R2'])
-        had_recent = (
-            raw_cross.shift(1)
-            .rolling('62D', min_periods=1)
-            .max()
-            .fillna(0)
-            .astype(bool)
-        )
-        vol_ok = daily['volume'] >= 500_000 if 'volume' in daily.columns else True
-        stage1_events = daily[raw_cross & (~had_recent) & vol_ok]
-        
+        calc = getattr(df_symbol, '_cached_r2_calc', None)
+        if calc is None:
+            df = df_symbol
+            if not isinstance(df.index, pd.DatetimeIndex):
+                dt_col = 'date' if 'date' in df.columns else ('Date' if 'Date' in df.columns else None)
+                if dt_col:
+                    df = df.copy()
+                    df.index = pd.to_datetime(df[dt_col])
+                else:
+                    return "-"
+
+            daily = df.resample('1D').agg({
+                'open': 'first' if 'open' in df.columns else 'Open',
+                'high': 'max' if 'high' in df.columns else 'High',
+                'low': 'min' if 'low' in df.columns else 'Low',
+                'close': 'last' if 'close' in df.columns else 'Close',
+                'volume': 'sum' if 'volume' in df.columns else 'Volume'
+            }).dropna(subset=['close'])
+
+            if daily.empty:
+                calc = (pd.DataFrame(), pd.DataFrame())
+            else:
+                daily['Month'] = daily.index.to_period('M')
+                monthly = daily.groupby('Month').agg({
+                    'high': 'max',
+                    'low': 'min',
+                    'close': 'last'
+                }).shift(1)
+
+                monthly['Pivot'] = (monthly['high'] + monthly['low'] + monthly['close']) / 3
+                monthly['R2'] = monthly['Pivot'] + (monthly['high'] - monthly['low'])
+                daily['R2'] = daily['Month'].map(monthly['R2'])
+
+                raw_cross = (daily['high'] >= daily['R2'])
+                had_recent = (
+                    raw_cross.shift(1)
+                    .rolling('62D', min_periods=1)
+                    .max()
+                    .fillna(0)
+                    .astype(bool)
+                )
+                vol_ok = daily['volume'] >= 500_000 if 'volume' in daily.columns else True
+                stage1_events = daily[raw_cross & (~had_recent) & vol_ok]
+                any_cross = daily[raw_cross]
+                calc = (stage1_events, any_cross)
+
+            try:
+                df_symbol._cached_r2_calc = calc
+            except Exception:
+                pass
+
+        stage1_events, any_cross = calc
         match_dt_parsed = pd.to_datetime(match_dt)
-        prior_events = stage1_events[stage1_events.index <= match_dt_parsed]
-        if not prior_events.empty:
-            return prior_events.index[-1].strftime('%Y-%m-%d')
-            
-        any_cross = daily[(daily['high'] >= daily['R2']) & (daily.index <= match_dt_parsed)]
+        if not stage1_events.empty:
+            prior_events = stage1_events[stage1_events.index <= match_dt_parsed]
+            if not prior_events.empty:
+                return prior_events.index[-1].strftime('%Y-%m-%d')
+
         if not any_cross.empty:
-            return any_cross.index[-1].strftime('%Y-%m-%d')
-            
+            prior_any = any_cross[any_cross.index <= match_dt_parsed]
+            if not prior_any.empty:
+                return prior_any.index[-1].strftime('%Y-%m-%d')
+
     except Exception as e:
         logger.error(f"Error computing fallback R2 date: {e}")
     return "-"
@@ -3108,6 +3121,41 @@ def api_orderflow_stream():
         }
     )
 
+# --- Real-Time Live Market Synchronization Endpoints ---
+
+@app.route('/api/live-sync/status', methods=['GET'])
+def api_live_sync_status():
+    engine = OrderFlowEngine.get_instance()
+    service = LiveSyncService.get_instance(orderflow_engine=engine)
+    return jsonify(service.get_status())
+
+@app.route('/api/live-sync/start', methods=['POST'])
+def api_live_sync_start():
+    data = request.get_json() or {}
+    segment = data.get('segment', 'nifty50')
+    interval = int(data.get('interval', 60))
+    engine = OrderFlowEngine.get_instance()
+    service = LiveSyncService.get_instance(orderflow_engine=engine)
+    service.start_background_sync(target_segment=segment, interval=interval)
+    return jsonify({"status": "ok", "message": f"Live sync started for segment {segment}", "data": service.get_status()})
+
+@app.route('/api/live-sync/stop', methods=['POST'])
+def api_live_sync_stop():
+    engine = OrderFlowEngine.get_instance()
+    service = LiveSyncService.get_instance(orderflow_engine=engine)
+    service.stop_background_sync()
+    return jsonify({"status": "ok", "message": "Live sync stopped", "data": service.get_status()})
+
+@app.route('/api/live-sync/trigger', methods=['POST'])
+def api_live_sync_trigger():
+    data = request.get_json() or {}
+    segment = data.get('segment', 'nifty50')
+    symbols = data.get('symbols', [])
+    engine = OrderFlowEngine.get_instance()
+    service = LiveSyncService.get_instance(orderflow_engine=engine)
+    res = service.sync_segment_now(segment=segment, custom_symbols=symbols)
+    return jsonify(res)
+
 @app.route('/api/strategies', methods=['GET'])
 def api_get_strategies():
     strategies = load_strategies_from_file()
@@ -3147,9 +3195,19 @@ def api_screen():
     start_date = data.get('start_date')
     end_date = data.get('end_date')
     min_market_cap_cr = float(data.get('min_market_cap_cr', 2000.0) or 0.0)
+    live_mode = bool(data.get('live', False))
 
     if not code_str:
         return jsonify({"status": "error", "message": "Screening Python code is required"}), 400
+
+    # If live mode is requested, sync latest intraday 1-minute candles for the segment first
+    if live_mode and segment in ['nifty50', 'fno', 'watchlist']:
+        try:
+            engine = OrderFlowEngine.get_instance()
+            service = LiveSyncService.get_instance(orderflow_engine=engine)
+            service.sync_segment_now(segment=segment, custom_symbols=watchlist)
+        except Exception as e:
+            logger.warning(f"Live pre-screen sync notice: {e}")
 
     result = run_screener_logic(code_str, segment, timeframe=timeframe, watchlist_symbols=watchlist, start_date=start_date, end_date=end_date, min_market_cap_cr=min_market_cap_cr)
     return jsonify(sanitize_nan_values(result))

@@ -162,17 +162,48 @@
                   🗑️
                 </button>
               </div>
-              <button class="btn btn-primary btn-run-large" id="btn-run-screener">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                Run Screener
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary btn-run-large" id="btn-run-screener">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  Run Screener
+                </button>
+                <button class="btn btn-run-large" id="btn-run-live-screener" title="Sync live 1-min market data and run screener" style="background: linear-gradient(135deg, #00c853, #009624); border: none; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                  ⚡ Live Scan
+                </button>
+              </div>
             </div>
           </div>
 
           <!-- Right: Screener Configuration & Controls -->
           <div class="screener-config">
             <div class="glass-panel">
-              <h3 class="panel-title">Screener Universe & Settings</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 class="panel-title" style="margin: 0;">Screener Universe & Settings</h3>
+                <span id="live-sync-status-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.3);">
+                  Live Sync Idle
+                </span>
+              </div>
+
+              <!-- Live Market Sync Controls -->
+              <div class="form-group" style="padding: 10px; background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.2); border-radius: 8px; margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 600; color: #00e676; display: flex; align-items: center; gap: 6px;">
+                    <span id="live-sync-indicator" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00e676;"></span>
+                    Live Market Parquet & Delta Sync
+                  </span>
+                  <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; margin: 0; color: var(--text-secondary);">
+                    <input type="checkbox" id="chk-live-auto-sync"> Auto-Sync (60s)
+                  </label>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-outline-success" id="btn-sync-live-data" style="flex: 1; padding: 4px 8px; font-size: 12px; border: 1px solid #00e676; color: #00e676; background: transparent; border-radius: 4px; cursor: pointer;" title="Manually fetch latest 1-min candles for selected segment">
+                    ⚡ Sync Live Data Now
+                  </button>
+                </div>
+                <div id="live-sync-details" style="font-size: 11px; color: var(--text-secondary, #888); margin-top: 6px;">
+                  Updates 1-min Parquet & Delta bars in real time.
+                </div>
+              </div>
 
               <!-- Time Frame Selection (5m, 15m, 1h, Daily, 1m) -->
               <div class="form-group">

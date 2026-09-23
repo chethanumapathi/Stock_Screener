@@ -66,6 +66,12 @@ const elements = {
     minMcapInput: document.getElementById('min-mcap-input'),
     codeEditor: document.getElementById('code-editor'),
     btnRunScreener: document.getElementById('btn-run-screener'),
+    btnRunLiveScreener: document.getElementById('btn-run-live-screener'),
+    btnSyncLiveData: document.getElementById('btn-sync-live-data'),
+    chkLiveAutoSync: document.getElementById('chk-live-auto-sync'),
+    liveSyncStatusBadge: document.getElementById('live-sync-status-badge'),
+    liveSyncDetails: document.getElementById('live-sync-details'),
+    liveSyncIndicator: document.getElementById('live-sync-indicator'),
     btnSaveStrategy: document.getElementById('btn-save-strategy'),
     btnDeleteStrategy: document.getElementById('btn-delete-strategy'),
     screenerLoading: document.getElementById('screener-loading'),
@@ -895,7 +901,7 @@ async function deleteCurrentBacktestStrategy() {
 // 3. Stock Screener Execution
 // =========================================================================
 
-async function runScreener() {
+async function runScreener(isLive = false) {
     const code = elements.codeEditor ? elements.codeEditor.value.trim() : '';
     if (!code) {
         showToast('Please enter Python screen(df) function code', 'error');
@@ -909,7 +915,16 @@ async function runScreener() {
     const minMcap = elements.minMcapInput ? Number(elements.minMcapInput.value) || 0 : 2000;
     
     if (elements.btnRunScreener) elements.btnRunScreener.disabled = true;
-    if (elements.screenerLoading) elements.screenerLoading.style.display = 'block';
+    if (elements.btnRunLiveScreener) elements.btnRunLiveScreener.disabled = true;
+    if (elements.screenerLoading) {
+        elements.screenerLoading.style.display = 'block';
+        const loadingText = elements.screenerLoading.querySelector('p');
+        if (loadingText) {
+            loadingText.textContent = isLive 
+                ? 'Syncing latest live 1-min market data and running screener...' 
+                : 'Evaluating multi-timeframe strategy across universe...';
+        }
+    }
     if (elements.screenerResultsContainer) elements.screenerResultsContainer.style.display = 'none';
     
     try {
@@ -923,7 +938,8 @@ async function runScreener() {
                 watchlist: AppState.watchlistSymbols,
                 start_date: startDate,
                 end_date: endDate,
-                min_market_cap_cr: minMcap
+                min_market_cap_cr: minMcap,
+                live: isLive
             })
         });
         
@@ -935,12 +951,108 @@ async function runScreener() {
             AppState.screenerResults = data.flat_matches || [];
             showToast(`Screening complete: ${data.total_matches} matches on ${timeframe} in ${data.duration_seconds}s`, 'success');
             renderScreenerResults(data);
+            pollLiveSyncStatus();
         }
     } catch (err) {
         showToast(`Failed to execute screener: ${err.message}`, 'error');
     } finally {
         if (elements.btnRunScreener) elements.btnRunScreener.disabled = false;
+        if (elements.btnRunLiveScreener) elements.btnRunLiveScreener.disabled = false;
         if (elements.screenerLoading) elements.screenerLoading.style.display = 'none';
+    }
+}
+
+async function syncLiveDataNow() {
+    const segment = elements.segmentSelect ? elements.segmentSelect.value : 'nifty50';
+    if (elements.btnSyncLiveData) {
+        elements.btnSyncLiveData.disabled = true;
+        elements.btnSyncLiveData.textContent = '⏳ Syncing...';
+    }
+    showToast(`Syncing live 1-min data for ${segment.toUpperCase()}...`, 'info');
+    try {
+        const res = await fetch('/api/live-sync/trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                segment: segment,
+                symbols: AppState.watchlistSymbols
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Synced ${data.updated}/${data.total} symbols in ${data.duration_s}s`, 'success');
+            updateLiveSyncUI({
+                is_active: elements.chkLiveAutoSync ? elements.chkLiveAutoSync.checked : false,
+                last_sync_time: data.sync_time,
+                last_updated_count: data.updated,
+                last_total_count: data.total
+            });
+        } else {
+            showToast(`Sync failed: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (e) {
+        showToast(`Live sync error: ${e.message}`, 'error');
+    } finally {
+        if (elements.btnSyncLiveData) {
+            elements.btnSyncLiveData.disabled = false;
+            elements.btnSyncLiveData.textContent = '⚡ Sync Live Data Now';
+        }
+    }
+}
+
+async function toggleLiveAutoSync(enable) {
+    const segment = elements.segmentSelect ? elements.segmentSelect.value : 'nifty50';
+    try {
+        const endpoint = enable ? '/api/live-sync/start' : '/api/live-sync/stop';
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ segment: segment, interval: 60 })
+        });
+        const data = await res.json();
+        if (enable) {
+            showToast(`Live Auto-Sync activated for ${segment.toUpperCase()} (every 60s)`, 'success');
+        } else {
+            showToast('Live Auto-Sync stopped', 'info');
+        }
+        updateLiveSyncUI(data.data || {});
+    } catch (e) {
+        showToast(`Toggle error: ${e.message}`, 'error');
+    }
+}
+
+async function pollLiveSyncStatus() {
+    try {
+        const res = await fetch('/api/live-sync/status');
+        const data = await res.json();
+        updateLiveSyncUI(data);
+    } catch (e) {
+        // silent fail on background poll
+    }
+}
+
+function updateLiveSyncUI(status) {
+    if (!status) return;
+    if (elements.liveSyncStatusBadge) {
+        if (status.is_running) {
+            elements.liveSyncStatusBadge.textContent = 'Syncing...';
+            elements.liveSyncStatusBadge.style.color = '#ffeb3b';
+            elements.liveSyncStatusBadge.style.background = 'rgba(255, 235, 59, 0.2)';
+        } else if (status.is_active) {
+            elements.liveSyncStatusBadge.textContent = 'Auto-Sync Active';
+            elements.liveSyncStatusBadge.style.color = '#00e676';
+            elements.liveSyncStatusBadge.style.background = 'rgba(0, 230, 118, 0.2)';
+        } else {
+            elements.liveSyncStatusBadge.textContent = status.last_sync_time ? `Synced ${status.last_sync_time.slice(11, 16)}` : 'Live Sync Idle';
+            elements.liveSyncStatusBadge.style.color = '#888';
+            elements.liveSyncStatusBadge.style.background = 'rgba(255, 255, 255, 0.1)';
+        }
+    }
+    if (elements.liveSyncDetails && status.last_sync_time) {
+        elements.liveSyncDetails.textContent = `Last sync: ${status.last_sync_time} (${status.last_updated_count}/${status.last_total_count} stocks updated)`;
+    }
+    if (elements.chkLiveAutoSync && typeof status.is_active === 'boolean') {
+        elements.chkLiveAutoSync.checked = status.is_active;
     }
 }
 
@@ -2725,10 +2837,17 @@ function initEventListeners() {
     
     // Screener controls
     if (elements.btnRunScreener) elements.btnRunScreener.addEventListener('click', () => runScreener(false));
+    if (elements.btnRunLiveScreener) elements.btnRunLiveScreener.addEventListener('click', () => runScreener(true));
+    if (elements.btnSyncLiveData) elements.btnSyncLiveData.addEventListener('click', () => syncLiveDataNow());
+    if (elements.chkLiveAutoSync) elements.chkLiveAutoSync.addEventListener('change', (e) => toggleLiveAutoSync(e.target.checked));
     if (elements.btnSaveStrategy) elements.btnSaveStrategy.addEventListener('click', () => saveCurrentStrategy(false));
     if (elements.btnDeleteStrategy) elements.btnDeleteStrategy.addEventListener('click', () => deleteCurrentStrategy(false));
     if (elements.btnExportExcel) elements.btnExportExcel.addEventListener('click', () => exportResults('excel'));
     if (elements.btnExportCsv) elements.btnExportCsv.addEventListener('click', () => exportResults('csv'));
+
+    // Initial Live Sync status check & recurring poll
+    pollLiveSyncStatus();
+    setInterval(pollLiveSyncStatus, 20000);
     
     // Keyboard shortcut for screener: Ctrl + Enter
     if (elements.codeEditor) {

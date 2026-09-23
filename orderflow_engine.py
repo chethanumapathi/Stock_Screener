@@ -12,9 +12,9 @@ Key Capabilities:
    - Bar Delta = Buy Volume - Sell Volume.
    - Cumulative Volume Delta (CVD) tracking session accumulation/distribution.
    - Multi-timeframe bar builder: 5s, 1m, 3m, 5m, 15m, 1d.
-4. Isolated Dedicated Database:
-   - DuckDB database strictly at `data/orderflow/orderflow.duckdb`.
-   - Absolutely NO modification or writing to `C:\\Zerodha Historical Data\\data\\minute`.
+4. Dual-Target Live Persistence:
+   - Dedicated DuckDB storage for tick-level order flow data at `data/orderflow/orderflow.duckdb`.
+   - Real-time automated 1-minute candle synchronization directly to `C:\Zerodha Historical Data\data\minute`.
 5. Real-Time Event Broadcaster:
    - Thread-safe queues for Server-Sent Events (SSE) `/api/orderflow/stream`.
 6. Built-in Simulation Mode:
@@ -854,96 +854,120 @@ class OrderFlowEngine:
         agg.is_seeded = True
         logger.info(f"Initialized fallback multi-session baseline for {symbol}: 1m={len(agg.candles_history['1m'])}, 5m={len(agg.candles_history['5m'])}, 15m={len(agg.candles_history['15m'])}")
 
+    def ingest_external_candles(self, symbol: str, df: pd.DataFrame):
+        """
+        Ingests 1-minute historical/live candles from Kotak Neo, calculates delta & CVD,
+        and updates multi-timeframe aggregations (1m, 3m, 5m, 15m, 1h).
+        """
+        if df is None or df.empty:
+            return
+        agg = self._get_or_create_aggregator(symbol)
+        with agg.lock:
+            existing_1m = {int(b['time']): b for b in agg.candles_history.get('1m', [])}
+            cum_delta = agg.session_delta
+
+            for _, row in df.iterrows():
+                dt = pd.to_datetime(row['date'])
+                if dt.tzinfo is None:
+                    dt = dt.tz_localize(IST)
+                epoch = int(dt.timestamp())
+                o = float(row['open'])
+                h = float(row['high'])
+                l = float(row['low'])
+                cl = float(row['close'])
+                v = int(float(row['volume'] or 0))
+
+                if epoch not in existing_1m:
+                    rng = h - l
+                    ratio = (cl - l) / rng if rng > 0 else 0.5
+                    buy_v = int(v * ratio)
+                    sell_v = v - buy_v
+                    bar_delta = buy_v - sell_v
+                    cum_delta += bar_delta
+
+                    existing_1m[epoch] = {
+                        'symbol': symbol,
+                        'timeframe': '1m',
+                        'time': epoch,
+                        'datetime_str': dt.strftime('%Y-%m-%d %H:%M:%S'),
+                        'open': o,
+                        'high': h,
+                        'low': l,
+                        'close': cl,
+                        'volume': v,
+                        'buy_volume': buy_v,
+                        'sell_volume': sell_v,
+                        'delta': bar_delta,
+                        'cum_delta': cum_delta,
+                        'trades_count': max(1, int(v / 50))
+                    }
+                else:
+                    b = existing_1m[epoch]
+                    b['high'] = max(b['high'], h)
+                    b['low'] = min(b['low'], l)
+                    b['close'] = cl
+                    b['volume'] = max(b['volume'], v)
+
+            clean_1m = [existing_1m[t] for t in sorted(existing_1m.keys())][-1000:]
+            agg.candles_history['1m'] = clean_1m
+            agg.session_delta = cum_delta
+            if clean_1m:
+                agg.last_price = clean_1m[-1]['close']
+
+            tf_seconds_map = {'3m': 180, '5m': 300, '15m': 900, '1h': 3600}
+            for tf, tf_sec in tf_seconds_map.items():
+                buckets = {}
+                for b1 in clean_1m:
+                    b_time = (int(b1['time']) // tf_sec) * tf_sec
+                    if b_time not in buckets:
+                        buckets[b_time] = {
+                            'symbol': symbol,
+                            'timeframe': tf,
+                            'time': b_time,
+                            'datetime_str': datetime.fromtimestamp(b_time, IST).strftime('%Y-%m-%d %H:%M:%S'),
+                            'open': b1['open'],
+                            'high': b1['high'],
+                            'low': b1['low'],
+                            'close': b1['close'],
+                            'volume': b1['volume'],
+                            'buy_volume': b1['buy_volume'],
+                            'sell_volume': b1['sell_volume'],
+                            'delta': b1['delta'],
+                            'cum_delta': b1['cum_delta'],
+                            'trades_count': b1.get('trades_count', 1)
+                        }
+                    else:
+                        bk = buckets[b_time]
+                        bk['high'] = max(bk['high'], b1['high'])
+                        bk['low'] = min(bk['low'], b1['low'])
+                        bk['close'] = b1['close']
+                        bk['volume'] += b1['volume']
+                        bk['buy_volume'] += b1['buy_volume']
+                        bk['sell_volume'] += b1['sell_volume']
+                        bk['delta'] += b1['delta']
+                        bk['cum_delta'] = b1['cum_delta']
+                agg.candles_history[tf] = sorted(buckets.values(), key=lambda x: x['time'])[-1000:]
+
     def _sync_completed_bars(self, symbol: str, tok_full: str):
-        """Fetches newly completed 1-minute exchange bars from Kotak Neo and resamples them."""
+        """Fetches newly completed 1-minute exchange bars from Kotak Neo, resamples them, and persists to Parquet."""
         try:
             now_dt = datetime.now(IST)
             today_str = now_dt.strftime('%Y-%m-%d')
             res = self.client_mgr.fetch_historical_candles(tok_full, '1min', today_str, today_str)
-            candles = res.get('data', {}).get('candles', []) if (res and isinstance(res, dict)) else []
-            if not candles:
+            df = fkh.parse_candles_to_df(res)
+            if df.empty:
                 return
 
-            agg = self._get_or_create_aggregator(symbol)
-            with agg.lock:
-                existing_1m = {int(b['time']): b for b in agg.candles_history.get('1m', [])}
-                cum_delta = agg.session_delta
+            # 1. Update in-memory OrderFlow delta bars & footprint
+            self.ingest_external_candles(symbol, df)
 
-                for c in candles:
-                    dt = datetime.fromisoformat(c[0])
-                    epoch = int(dt.timestamp())
-                    o, h, l, cl = float(c[1]), float(c[2]), float(c[3]), float(c[4])
-                    v = int(float(c[5]))
-
-                    if epoch not in existing_1m:
-                        rng = h - l
-                        ratio = (cl - l) / rng if rng > 0 else 0.5
-                        buy_v = int(v * ratio)
-                        sell_v = v - buy_v
-                        bar_delta = buy_v - sell_v
-                        cum_delta += bar_delta
-
-                        existing_1m[epoch] = {
-                            'symbol': symbol,
-                            'timeframe': '1m',
-                            'time': epoch,
-                            'datetime_str': dt.strftime('%Y-%m-%d %H:%M:%S'),
-                            'open': o,
-                            'high': h,
-                            'low': l,
-                            'close': cl,
-                            'volume': v,
-                            'buy_volume': buy_v,
-                            'sell_volume': sell_v,
-                            'delta': bar_delta,
-                            'cum_delta': cum_delta,
-                            'trades_count': max(1, int(v / 50))
-                        }
-                    else:
-                        b = existing_1m[epoch]
-                        b['high'] = max(b['high'], h)
-                        b['low'] = min(b['low'], l)
-                        b['close'] = cl
-                        b['volume'] = max(b['volume'], v)
-
-                clean_1m = [existing_1m[t] for t in sorted(existing_1m.keys())][-1000:]
-                agg.candles_history['1m'] = clean_1m
-
-                tf_seconds_map = {'3m': 180, '5m': 300, '15m': 900, '1h': 3600}
-                for tf, tf_sec in tf_seconds_map.items():
-                    buckets = {}
-                    for b1 in clean_1m:
-                        b_time = (int(b1['time']) // tf_sec) * tf_sec
-                        if b_time not in buckets:
-                            buckets[b_time] = {
-                                'symbol': symbol,
-                                'timeframe': tf,
-                                'time': b_time,
-                                'datetime_str': datetime.fromtimestamp(b_time).strftime('%Y-%m-%d %H:%M:%S'),
-                                'open': b1['open'],
-                                'high': b1['high'],
-                                'low': b1['low'],
-                                'close': b1['close'],
-                                'volume': b1['volume'],
-                                'buy_volume': b1['buy_volume'],
-                                'sell_volume': b1['sell_volume'],
-                                'delta': b1['delta'],
-                                'cum_delta': b1['cum_delta'],
-                                'trades_count': b1.get('trades_count', 1)
-                            }
-                        else:
-                            bk = buckets[b_time]
-                            bk['high'] = max(bk['high'], b1['high'])
-                            bk['low'] = min(bk['low'], b1['low'])
-                            bk['close'] = b1['close']
-                            bk['volume'] += b1['volume']
-                            bk['buy_volume'] += b1['buy_volume']
-                            bk['sell_volume'] += b1['sell_volume']
-                            bk['delta'] += b1['delta']
-                            bk['cum_delta'] = b1['cum_delta']
-                    agg.candles_history[tf] = sorted(buckets.values(), key=lambda x: x['time'])[-1000:]
+            # 2. Persist directly to C:\Zerodha Historical Data\data\minute\{symbol}.parquet
+            p_file = os.path.join(r"C:\Zerodha Historical Data\data\minute", f"{symbol}.parquet")
+            ok, total_rows, msg = fkh.stitch_and_save_parquet(p_file, df, symbol=symbol)
+            if ok:
+                logger.info(f"Live Parquet updated for {symbol}: stitched {len(df)} candles -> Total {total_rows:,} rows.")
         except Exception as e:
-            logger.debug(f"Incremental candle sync exception for {symbol}: {e}")
+            logger.debug(f"Sync completed bars error for {symbol}: {e}")
 
     def _start_live_market_worker(self):
         """Runs background live market poller streaming 100% genuine Kotak Neo exchange quotes & order flow."""

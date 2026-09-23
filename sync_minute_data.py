@@ -115,11 +115,18 @@ def sync_minute_data(
     # 2. Get symbol list
     symbols = get_prioritized_symbols(tier=tier, specific_symbols=symbols_str)
     total = len(symbols)
-    logger.info(f"Target scope: {total} symbols (Tier: {tier}). Target sync date: {target_date}")
-
+    today_obj = datetime.now().date()
+    if not target_date:
+        target_date = today_obj.strftime("%Y-%m-%d")
     target_dt_obj = datetime.strptime(target_date, "%Y-%m-%d").date()
-    # Fetch window end date (next day for full intraday session coverage)
-    to_date_str = (target_dt_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Cap to_date_str at today to prevent Kotak API rejecting dates in the future
+    if target_dt_obj >= today_obj:
+        to_date_str = today_obj.strftime("%Y-%m-%d")
+    else:
+        to_date_str = (target_dt_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    logger.info(f"Target scope: {total} symbols (Tier: {tier}). Sync range: through {to_date_str}")
 
     # 3. Synchronize
     updated_symbols = []
@@ -132,7 +139,16 @@ def sync_minute_data(
         min_dt, max_dt, row_count = fkh.inspect_existing_file(p_file)
 
         # Check if already up to date
-        if max_dt and max_dt.date() >= target_dt_obj:
+        is_up_to_date = False
+        if max_dt:
+            if max_dt.date() > target_dt_obj:
+                is_up_to_date = True
+            elif max_dt.date() == target_dt_obj:
+                # If target is today, ensure session completed (>= 15:25 IST)
+                if max_dt.hour >= 15 and max_dt.minute >= 25:
+                    is_up_to_date = True
+
+        if is_up_to_date:
             skipped_count += 1
             if idx % 100 == 0 or idx == total:
                 logger.info(f"[{idx}/{total}] [{sym}] Up to date (max: {max_dt.strftime('%Y-%m-%d %H:%M')}). Skipped: {skipped_count}")
@@ -140,11 +156,13 @@ def sync_minute_data(
 
         # Determine start date
         if max_dt:
-            # If max_dt is on or before 2026-09-11, start from 2026-09-12
-            if max_dt.date() <= datetime(2026, 9, 11).date():
-                from_date_str = "2026-09-12"
+            if max_dt.date() < target_dt_obj:
+                if max_dt.date() <= datetime(2026, 9, 11).date():
+                    from_date_str = "2026-09-12"
+                else:
+                    from_date_str = (max_dt.date() + timedelta(days=1)).strftime("%Y-%m-%d")
             else:
-                from_date_str = (max_dt.date() + timedelta(days=1)).strftime("%Y-%m-%d")
+                from_date_str = max_dt.date().strftime("%Y-%m-%d")
         else:
             from_date_str = "2026-09-11"
 
@@ -214,13 +232,14 @@ def sync_minute_data(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Synchronize 1-Minute Historical Data through 2026-09-22")
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    parser = argparse.ArgumentParser(description="Synchronize 1-Minute Historical Data through Today")
     parser.add_argument("--tier", type=str, default="all", choices=["nifty50", "nifty500", "all"],
                         help="Scope: 'nifty50', 'nifty500', or 'all' (default: 'all')")
     parser.add_argument("--symbols", type=str, default=None,
                         help="Specific comma-separated symbols (e.g. 'RELIANCE,TCS,INFY')")
-    parser.add_argument("--target-date", type=str, default="2026-09-22",
-                        help="Target sync date (YYYY-MM-DD, default: 2026-09-22)")
+    parser.add_argument("--target-date", type=str, default=today_str,
+                        help=f"Target sync date (YYYY-MM-DD, default: {today_str})")
     parser.add_argument("--sleep", type=float, default=0.35,
                         help="Sleep between API calls (default: 0.35s)")
     parser.add_argument("--no-daily-cache", action="store_true",
