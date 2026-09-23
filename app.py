@@ -2325,6 +2325,13 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
     if not is_valid:
         return {"status": "error", "message": err_msg}
 
+    # Auto-detect if strategy explicitly requires 5-minute data but timeframe was left as '1d'
+    if timeframe in ['1d', 'daily', 'day'] and ('VOLUME_LOOKBACK_5MIN' in code_str or '5 min' in code_str.lower() or '5-min' in code_str.lower()):
+        logger.info("Auto-switching backtest timeframe to '5m' based on strategy requirements...")
+        timeframe = '5m'
+    elif timeframe in ['1d', 'daily', 'day'] and ('_ensure_weekly_df' in code_str or 'weekly' in code_str.lower()):
+        pass
+
     symbols = []
     if segment == 'nifty50':
         symbols = fetch_nifty50_symbols()
@@ -2341,35 +2348,40 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
             if not db_df.empty:
                 symbols = db_df['Symbol'].dropna().unique().tolist()
 
+    # For intraday timeframes, calculate a reasonable warmup start date if start_date is given
+    warmup_start_date = None
+    if start_date and timeframe in ['1m', '5m', '15m', '1h', '60m']:
+        try:
+            start_dt = pd.to_datetime(start_date)
+            # Provide 60 calendar days of warmup (approx 42 trading days = ~3150 5m bars)
+            warmup_start_date = (start_dt - pd.Timedelta(days=60)).strftime('%Y-%m-%d')
+        except Exception:
+            warmup_start_date = None
+
     start_time = time.time()
     logger.info(f"Running backtest on {len(symbols)} stocks on timeframe '{timeframe}'...")
 
-    raw_trades = []
-    trade_id = 1
-    error_count = 0
-    last_error = ""
-
-    for symbol in symbols:
-        mcap_cr = get_market_cap_cr(symbol, fetch_online=True)
-        if min_market_cap_cr > 0 and mcap_cr > 0 and mcap_cr < min_market_cap_cr:
-            continue
-
-        # Fetch full history (up to end_date) so EMAs, rolling volume, and monthly pivots have complete warm-up data
-        df_symbol = get_ticker_data_duckdb(symbol, timeframe=timeframe, start_date=None, end_date=end_date)
-        if df_symbol.empty:
-            continue
-
-        # df_symbol is already corporate action adjusted (via pre-adjusted daily cache or get_ticker_data_duckdb)
-        if timeframe not in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth'] and not getattr(df_symbol, '_is_split_adjusted', False):
-            df_symbol = adjust_parquet_splits(df_symbol, symbol)
-        if len(df_symbol) < 5:
-            continue
-
+    def evaluate_symbol_backtest(symbol):
         try:
+            mcap_cr = get_market_cap_cr(symbol, fetch_online=False)
+            if min_market_cap_cr > 0 and mcap_cr > 0 and mcap_cr < min_market_cap_cr:
+                return symbol, [], None
+
+            df_symbol = get_ticker_data_duckdb(symbol, timeframe=timeframe, start_date=warmup_start_date, end_date=end_date)
+            if df_symbol.empty:
+                return symbol, [], None
+
+            # df_symbol is already corporate action adjusted (via pre-adjusted daily cache or get_ticker_data_duckdb)
+            if timeframe not in ['1d', 'daily', 'day', '1w', 'weekly', 'week', '1mo', 'monthly', 'month', '1mth'] and not getattr(df_symbol, '_is_split_adjusted', False):
+                df_symbol = adjust_parquet_splits(df_symbol, symbol)
+            if len(df_symbol) < 5:
+                return symbol, [], None
+
             res = func(df_symbol.copy())
             if not isinstance(res, dict):
-                continue
+                return symbol, [], None
 
+            sym_trades = []
             # Support direct multi-state simulated trades from advanced strategies
             if 'trades' in res and isinstance(res['trades'], list):
                 for tr in res['trades']:
@@ -2404,8 +2416,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     )
 
                     if is_eod:
-                        raw_trades.append({
-                            "trade_id": trade_id,
+                        sym_trades.append({
                             "symbol": symbol,
                             "type": "Long",
                             "trigger_date": str(tr.get('trigger_date', '-')),
@@ -2438,8 +2449,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         net_pnl = gross_pnl - brok - tax
                         pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
-                        raw_trades.append({
-                            "trade_id": trade_id,
+                        sym_trades.append({
                             "symbol": symbol,
                             "type": "Long",
                             "trigger_date": str(tr.get('trigger_date', '-')),
@@ -2462,8 +2472,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             "weekday": weekday_str,
                             "is_open": False
                         })
-                    trade_id += 1
-                continue
+                return symbol, sym_trades, None
 
             entry_obj = None
             for k in ['long_entry', 'entries', 'buy_signal', 'signal']:
@@ -2502,7 +2511,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     break
 
             if entry_obj is None or tp_val is None or sl_val is None:
-                continue
+                return symbol, [], None
 
             tp_series = tp_val.values if hasattr(tp_val, 'values') else (np.array(tp_val) if isinstance(tp_val, (list, np.ndarray)) else None)
             sl_series = sl_val.values if hasattr(sl_val, 'values') else (np.array(sl_val) if isinstance(sl_val, (list, np.ndarray)) else None)
@@ -2525,7 +2534,6 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     sl_pct = float(valid_sl[0]) if float(valid_sl[0]) < 1.0 else float(valid_sl[0]) / 100.0
 
             # Support multi-timeframe / resampled strategies:
-            # If strategy returned a resampled DataFrame or series matching entry_obj
             df_eval = df_symbol
             if 'df' in res and isinstance(res['df'], pd.DataFrame) and len(res['df']) == len(entry_obj):
                 df_eval = res['df']
@@ -2669,8 +2677,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         is_eod = ('end of data' in reason_clean) or ('end' in reason_clean and 'data' in reason_clean) or ('running' in reason_clean)
 
                         if is_eod:
-                            raw_trades.append({
-                                "trade_id": trade_id,
+                            sym_trades.append({
                                 "symbol": symbol,
                                 "type": "Long",
                                 "trigger_date": entry_trigger_dt,
@@ -2703,8 +2710,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             net_pnl = gross_pnl - brok - tax
                             pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
-                            raw_trades.append({
-                                "trade_id": trade_id,
+                            sym_trades.append({
                                 "symbol": symbol,
                                 "type": "Long",
                                 "trigger_date": entry_trigger_dt,
@@ -2727,10 +2733,8 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "weekday": weekday_str,
                                 "is_open": False
                             })
-                        trade_id += 1
                         in_trade = False
 
-            # After candle loop, if trade is still active, append as End of Data
             if in_trade and n > 0:
                 last_i = n - 1
                 exit_price = float(closes[last_i])
@@ -2750,8 +2754,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     duration_days = last_i - entry_idx
                     weekday_str = "Mon"
 
-                raw_trades.append({
-                    "trade_id": trade_id,
+                sym_trades.append({
                     "symbol": symbol,
                     "type": "Long",
                     "trigger_date": entry_trigger_dt,
@@ -2774,13 +2777,31 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     "weekday": weekday_str,
                     "is_open": True
                 })
-                trade_id += 1
-                in_trade = False
 
+            return symbol, sym_trades, None
         except Exception as e:
+            logger.debug(f"Error backtesting symbol {symbol}: {e}")
+            return symbol, [], f"{type(e).__name__}: {str(e)}"
+
+    # Execute backtest across symbols in parallel
+    max_workers = min(8, os.cpu_count() or 4)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        eval_results = list(executor.map(evaluate_symbol_backtest, symbols))
+
+    raw_trades = []
+    error_count = 0
+    last_error = ""
+
+    for sym, sym_trades, err in eval_results:
+        if err:
             error_count += 1
-            last_error = f"{type(e).__name__}: {str(e)}"
-            logger.error(f"Error backtesting symbol {symbol}: {e}")
+            last_error = err
+        raw_trades.extend(sym_trades)
+
+    # Sort all trades chronologically by entry date
+    raw_trades.sort(key=lambda t: str(t.get('entry_date', '')))
+    for tid, tr in enumerate(raw_trades, 1):
+        tr['trade_id'] = tid
 
     duration = round(time.time() - start_time, 2)
     logger.info(f"Backtest completed in {duration}s. Generated {len(raw_trades)} trades.")

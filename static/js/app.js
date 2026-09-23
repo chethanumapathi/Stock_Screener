@@ -34,11 +34,11 @@ const elements = {
     // Nav tabs
     navTabs: document.querySelectorAll('.nav-tab-btn'),
     tabPanes: document.querySelectorAll('.tab-pane'),
-    
+
     // Status badges
     dbStatusPill: document.getElementById('db-status-pill'),
     dbStatusText: document.getElementById('db-status-text'),
-    
+
     // Session summary
     sessionDateSelect: document.getElementById('session-date-select'),
     breadthAdvText: document.getElementById('breadth-adv-text'),
@@ -49,7 +49,7 @@ const elements = {
     gainersTableBody: document.getElementById('gainers-table-body'),
     losersTableBody: document.getElementById('losers-table-body'),
     volumeTableBody: document.getElementById('volume-table-body'),
-    
+
     // Screener controls
     savedStrategiesBar: document.getElementById('saved-strategies-bar'),
     savedStrategiesList: document.getElementById('saved-strategies-list'),
@@ -82,7 +82,7 @@ const elements = {
     resultsTableBody: document.getElementById('results-table-body'),
     btnExportExcel: document.getElementById('btn-export-excel'),
     btnExportCsv: document.getElementById('btn-export-csv'),
-    
+
     // Backtest Analytics elements
     btCodeEditor: document.getElementById('bt-code-editor'),
     btBtnRunBacktest: document.getElementById('bt-btn-run-backtest'),
@@ -204,7 +204,7 @@ const elements = {
     metricProfitableMonths: document.getElementById('metric-profitable-months'),
     metricTimeUnderWater: document.getElementById('metric-time-under-water'),
     metricAvgHolding: document.getElementById('metric-avg-holding'),
-    
+
     // Technical Chart & Live Order Flow
     chartSymbolInput: document.getElementById('chart-symbol-input'),
     symbolSuggestionsDropdown: document.getElementById('symbol-suggestions-dropdown'),
@@ -232,7 +232,7 @@ const elements = {
     legendDelta: document.getElementById('legend-delta'),
     legendCvd: document.getElementById('legend-cvd'),
     tickTapeBody: document.getElementById('tick-tape-body'),
-    
+
     // Data Manager
     parquetTickersCount: document.getElementById('parquet-tickers-count'),
     parquetSplitsStatus: document.getElementById('parquet-splits-status'),
@@ -242,7 +242,7 @@ const elements = {
     rangeSyncEnd: document.getElementById('range-sync-end'),
     btnSyncRange: document.getElementById('btn-sync-range'),
     btnExportDb: document.getElementById('btn-export-db'),
-    
+
     // Toasts
     toastContainer: document.getElementById('toast-container')
 };
@@ -251,14 +251,14 @@ const elements = {
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let icon = 'ℹ️';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '❌';
-    
+
     toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
     elements.toastContainer.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(-10px)';
@@ -282,7 +282,7 @@ function formatDateDDMMMYYYY(val) {
     if (!s || s === '-') return '-';
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+
     // 1. Check if YYYY-MM-DD or YYYY/MM/DD, optionally followed by time
     const isoMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
     if (isoMatch) {
@@ -361,14 +361,14 @@ function initQuantSubtabs() {
         btn.addEventListener('click', () => {
             btns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const targetId = btn.getAttribute('data-quant-subtab');
             document.querySelectorAll('.quant-subtab-content').forEach(c => {
                 c.style.display = (c.id === targetId) ? 'block' : 'none';
             });
             if (targetId === 'subtab-backtest-analytics' && window.Plotly && elements.btDrawdownChartContainer) {
                 setTimeout(() => {
-                    try { Plotly.Plots.resize(elements.btDrawdownChartContainer); } catch(e){}
+                    try { Plotly.Plots.resize(elements.btDrawdownChartContainer); } catch (e) { }
                 }, 50);
             }
         });
@@ -383,7 +383,7 @@ function switchTab(tabId) {
     elements.tabPanes.forEach(p => {
         p.classList.toggle('active', p.id === `tab-${tabId}`);
     });
-    
+
     // If switching to chart tab, ensure Order Flow chart is initialized and visible
     if (tabId === 'chart') {
         setTimeout(() => {
@@ -404,12 +404,12 @@ async function loadStatus() {
         const res = await fetch('/api/status');
         const data = await res.json();
         AppState.status = data;
-        
+
         if (data.has_data) {
             if (elements.dbStatusPill) elements.dbStatusPill.classList.remove('loading');
             const count = data.parquet_symbols_count || data.total_symbols;
             if (elements.dbStatusText) elements.dbStatusText.textContent = `● DuckDB: ${formatNumber(count)} Tickers Ready`;
-            
+
             if (data.latest_date) {
                 if (elements.screenEndDate) {
                     elements.screenEndDate.value = data.latest_date;
@@ -438,7 +438,7 @@ async function loadZerodhaStatus() {
         const res = await fetch('/api/zerodha/status');
         const data = await res.json();
         AppState.zerodhaStatus = data;
-        
+
         if (elements.parquetTickersCount) {
             elements.parquetTickersCount.textContent = `${formatNumber(data.total_tickers)} Parquet Files`;
         }
@@ -455,7 +455,7 @@ async function loadDates() {
         const res = await fetch('/api/dates');
         const data = await res.json();
         AppState.dates = data.dates || [];
-        
+
         if (AppState.dates.length > 0) {
             if (elements.sessionDateSelect) {
                 elements.sessionDateSelect.innerHTML = '';
@@ -465,7 +465,7 @@ async function loadDates() {
                     opt.textContent = d;
                     elements.sessionDateSelect.appendChild(opt);
                 });
-                
+
                 AppState.currentDate = AppState.dates[0];
                 elements.sessionDateSelect.value = AppState.currentDate;
                 await loadSessionSummary(AppState.currentDate);
@@ -484,7 +484,7 @@ async function loadDates() {
                 elements.btScreenEndDate.value = latestTradingDate;
                 elements.btScreenEndDate.max = latestTradingDate;
             }
-            
+
             const todayStr = new Date().toISOString().split('T')[0];
             if (elements.rangeSyncEnd) {
                 elements.rangeSyncEnd.value = todayStr;
@@ -521,14 +521,14 @@ function renderBreadth(breadth, total) {
     const adv = breadth.advances || 0;
     const dec = breadth.declines || 0;
     const unc = breadth.unchanged || 0;
-    
+
     const advPct = ((adv / total) * 100).toFixed(1);
     const decPct = ((dec / total) * 100).toFixed(1);
     const uncPct = ((unc / total) * 100).toFixed(1);
-    
+
     elements.breadthAdvText.textContent = `${adv} (${advPct}%)`;
     elements.breadthDecText.textContent = `${dec} (${decPct}%)`;
-    
+
     if (elements.breadthAdvBar) elements.breadthAdvBar.style.width = `${advPct}%`;
     if (elements.breadthDecBar) elements.breadthDecBar.style.width = `${decPct}%`;
     if (elements.breadthUncBar) elements.breadthUncBar.style.width = `${uncPct}%`;
@@ -582,7 +582,7 @@ function renderLeaderboards(data) {
 function populateScreenerStrategySelect() {
     if (!elements.strategySelect) return;
     elements.strategySelect.innerHTML = '';
-    
+
     AppState.strategies.forEach((strat, idx) => {
         const opt = document.createElement('option');
         opt.value = idx;
@@ -596,14 +596,14 @@ async function loadStrategies(targetStrategyName = null) {
         const res = await fetch('/api/strategies');
         const data = await res.json();
         AppState.strategies = data.strategies || [];
-        
+
         populateScreenerStrategySelect();
         renderSavedStrategiesLinks();
-        
+
         if (AppState.strategies.length > 0) {
             let selectIdx = 0;
             if (targetStrategyName) {
-                const foundIdx = AppState.strategies.findIndex(s => 
+                const foundIdx = AppState.strategies.findIndex(s =>
                     s.name.trim().toLowerCase() === targetStrategyName.trim().toLowerCase()
                 );
                 if (foundIdx >= 0) selectIdx = foundIdx;
@@ -622,12 +622,12 @@ async function loadStrategies(targetStrategyName = null) {
 function renderSavedStrategiesLinks() {
     if (!elements.savedStrategiesList) return;
     elements.savedStrategiesList.innerHTML = '';
-    
+
     if (AppState.strategies.length === 0) {
         elements.savedStrategiesList.innerHTML = '<span style="font-size: 0.8rem; color: var(--text-dark);">No saved screeners found</span>';
         return;
     }
-    
+
     AppState.strategies.forEach((strat, idx) => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -635,14 +635,14 @@ function renderSavedStrategiesLinks() {
         btn.setAttribute('data-idx', idx);
         btn.innerHTML = `<span class="strategy-link-icon">⚡</span><span>${strat.name}</span>`;
         btn.title = `Click to load "${strat.name}" into Screener`;
-        
+
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             selectStrategy(idx);
             showToast(`Loaded screener "${strat.name}"`, 'info');
             if (elements.codeEditor) elements.codeEditor.focus();
         });
-        
+
         elements.savedStrategiesList.appendChild(btn);
     });
 }
@@ -689,12 +689,12 @@ function selectStrategy(index) {
 async function saveCurrentStrategy() {
     const name = elements.strategyNameInput ? elements.strategyNameInput.value.trim() : '';
     const code = elements.codeEditor ? elements.codeEditor.value.trim() : '';
-    
+
     if (!name || !code) {
         showToast('Please provide both a screener name and code', 'error');
         return;
     }
-    
+
     try {
         const res = await fetch('/api/strategies', {
             method: 'POST',
@@ -722,9 +722,9 @@ async function deleteCurrentStrategy() {
         showToast('No strategy selected to delete', 'error');
         return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete screener "${name}"?`)) return;
-    
+
     try {
         const res = await fetch('/api/strategies', {
             method: 'DELETE',
@@ -751,7 +751,7 @@ async function deleteCurrentStrategy() {
 function populateBacktestStrategySelect() {
     if (!elements.btStrategySelect) return;
     elements.btStrategySelect.innerHTML = '';
-    
+
     AppState.backtestStrategies.forEach((strat, idx) => {
         const opt = document.createElement('option');
         opt.value = idx;
@@ -765,14 +765,14 @@ async function loadBacktestStrategies(targetStrategyName = null) {
         const res = await fetch('/api/backtest-strategies');
         const data = await res.json();
         AppState.backtestStrategies = data.strategies || [];
-        
+
         populateBacktestStrategySelect();
         renderSavedBacktestsLinks();
-        
+
         if (AppState.backtestStrategies.length > 0) {
             let selectIdx = 0;
             if (targetStrategyName) {
-                const foundIdx = AppState.backtestStrategies.findIndex(s => 
+                const foundIdx = AppState.backtestStrategies.findIndex(s =>
                     s.name.trim().toLowerCase() === targetStrategyName.trim().toLowerCase()
                 );
                 if (foundIdx >= 0) selectIdx = foundIdx;
@@ -791,12 +791,12 @@ async function loadBacktestStrategies(targetStrategyName = null) {
 function renderSavedBacktestsLinks() {
     if (!elements.btSavedStrategiesList) return;
     elements.btSavedStrategiesList.innerHTML = '';
-    
+
     if (AppState.backtestStrategies.length === 0) {
         elements.btSavedStrategiesList.innerHTML = '<span style="font-size: 0.8rem; color: var(--text-dark);">No saved backtests found</span>';
         return;
     }
-    
+
     AppState.backtestStrategies.forEach((strat, idx) => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -804,14 +804,14 @@ function renderSavedBacktestsLinks() {
         btn.setAttribute('data-idx', idx);
         btn.innerHTML = `<span class="strategy-link-icon">🎯</span><span>${strat.name}</span>`;
         btn.title = `Click to load "${strat.name}" into Backtester`;
-        
+
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             selectBacktestStrategy(idx);
             showToast(`Loaded backtest strategy "${strat.name}"`, 'info');
             if (elements.btCodeEditor) elements.btCodeEditor.focus();
         });
-        
+
         elements.btSavedStrategiesList.appendChild(btn);
     });
 }
@@ -832,6 +832,21 @@ function selectBacktestStrategy(index) {
         if (elements.btStrategyNameInput) elements.btStrategyNameInput.value = strat.name;
         if (elements.btStrategySelect) elements.btStrategySelect.value = index;
         updateActiveBacktestLink(index);
+
+        // Auto-configure recommended Timeframe and Segment based on strategy requirements
+        const is5m = (strat.code && strat.code.includes('VOLUME_LOOKBACK_5MIN')) ||
+            (strat.name && (strat.name.toLowerCase().includes('5 min') || strat.name.toLowerCase().includes('5-min')));
+        if (is5m) {
+            if (elements.btTimeframeSelect) elements.btTimeframeSelect.value = '5m';
+            if (elements.btSegmentSelect && elements.btSegmentSelect.value === 'nifty50') {
+                elements.btSegmentSelect.value = 'nifty500';
+            }
+            if (elements.btMinMcapInput) elements.btMinMcapInput.value = '5000';
+            showToast("Configured '5 Minutes' timeframe and 'Nifty 500' segment for this strategy.", "info");
+        } else if ((strat.code && strat.code.includes('_ensure_weekly_df')) ||
+            (strat.name && (strat.name.toLowerCase().includes('weekly') || strat.name.toLowerCase().includes('yearly-r1')))) {
+            if (elements.btTimeframeSelect) elements.btTimeframeSelect.value = '1w';
+        }
     } else {
         if (elements.btCodeEditor) elements.btCodeEditor.value = '';
         if (elements.btStrategyNameInput) elements.btStrategyNameInput.value = '';
@@ -842,12 +857,12 @@ function selectBacktestStrategy(index) {
 async function saveCurrentBacktestStrategy() {
     const name = elements.btStrategyNameInput ? elements.btStrategyNameInput.value.trim() : '';
     const code = elements.btCodeEditor ? elements.btCodeEditor.value.trim() : '';
-    
+
     if (!name || !code) {
         showToast('Please provide both a backtest strategy name and code', 'error');
         return;
     }
-    
+
     try {
         const res = await fetch('/api/backtest-strategies', {
             method: 'POST',
@@ -875,9 +890,9 @@ async function deleteCurrentBacktestStrategy() {
         showToast('No backtest strategy selected to delete', 'error');
         return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete backtest strategy "${name}"?`)) return;
-    
+
     try {
         const res = await fetch('/api/backtest-strategies', {
             method: 'DELETE',
@@ -907,26 +922,26 @@ async function runScreener(isLive = false) {
         showToast('Please enter Python screen(df) function code', 'error');
         return;
     }
-    
+
     const segment = elements.segmentSelect ? elements.segmentSelect.value : 'nifty50';
     const timeframe = elements.timeframeSelect ? elements.timeframeSelect.value : '1d';
     const startDate = elements.screenStartDate ? elements.screenStartDate.value || null : null;
     const endDate = elements.screenEndDate ? elements.screenEndDate.value || null : null;
     const minMcap = elements.minMcapInput ? Number(elements.minMcapInput.value) || 0 : 2000;
-    
+
     if (elements.btnRunScreener) elements.btnRunScreener.disabled = true;
     if (elements.btnRunLiveScreener) elements.btnRunLiveScreener.disabled = true;
     if (elements.screenerLoading) {
         elements.screenerLoading.style.display = 'block';
         const loadingText = elements.screenerLoading.querySelector('p');
         if (loadingText) {
-            loadingText.textContent = isLive 
-                ? 'Syncing latest live 1-min market data and running screener...' 
+            loadingText.textContent = isLive
+                ? 'Syncing latest live 1-min market data and running screener...'
                 : 'Evaluating multi-timeframe strategy across universe...';
         }
     }
     if (elements.screenerResultsContainer) elements.screenerResultsContainer.style.display = 'none';
-    
+
     try {
         const res = await fetch('/api/screen', {
             method: 'POST',
@@ -942,9 +957,9 @@ async function runScreener(isLive = false) {
                 live: isLive
             })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.status === 'error') {
             showToast(data.message, 'error');
         } else {
@@ -1061,7 +1076,7 @@ function renderScreenerResults(data) {
     elements.screenerResultsContainer.style.display = 'block';
     if (elements.screenerMatchesSummary) elements.screenerMatchesSummary.textContent = `${data.total_matches} Matches Found (${data.timeframe.toUpperCase()})`;
     if (elements.screenerMetaSummary) elements.screenerMetaSummary.textContent = `Scanned ${data.total_symbols_scanned} stocks on [${data.timeframe}] across ${data.dates_with_matches} periods in ${data.duration_seconds}s`;
-    
+
     const matches = data.flat_matches || [];
     if (matches.length === 0) {
         if (elements.resultsTableThead) elements.resultsTableThead.innerHTML = `<tr><th>Status</th></tr>`;
@@ -1070,10 +1085,10 @@ function renderScreenerResults(data) {
         if (elements.btnExportCsv) elements.btnExportCsv.disabled = true;
         return;
     }
-    
+
     if (elements.btnExportExcel) elements.btnExportExcel.disabled = false;
     if (elements.btnExportCsv) elements.btnExportCsv.disabled = false;
-    
+
     const unwantedCols = new Set([
         'avg_volume_20', 'close', 'monthly_r2', 'volume', 'volume_ratio',
         'in_trade', 'stage', 'stop_loss', 'entries', 'signal', 'df', 'data', 'dataframe'
@@ -1097,7 +1112,7 @@ function renderScreenerResults(data) {
         if (bLow === 'r2_cross_date') return 1;
         return a.localeCompare(b);
     });
-    
+
     let thHtml = `
         <tr>
             <th>Date / Time</th>
@@ -1112,12 +1127,12 @@ function renderScreenerResults(data) {
     });
     thHtml += `<th>Action</th></tr>`;
     if (elements.resultsTableThead) elements.resultsTableThead.innerHTML = thHtml;
-    
+
     if (elements.resultsTableBody) {
         elements.resultsTableBody.innerHTML = '';
         matches.forEach(row => {
             const tr = document.createElement('tr');
-            
+
             let changeBadge = '-';
             if (row.Pct_Change > 0) {
                 changeBadge = `<span class="badge-green">+${row.Pct_Change}%</span>`;
@@ -1126,7 +1141,7 @@ function renderScreenerResults(data) {
             } else {
                 changeBadge = `<span style="color: var(--text-muted); font-family: var(--font-mono);">${row.Pct_Change}%</span>`;
             }
-            
+
             const mcapDisplay = row.Market_Cap_Cr ? `₹${Number(row.Market_Cap_Cr).toLocaleString('en-IN')} Cr` : '-';
             let rowHtml = `
                 <td style="color: var(--text-muted); font-family: var(--font-mono);">${formatDateDDMMMYYYY(row.Date)}</td>
@@ -1142,7 +1157,7 @@ function renderScreenerResults(data) {
                 <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(row.Close).toFixed(2)}</td>
                 <td>${changeBadge}</td>
             `;
-            
+
             customKeysArr.forEach(k => {
                 let val = row.custom_data ? row.custom_data[k] : '-';
                 if (k.toLowerCase().includes('date') && val !== '-' && val !== undefined && val !== null) {
@@ -1150,7 +1165,7 @@ function renderScreenerResults(data) {
                 }
                 rowHtml += `<td style="font-family: var(--font-mono); color: #c7d2fe;">${val !== undefined ? val : '-'}</td>`;
             });
-            
+
             rowHtml += `
                 <td style="white-space: nowrap;">
                     <button class="btn btn-primary btn-sm" title="View Quarterly/Yearly Fundamentals" onclick="event.stopPropagation(); openFundamentalsModal('${row.Symbol}')" style="margin-right: 0.35rem; font-size: 0.76rem; padding: 0.25rem 0.6rem;">
@@ -1161,7 +1176,7 @@ function renderScreenerResults(data) {
                     </button>
                 </td>
             `;
-            
+
             tr.innerHTML = rowHtml;
             elements.resultsTableBody.appendChild(tr);
         });
@@ -1173,7 +1188,7 @@ async function exportResults(format) {
         showToast('No results available to export', 'error');
         return;
     }
-    
+
     try {
         const res = await fetch('/api/export-results', {
             method: 'POST',
@@ -1183,9 +1198,9 @@ async function exportResults(format) {
                 format: format
             })
         });
-        
+
         if (!res.ok) throw new Error('Export request failed');
-        
+
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1331,7 +1346,7 @@ function renderBacktestResults(data) {
         } else {
             trades.forEach(t => {
                 const tr = document.createElement('tr');
-                
+
                 let reasonBadge = '';
                 const isEndOfData = isEndOfDataTrade(t);
                 if (isEndOfData) {
@@ -1359,7 +1374,7 @@ function renderBacktestResults(data) {
                     pnlPctDisplay = `${pnlPctSign}${Number(t.pnl_pct).toFixed(2)}%`;
                 }
 
-                const exitPriceDisplay = isEndOfData 
+                const exitPriceDisplay = isEndOfData
                     ? `<span style="color: var(--text-muted); font-size: 0.85rem;" title="Last Close Price (Still Running)">₹${Number(t.exit_price).toFixed(2)}</span>`
                     : `₹${Number(t.exit_price).toFixed(2)}`;
 
@@ -1451,7 +1466,7 @@ function renderYearWiseTable(rows) {
 
     rows.forEach(r => {
         const tr = document.createElement('tr');
-        
+
         let mHtml = '';
         let activeRowTotal = 0.0;
         months.forEach(m => {
@@ -1551,7 +1566,7 @@ function updateYearWiseTableTotals() {
 
 function renderDrawdownChart(chartData) {
     if (!elements.btDrawdownChartContainer) return;
-    
+
     const dates = chartData.dates || [];
     const drawdowns = chartData.drawdowns || [];
 
@@ -1781,8 +1796,8 @@ async function exportBacktestTrades(format = 'excel') {
         return;
     }
 
-    const strategyName = (elements.btStrategyNameInput && elements.btStrategyNameInput.value.trim()) 
-        || (AppState.backtestStrategies[AppState.currentBacktestStrategyIdx]?.name) 
+    const strategyName = (elements.btStrategyNameInput && elements.btStrategyNameInput.value.trim())
+        || (AppState.backtestStrategies[AppState.currentBacktestStrategyIdx]?.name)
         || 'Backtest_Trades';
     const safeName = strategyName.replace(/[\\/*?:"<>|]/g, '_').trim();
     const trades = AppState.backtestResults.trades;
@@ -1884,8 +1899,8 @@ async function exportBacktestPdf() {
         return;
     }
 
-    const strategyName = (elements.btStrategyNameInput && elements.btStrategyNameInput.value.trim()) 
-        || (AppState.backtestStrategies[AppState.currentBacktestStrategyIdx]?.name) 
+    const strategyName = (elements.btStrategyNameInput && elements.btStrategyNameInput.value.trim())
+        || (AppState.backtestStrategies[AppState.currentBacktestStrategyIdx]?.name)
         || 'Backtest_Report';
 
     const safeName = strategyName.replace(/[\\/*?:"<>|]/g, '_').trim();
@@ -2000,13 +2015,13 @@ function initLightweightOrderFlowChart() {
         setTimeout(initLightweightOrderFlowChart, 200);
         return;
     }
-    
+
     const container = elements.lightweightChartContainer;
     if (!container) return;
-    
+
     // Clear any previous chart instances
     container.innerHTML = '';
-    
+
     const width = container.clientWidth || 900;
     const height = 620;
 
@@ -2144,7 +2159,7 @@ function resizeOrderFlowChart() {
 function updateLegendValues(c) {
     if (!c) return;
     if (elements.legendSymbol) elements.legendSymbol.textContent = OrderFlowState.activeSymbol;
-    
+
     // Update live quote pill in legend overlay
     if (elements.legendQuote) {
         const stats = OrderFlowState.latestStats;
@@ -2176,7 +2191,7 @@ async function loadOrderFlowChart(symbol, timeframe = null) {
     if (timeframe) OrderFlowState.timeframe = timeframe;
 
     if (elements.chartSymbolInput) elements.chartSymbolInput.value = symbol;
-    
+
     // Update Quick Pills UI
     if (elements.quickPills) {
         elements.quickPills.forEach(p => {
@@ -2205,14 +2220,14 @@ async function loadOrderFlowChart(symbol, timeframe = null) {
     try {
         const res = await fetch(`/api/orderflow/chart-data?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(OrderFlowState.timeframe)}`);
         const result = await res.json();
-        
+
         if (result.status !== 'ok' || !result.data) {
             showToast(`No order flow data found for ${symbol}`, 'info');
             return;
         }
 
         const d = result.data;
-        
+
         // Helper to deduplicate, sort, and sanitize data for Lightweight Charts (requires strictly ascending timestamps)
         const cleanSeriesData = (arr) => {
             if (!arr || !Array.isArray(arr) || arr.length === 0) return [];
@@ -2263,7 +2278,7 @@ async function loadOrderFlowChart(symbol, timeframe = null) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ symbol: symbol })
-        }).catch(() => {});
+        }).catch(() => { });
 
         // Connect SSE stream
         connectOrderFlowStream();
@@ -2292,7 +2307,7 @@ function connectOrderFlowStream() {
             if (!e.data) return;
             try {
                 const msg = JSON.parse(e.data);
-                
+
                 if (msg.type === 'handshake' || msg.type === 'connected') {
                     const st = msg.status || {};
                     if (elements.liveStreamStatusText) {
@@ -2448,7 +2463,7 @@ function connectOrderFlowStream() {
 
 function appendTickToTape(tick) {
     if (!elements.tickTapeBody) return;
-    
+
     // Format timestamp in IST
     const date = new Date(tick.timestamp * 1000);
     const timeStr = date.toLocaleTimeString('en-IN', {
@@ -2483,12 +2498,12 @@ function appendTickToTape(tick) {
 }
 
 // Global function to jump directly to chart / fundamentals
-window.openChartForSymbol = function(symbol, timeframe = null) {
+window.openChartForSymbol = function (symbol, timeframe = null) {
     openFundamentalsModal(symbol);
 };
 
 // Global function to copy stock symbol to clipboard
-window.copyStockSymbol = function(symbol) {
+window.copyStockSymbol = function (symbol) {
     if (!symbol) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(symbol).then(() => {
@@ -2717,20 +2732,20 @@ async function verifyZerodhaParquet() {
 async function syncDateRange() {
     const startDate = elements.rangeSyncStart.value;
     const endDate = elements.rangeSyncEnd.value;
-    
+
     if (!startDate || !endDate) {
         showToast('Please select both start and end dates', 'error');
         return;
     }
-    
+
     if (startDate > endDate) {
         showToast('Start date cannot be after end date', 'error');
         return;
     }
-    
+
     elements.btnSyncRange.disabled = true;
     elements.btnSyncRange.textContent = 'Syncing Date Range...';
-    
+
     try {
         const res = await fetch('/api/sync-data', {
             method: 'POST',
@@ -2738,7 +2753,7 @@ async function syncDateRange() {
             body: JSON.stringify({ mode: 'range', start_date: startDate, end_date: endDate })
         });
         const data = await res.json();
-        
+
         if (data.status === 'ok') {
             showToast(data.message, 'success');
             await loadStatus();
@@ -2774,7 +2789,7 @@ function initWatchlistUpload() {
             }
         });
     }
-    
+
     const btSegmentSelect = document.getElementById('bt-segment-select');
     const btWatchlistUploadGroup = document.getElementById('bt-watchlist-upload-group');
     if (btSegmentSelect && btWatchlistUploadGroup) {
@@ -2782,16 +2797,16 @@ function initWatchlistUpload() {
             btWatchlistUploadGroup.style.display = (e.target.value === 'watchlist') ? 'block' : 'none';
         });
     }
-    
+
     const setupFileInput = (inputEl, infoEl) => {
         if (!inputEl) return;
         inputEl.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
+
             const formData = new FormData();
             formData.append('file', file);
-            
+
             try {
                 const res = await fetch('/api/upload-watchlist', {
                     method: 'POST',
@@ -2813,7 +2828,7 @@ function initWatchlistUpload() {
             }
         });
     };
-    
+
     setupFileInput(elements.watchlistFileInput, elements.watchlistInfo);
     setupFileInput(document.getElementById('bt-watchlist-file-input'), document.getElementById('bt-watchlist-info'));
 }
@@ -2827,14 +2842,14 @@ function initEventListeners() {
             loadSessionSummary(AppState.currentDate);
         });
     }
-    
+
     // Screener strategy select
     if (elements.strategySelect) {
         elements.strategySelect.addEventListener('change', (e) => {
             selectStrategy(Number(e.target.value), 'screener');
         });
     }
-    
+
     // Screener controls
     if (elements.btnRunScreener) elements.btnRunScreener.addEventListener('click', () => runScreener(false));
     if (elements.btnRunLiveScreener) elements.btnRunLiveScreener.addEventListener('click', () => runScreener(true));
@@ -2848,7 +2863,7 @@ function initEventListeners() {
     // Initial Live Sync status check & recurring poll
     pollLiveSyncStatus();
     setInterval(pollLiveSyncStatus, 20000);
-    
+
     // Keyboard shortcut for screener: Ctrl + Enter
     if (elements.codeEditor) {
         elements.codeEditor.addEventListener('keydown', (e) => {
@@ -3000,7 +3015,7 @@ function initEventListeners() {
             recalculateBacktest();
         });
     }
-    
+
     // Year-wise Matrix Table Month Checkboxes (Instant Client-side Recalculation)
     document.querySelectorAll('.bt-month-cb').forEach(cb => {
         cb.addEventListener('change', () => {
@@ -3042,7 +3057,7 @@ function initEventListeners() {
             updateYearWiseTableTotals();
         });
     }
-    
+
     // Chart controls
     if (elements.btnLoadChart) {
         elements.btnLoadChart.addEventListener('click', () => {
@@ -3078,10 +3093,10 @@ function initEventListeners() {
             }
         });
     }
-    
+
     // Initialize stock autosuggest
     initAutosuggest();
-    
+
     // Chart timeframe buttons
     elements.chartTimeframeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -3093,7 +3108,7 @@ function initEventListeners() {
 
     window.loadChartForSymbol = loadOrderFlowChart;
     window.loadOrderFlowChart = loadOrderFlowChart;
-    
+
     // Data Manager controls
     if (elements.btnRefreshSplits) elements.btnRefreshSplits.addEventListener('click', refreshCorporateSplits);
     if (elements.btnVerifyParquet) elements.btnVerifyParquet.addEventListener('click', verifyZerodhaParquet);
@@ -3118,7 +3133,7 @@ function playReportReadyChime() {
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
         const now = ctx.currentTime;
-        
+
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'sine';
@@ -3259,17 +3274,17 @@ function initBacktestReadyModal() {
 function showToast(message, type = 'info', duration = 3200) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    
+
     const toast = document.createElement('div');
     toast.className = `toast-message ${type === 'success' ? 'toast-success' : ''}`;
-    
+
     let icon = 'ℹ️';
     if (type === 'success') icon = '✅';
     if (type === 'error') icon = '❌';
-    
+
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.classList.add('toast-fadeout');
         setTimeout(() => toast.remove(), 320);
@@ -3329,10 +3344,10 @@ function initGenAITemplateModal() {
             btn.addEventListener('click', () => {
                 const targetTab = btn.getAttribute('data-tab');
                 elements.genaiModalTabs.forEach(b => b.classList.remove('active'));
-                
+
                 const allPanes = elements.genaiTemplateModal.querySelectorAll('.modal-tab-pane');
                 allPanes.forEach(pane => pane.classList.remove('active'));
-                
+
                 btn.classList.add('active');
                 const targetPane = document.getElementById(targetTab);
                 if (targetPane) targetPane.classList.add('active');
@@ -3874,7 +3889,7 @@ function resetDiagnosticsUI() {
     if (elements.diagStandbyPlaceholder) elements.diagStandbyPlaceholder.style.display = 'flex';
     if (elements.diagContentWrapper) elements.diagContentWrapper.style.display = 'none';
     if (elements.diagMasterTabsWrap) elements.diagMasterTabsWrap.style.display = 'none';
-    
+
     if (elements.btnToggleDiagnostics) {
         elements.btnToggleDiagnostics.classList.remove('btn-active-diag');
         elements.btnToggleDiagnostics.disabled = false;
@@ -3895,7 +3910,7 @@ async function toggleOrCalculateDiagnostics() {
 
     // If diagnostics already computed in memory:
     const hasCachedData = AppState.backtestResults.diagnostics && Object.keys(AppState.backtestResults.diagnostics).length > 0;
-    
+
     if (hasCachedData) {
         AppState.diagnosticsActive = !AppState.diagnosticsActive;
         if (AppState.diagnosticsActive) {
@@ -3905,7 +3920,7 @@ async function toggleOrCalculateDiagnostics() {
             if (elements.btnToggleDiagnostics) elements.btnToggleDiagnostics.classList.add('btn-active-diag');
             if (elements.btnToggleDiagnosticsIcon) elements.btnToggleDiagnosticsIcon.textContent = '✅';
             if (elements.btnToggleDiagnosticsText) elements.btnToggleDiagnosticsText.textContent = 'Diagnostics Active (Toggle)';
-            
+
             const activeMaster = document.querySelector('.diag-master-pill.active');
             const targetId = activeMaster ? activeMaster.getAttribute('data-panel') : 'panel-robustness';
             const panel = document.getElementById(targetId);
@@ -4013,7 +4028,7 @@ function initDiagnosticsTabs() {
         pill.addEventListener('click', () => {
             masterPills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
-            
+
             const targetId = pill.getAttribute('data-panel');
             document.querySelectorAll('.diag-panel').forEach(panel => {
                 if (panel.id === targetId) {
@@ -4267,8 +4282,8 @@ function renderParameterHeatmap(data) {
         for (let j = 0; j < xLabels.length; j++) {
             if (matrixData[i] && matrixData[i][j] !== undefined) {
                 const val = matrixData[i][j];
-                const textVal = selectedMetric === 'profit_factor' 
-                    ? Number(val).toFixed(2) 
+                const textVal = selectedMetric === 'profit_factor'
+                    ? Number(val).toFixed(2)
                     : formatRupeeVal(val);
 
                 annotations.push({
@@ -4293,13 +4308,13 @@ function renderParameterHeatmap(data) {
             [0.3, '#312e81'],
             [0.6, '#2563eb'],
             [1.0, '#10b981']
-          ]
+        ]
         : [
             [0.0, '#7f1d1d'],
             [0.4, '#1e293b'],
             [0.7, '#065f46'],
             [1.0, '#10b981']
-          ];
+        ];
 
     const trace = {
         z: matrixData,
@@ -4839,7 +4854,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFundamentalsSystem();
     initDailyCacheSystem();
     initDiagnosticsTabs();
-    
+
     // Pre-cache all tickers in background for instant autosuggest
     loadAllSymbols();
 
@@ -4849,7 +4864,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDates();
     await loadStrategies();
     await loadBacktestStrategies();
-    
+
     // Ensure default view is Quant Screener tab
     switchTab('screener');
 });
