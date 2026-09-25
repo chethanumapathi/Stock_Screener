@@ -1,0 +1,117 @@
+//@version=5
+strategy("15-Min Intraday Short Dual RSI (80/85) + 2M Vol Peak + Daily R2 (TP VWAP | SL 2%)", overlay=true, 
+         initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+         commission_type=strategy.commission.percent, commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup   = "Strategy Setup & Filters"
+vol_floor   = input.int(200000, "Volume Floor (Both Candles)", minval=10000, step=10000, group=grp_setup)
+rsi_c1_min  = input.float(80.0, "Candle 1 RSI Threshold (>)", minval=50.0, maxval=95.0, group=grp_setup)
+rsi_c2_min  = input.float(85.0, "Candle 2 RSI Threshold (>)", minval=50.0, maxval=95.0, group=grp_setup)
+vol_lookback= input.int(1050, "2-Month Peak Volume Lookback (15m Bars)", minval=100, group=grp_setup)
+
+grp_rules   = "Intraday & Session Restrictions"
+max_daily_tr= input.int(1, "Max Entries Per Day", minval=1, group=grp_rules)
+cutoff_hour = input.int(13, "Entry Cutoff Hour (24h)", minval=9, maxval=15, group=grp_rules)
+cutoff_min  = input.int(0, "Entry Cutoff Minute", minval=0, maxval=59, group=grp_rules)
+
+grp_exits   = "Exits & Risk Management"
+sl_pct      = input.float(2.0, "Fixed Stop Loss % (Above Entry)", minval=0.5, step=0.5, group=grp_exits)
+sq_hour     = input.int(15, "Intraday Square-off Hour (24h)", minval=14, maxval=15, group=grp_exits)
+sq_min      = input.int(15, "Intraday Square-off Minute", minval=0, maxval=30, group=grp_exits)
+
+// =========================================================================
+// TECHNICAL INDICATORS
+// =========================================================================
+// 1. Wilder's RSI (15-min)
+rsi_val = ta.rsi(close, 14)
+
+// 2. Intraday Session VWAP (resets daily)
+session_vwap = ta.vwap
+
+// 3. Classical Daily Pivot R2 (from prior completed calendar day's OHLC)
+d_high  = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+d_low   = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+d_close = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+
+d_pivot  = (d_high + d_low + d_close) / 3.0
+daily_r2 = d_pivot + (d_high - d_low)
+
+// 4. 2-Month Rolling Volume Peak (prior lookback bars, current excluded)
+vol_max_prior = ta.highest(volume[1], vol_lookback)
+
+// =========================================================================
+// DAILY SESSION FILTERS & CONDITIONS
+// =========================================================================
+bool is_new_day = ta.change(time("D")) != 0
+var int trades_today = 0
+if (is_new_day)
+    trades_today := 0
+
+bool before_cutoff = (hour < cutoff_hour) or (hour == cutoff_hour and minute <= cutoff_min)
+bool is_eod_square_off = (hour > sq_hour) or (hour == sq_hour and minute >= sq_min)
+
+// Two-Consecutive Candle Sell Trigger Conditions:
+bool c1_vol  = volume[1] >= vol_floor
+bool c1_rsi  = rsi_val[1] > rsi_c1_min
+bool c1_r2   = close[1] > daily_r2
+bool c1_valid = c1_vol and c1_rsi and c1_r2
+
+bool c2_vol  = volume >= vol_floor
+bool c2_rsi  = rsi_val > rsi_c2_min
+bool c2_r2   = close > daily_r2
+bool c2_valid = c2_vol and c2_rsi and c2_r2
+
+bool either_vol_peak = (volume[1] >= vol_max_prior) or (volume >= vol_max_prior)
+bool sell_signal = c1_valid and c2_valid and either_vol_peak and before_cutoff and (trades_today < max_daily_tr) and (not is_new_day)
+
+// =========================================================================
+// TRADE EXECUTION (SELL / SHORT)
+// =========================================================================
+var float entry_price = na
+var float sl_price = na
+
+if (sell_signal and strategy.position_size == 0 and not is_eod_square_off)
+    entry_price := close
+    sl_price    := entry_price * (1.0 + sl_pct / 100.0)
+    trades_today := trades_today + 1
+    strategy.entry("Short", strategy.short, comment="Sell Signal (Overbought R2)")
+
+// =========================================================================
+// TRADE EXITS (Target = Session VWAP | SL = 2% | EOD Square-off)
+// =========================================================================
+if (strategy.position_size < 0)
+    // 1. Dynamic Target: Session VWAP (exit limit order at VWAP)
+    // 2. Fixed Stop Loss: 2.0% above entry price
+    strategy.exit("Cover Short", from_entry="Short", limit=session_vwap, stop=sl_price,
+                  comment_profit="TP (VWAP Reached)", comment_loss="SL (2% Hit)")
+
+    // 3. EOD Intraday Square-off at 15:15 IST
+    if (is_eod_square_off)
+        strategy.close("Short", comment="EOD Square-off (15:15)")
+
+// Reset variables on flat position
+if (strategy.position_size == 0)
+    entry_price := na
+    sl_price    := na
+
+// =========================================================================
+// VISUAL PLOTS & OVERLAYS
+// =========================================================================
+plot(daily_r2, "Daily R2", color = color.new(color.orange, 10), linewidth = 2, style = plot.style_linebr)
+plot(session_vwap, "Session VWAP (Target)", color = color.new(color.teal, 0), linewidth = 2)
+
+plot(strategy.position_size < 0 ? sl_price : na, "Stop Loss (+2%)", color = color.red, linewidth = 2, style = plot.style_linebr)
+plot(strategy.position_size < 0 ? session_vwap : na, "Target VWAP", color = color.green, linewidth = 2, style = plot.style_linebr)
+
+// Visual Signal Markers
+plotshape(sell_signal and strategy.position_size == 0, title="Sell / Short Signal", style=shape.triangledown,
+          location=location.abovebar, color=color.red, size=size.normal, text="SELL (RSI 80/85)")
+
+// Alerts
+alertcondition(sell_signal and strategy.position_size == 0, title="15m Dual RSI Sell Signal",
+               message="SELL / SHORT SIGNAL: 15m Dual RSI (80/85) + 2M Volume Peak on {{ticker}} at {{close}}! Target: VWAP | SL: +2%")
+alertcondition(strategy.position_size < 0 and low <= session_vwap, title="Target Profit Hit (VWAP)",
+               message="TARGET PROFIT HIT: Price dropped to Session VWAP on {{ticker}} at {{close}}!")

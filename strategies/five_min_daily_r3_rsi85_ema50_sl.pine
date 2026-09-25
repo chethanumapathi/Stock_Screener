@@ -1,0 +1,169 @@
+//@version=5
+strategy("5-Min Daily R3 + RSI>85 Short (1m VWAP Breakdown | TP 2% | SL Day High | Daily 260 EMA)", 
+         overlay=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+         commission_type=strategy.commission.percent, commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup       = "Strategy Setup & Indicators"
+rsi_len         = input.int(14, "5m RSI Length", minval=1, group=grp_setup)
+rsi_thresh      = input.float(85.0, "5m RSI Threshold (>)", minval=50.0, maxval=95.0, group=grp_setup)
+d_ema_len       = input.int(260, "Daily Trend Filter EMA Length", minval=10, group=grp_setup)
+use_d_ema_filt  = input.bool(true, "Sell Only If 5m Candle < Daily 260 EMA", group=grp_setup)
+
+grp_exits       = "Target Profit & Stop Loss Rules"
+tp_pct          = input.float(2.0, "Target Profit %", minval=0.5, step=0.1, group=grp_exits)
+use_day_high_sl = input.bool(true, "Stop Loss at Current Day High", group=grp_exits)
+max_daily_tr    = input.int(1, "Max Short Trades Per Day", minval=1, maxval=10, group=grp_exits)
+
+grp_rules       = "Intraday & Session Restrictions (NSE IST)"
+use_session     = input.bool(true, "Enforce Session Timing & EOD Square-off", group=grp_rules)
+cutoff_hour     = input.int(13, "Entry Cutoff Hour (24h IST)", minval=9, maxval=15, group=grp_rules)
+cutoff_min      = input.int(0, "Entry Cutoff Minute", minval=0, maxval=59, group=grp_rules)
+sq_hour         = input.int(15, "EOD Square-off Hour (24h IST)", minval=14, maxval=15, group=grp_rules)
+sq_min          = input.int(15, "EOD Square-off Minute", minval=0, maxval=30, group=grp_rules)
+
+
+// =========================================================================
+// TECHNICAL INDICATORS
+// =========================================================================
+// 1. Classical Daily Pivot Levels (from prior completed day's OHLC)
+d_high  = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+d_low   = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+d_close = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+
+d_pivot  = (d_high + d_low + d_close) / 3.0
+daily_r3 = d_high + 2.0 * (d_pivot - d_low)
+
+// 2. Daily 260 EMA (Prior completed day's Daily 260 EMA)
+d_ema260 = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[1], lookahead=barmerge.lookahead_on)
+
+// 3. Higher Timeframe 5-Minute Setup (RSI & Price Crossover)
+rsi_5m   = request.security(syminfo.tickerid, "5", ta.rsi(close, rsi_len))
+c_5m     = request.security(syminfo.tickerid, "5", close)
+is_new_5m = ta.change(time("5")) != 0
+
+// 4. Intraday Session VWAP (1-Minute base execution)
+intraday_vwap = ta.vwap
+
+
+// =========================================================================
+// SESSION & TRIGGER CONDITIONS
+// =========================================================================
+bool is_new_day = ta.change(time("D")) != 0
+var int trades_today = 0
+var float day_high_val = na
+
+if (is_new_day)
+    trades_today := 0
+    day_high_val := high
+else
+    day_high_val := math.max(nz(day_high_val, high), high)
+
+bool before_cutoff = not use_session or (hour < cutoff_hour or (hour == cutoff_hour and minute <= cutoff_min))
+bool is_eod        = use_session and (hour > sq_hour or (hour == sq_hour and minute >= sq_min))
+
+// 5-Minute Setup Qualification:
+// Candle closes above Daily R3, RSI > 85, and Close < Daily 260 EMA
+bool c_rsi_above   = rsi_5m > rsi_thresh
+bool c_r3_above    = c_5m > daily_r3
+bool c_below_d_ema = not use_d_ema_filt or na(d_ema260) or (c_5m < d_ema260)
+bool qual_5m_now   = is_new_5m and c_rsi_above and c_r3_above and c_below_d_ema
+
+// State Tracking:
+var bool armed_setup    = false
+var float armed_1m_low  = na
+var float entry_price   = na
+var float sl_price      = na
+var float tp_price      = na
+
+if (is_new_day or is_eod or not before_cutoff)
+    if (strategy.position_size == 0)
+        armed_setup   := false
+        armed_1m_low  := na
+
+// When a 5-minute candle qualifies: do NOT short right away, arm the breakdown setup
+if (qual_5m_now and strategy.position_size == 0 and before_cutoff and trades_today < max_daily_tr)
+    armed_setup  := true
+    armed_1m_low := na
+
+// In 1Min TF: wait for a candle to close below the VWAP
+if (armed_setup and strategy.position_size == 0 and before_cutoff)
+    if (close < intraday_vwap)
+        // Armed low is the low of this 1min candle
+        if (na(armed_1m_low))
+            armed_1m_low := low
+        else
+            armed_1m_low := math.min(armed_1m_low, low)
+
+
+// =========================================================================
+// SHORT ENTRY EXECUTION
+// =========================================================================
+// Short at the low of the 1-minute candle that closed below VWAP
+if (armed_setup and not na(armed_1m_low) and strategy.position_size == 0 and before_cutoff and not is_eod and trades_today < max_daily_tr)
+    // Entry condition: price breaks below armed_1m_low
+    if (low < armed_1m_low)
+        entry_price  := math.min(open, armed_1m_low)
+        // SL = High of the current day
+        sl_price     := day_high_val
+        // TP = 2% fixed target profit on short
+        tp_price     := entry_price * (1.0 - tp_pct / 100.0)
+        trades_today := trades_today + 1
+        armed_setup  := false
+        armed_1m_low := na
+
+        strategy.entry("Short", strategy.short, stop=armed_1m_low, comment="Short (VWAP Breakdown)")
+
+// Trade Management: Target Profit (2%) & Stop Loss (Day High)
+if (strategy.position_size < 0)
+    strategy.exit("Cover Short", from_entry="Short", limit=tp_price, stop=sl_price,
+                  comment_profit="TP (2%)", comment_loss="SL (Day High Hit)")
+
+    if (is_eod)
+        strategy.close("Short", comment="EOD Square-off (15:15)")
+
+// Reset variables on flat position
+if (strategy.position_size == 0)
+    entry_price := na
+    sl_price    := na
+    tp_price    := na
+
+
+// =========================================================================
+// VISUAL CHARTS & PLOTS
+// =========================================================================
+plot(daily_r3, "Daily R3", color = color.new(color.purple, 20), linewidth = 2, style = plot.style_linebr)
+plot(d_ema260, "Daily 260 EMA", color = color.new(color.orange, 10), linewidth = 2, style = plot.style_linebr)
+plot(intraday_vwap, "Session VWAP", color = color.new(color.blue, 0), linewidth = 2)
+
+// In-trade SL (Current Day High) and TP (2%) Levels
+plot(strategy.position_size < 0 ? sl_price : na, "Stop Loss (Day High)", color = color.red, linewidth = 2, style = plot.style_linebr)
+plot(strategy.position_size < 0 ? tp_price : na, "Target Profit (2%)", color = color.green, linewidth = 2, style = plot.style_linebr)
+plot(armed_setup and not na(armed_1m_low) and strategy.position_size == 0 ? armed_1m_low : na, "Armed 1m Breakdown Low", color = color.yellow, linewidth = 2, style = plot.style_linebr)
+
+// Visual Signal Markers
+plotshape(qual_5m_now and strategy.position_size == 0 and before_cutoff, 
+          title="5m Setup Armed (RSI>85 & >Daily R3)", style=shape.diamond,
+          location=location.abovebar, color=color.purple, size=size.small, text="5M ARMED")
+
+plotshape(strategy.position_size < 0 and strategy.position_size[1] == 0, 
+          title="Short Entry Filled", style=shape.triangledown,
+          location=location.abovebar, color=color.red, size=size.small, text="SHORT", textcolor=color.white)
+
+
+// =========================================================================
+// ALERTS
+// =========================================================================
+alertcondition(qual_5m_now and strategy.position_size == 0, title="5m Setup Armed",
+               message="5M QUALIFIED: 5m Candle closed above Daily R3 and RSI>85 on {{ticker}}! Watching for 1m close below VWAP.")
+
+alertcondition(strategy.position_size < 0 and strategy.position_size[1] == 0, title="Short Trade Executed",
+               message="SHORT EXECUTED: 1m breakdown filled on {{ticker}} at {{close}}! TP: 2%, SL: Current Day High.")
+
+alertcondition(strategy.position_size < 0 and low <= tp_price, title="Target Profit Hit (2%)",
+               message="TP HIT: Short trade achieved 2% profit target on {{ticker}} at {{close}}!")
+
+alertcondition(strategy.position_size < 0 and high >= sl_price, title="Stop Loss Hit (Day High)",
+               message="STOP LOSS HIT: Price breached Current Day High on {{ticker}} at {{close}}!")

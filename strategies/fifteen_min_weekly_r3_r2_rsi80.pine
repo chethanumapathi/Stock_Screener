@@ -1,0 +1,142 @@
+// Re-export / identical copy for fifteen_min_weekly_r3_r2_rsi80.pine
+//@version=5
+strategy("1-Hour Weekly R3 Trigger -> 5-Min Weekly R2 + RSI>85 Short (TP VWAP | SL 3%)", overlay=true, 
+         initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+         commission_type=strategy.commission.percent, commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup   = "Strategy Setup & Filters"
+rsi_len     = input.int(14, "5m RSI Length", minval=1, group=grp_setup)
+rsi_thresh  = input.float(85.0, "5m Qualifying Candle RSI Threshold (>)", minval=50.0, maxval=95.0, group=grp_setup)
+max_wait_wks= input.int(3, "Max Weeks from 1h R3 Trigger", minval=1, maxval=6, group=grp_setup)
+
+grp_rules   = "Intraday & Session Restrictions"
+no_same_day = input.bool(true, "Disallow Entry on Same Day as 1h Trigger", group=grp_rules)
+max_daily_tr= input.int(1, "Max Entries Per Day", minval=1, group=grp_rules)
+cutoff_hour = input.int(13, "Entry Cutoff Hour (24h)", minval=9, maxval=15, group=grp_rules)
+cutoff_min  = input.int(0, "Entry Cutoff Minute", minval=0, maxval=59, group=grp_rules)
+
+grp_exits   = "Exits & Risk Management"
+sl_pct      = input.float(3.0, "Fixed Stop Loss % (Above Entry)", minval=0.5, step=0.5, group=grp_exits)
+
+// =========================================================================
+// TECHNICAL INDICATORS
+// =========================================================================
+// 1. Wilder's RSI (5-minute base TF)
+rsi_val = ta.rsi(close, rsi_len)
+
+// 2. Session VWAP (resets daily)
+session_vwap = ta.vwap
+
+// 3. Classical Weekly Pivot Levels (from prior completed week's OHLC)
+w_high  = request.security(syminfo.tickerid, "W", high[1], lookahead=barmerge.lookahead_on)
+w_low   = request.security(syminfo.tickerid, "W", low[1], lookahead=barmerge.lookahead_on)
+w_close = request.security(syminfo.tickerid, "W", close[1], lookahead=barmerge.lookahead_on)
+
+w_pivot   = (w_high + w_low + w_close) / 3.0
+weekly_r2 = w_pivot + (w_high - w_low)
+weekly_r3 = w_high + 2.0 * (w_pivot - w_low)
+
+// 4. Higher Timeframe 1-Hour Trigger Detection
+// Check if prior two completed 1-hour candles both closed above Weekly R3
+h_two_above_r3 = request.security(syminfo.tickerid, "60", (close[1] > weekly_r3) and (close[2] > weekly_r3), lookahead=barmerge.lookahead_on)
+bool is_new_1h_bar = ta.change(time("60")) != 0
+
+// =========================================================================
+// DAILY TRACKING & SESSION FILTERS
+// =========================================================================
+bool is_new_day = ta.change(time("D")) != 0
+var int trades_today = 0
+if (is_new_day)
+    trades_today := 0
+
+bool before_cutoff = (hour < cutoff_hour) or (hour == cutoff_hour and minute <= cutoff_min)
+
+// =========================================================================
+// STATE MACHINE (1h Trigger: 2 Closes > R3 -> 3 Wks -> 5m Close > R2 + RSI>85)
+// =========================================================================
+var int state = 0
+var int trigger_time = 0
+var int trigger_day_time = 0
+var float qualifying_high = na
+var float entry_price = na
+var float sl_price = na
+var int breakout_bars = 0
+
+int three_weeks_ms = max_wait_wks * 7 * 24 * 60 * 60 * 1000
+
+// 1. Check IDLE -> 1h Trigger Event: Two consecutive 1-hour closes above Weekly R3
+if (state == 0 and strategy.position_size == 0)
+    if (is_new_1h_bar and h_two_above_r3)
+        trigger_time := time
+        trigger_day_time := time("D")
+        state := 1 // Armed for next 3 weeks
+
+// 2. State 1: ARMED_TRIGGER -> Check for Qualifying 5m Candle (Close > Weekly R2 & RSI > 85)
+bool not_trigger_day = no_same_day ? (time("D") > trigger_day_time) : true
+
+if (state == 1)
+    if (time - trigger_time > three_weeks_ms)
+        state := 0 // 3 weeks expired
+    else if (not_trigger_day and trades_today < max_daily_tr and before_cutoff and close > weekly_r2 and rsi_val > rsi_thresh)
+        state := 2 // Qualifying 5m signal candle found!
+        qualifying_high := high
+        breakout_bars := 0
+
+// 3. State 2: AWAITING_BREAKOUT -> Short order at qualifying 5m candle High
+if (state == 2)
+    breakout_bars := breakout_bars + 1
+    if (time - trigger_time > three_weeks_ms)
+        state := 0 // 3 weeks expired
+        qualifying_high := na
+    else if (not_trigger_day and trades_today < max_daily_tr and before_cutoff and high >= qualifying_high and strategy.position_size == 0)
+        entry_price := math.max(open, qualifying_high)
+        sl_price    := entry_price * (1.0 + sl_pct / 100.0)
+        trades_today:= trades_today + 1
+        strategy.entry("Short", strategy.short, stop=qualifying_high, comment="Sell Short")
+        state := 0
+        qualifying_high := na
+    else if (breakout_bars > 15)
+        state := 1 // Timeout on breakout; resume waiting for newer qualifying candle
+        qualifying_high := na
+
+// =========================================================================
+// TRADE EXITS (Target Profit = Session VWAP with min 1.5% buffer | SL = Fixed 3% | Intraday 15:15)
+// =========================================================================
+min_tp_target = entry_price * 0.985
+tp_target = math.min(session_vwap, min_tp_target)
+
+if (strategy.position_size < 0)
+    strategy.exit("Cover Short", from_entry="Short", limit=tp_target, stop=sl_price,
+                  comment_profit="TP (VWAP Reached)", comment_loss="SL (3% Hit)")
+    
+    // Intraday EOD Square-off at 15:15 IST
+    if (hour(time, "Asia/Kolkata") >= 15 and minute(time, "Asia/Kolkata") >= 15)
+        strategy.close("Short", comment="EOD Square-off (15:15)")
+
+// Reset variables on flat position
+if (strategy.position_size == 0 and state == 0)
+    entry_price := na
+    sl_price    := na
+
+// =========================================================================
+// VISUAL PLOTS & OVERLAYS
+// =========================================================================
+plot(weekly_r3, "Weekly R3 (Trigger)", color = color.new(color.purple, 20), linewidth = 2, style = plot.style_linebr)
+plot(weekly_r2, "Weekly R2 (Setup)", color = color.new(color.orange, 10), linewidth = 2, style = plot.style_linebr)
+plot(session_vwap, "Session VWAP", color = color.new(color.teal, 0), linewidth = 2)
+
+plot(strategy.position_size < 0 ? sl_price : na, "Stop Loss (+3%)", color = color.red, linewidth = 2, style = plot.style_linebr)
+plot(strategy.position_size < 0 ? tp_target : na, "Target Level (Min 1.5%)", color = color.green, linewidth = 2, style = plot.style_linebr)
+
+// Visual Signal Markers
+plotshape(state == 2 and state[1] != 2, title="Qualifying 5m Setup Candle", style=shape.triangledown,
+          location=location.abovebar, color=color.red, size=size.small, text="SETUP (R2+RSI>85)")
+
+// Alerts
+alertcondition(state == 2 and state[1] != 2, title="5m Setup Candle Armed",
+               message="SETUP ARMED: 5m Candle closed above Weekly R2 with RSI > 85 on {{ticker}} at {{close}}! Watch High for Short Entry.")
+alertcondition(strategy.position_size < 0 and low <= tp_target, title="Target Profit Hit (VWAP)",
+               message="TARGET PROFIT HIT: Short position reached Session VWAP target on {{ticker}} at {{close}}!")

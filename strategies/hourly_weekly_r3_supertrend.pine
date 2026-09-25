@@ -1,0 +1,156 @@
+//@version=5
+strategy("1-Hour Weekly R3 + Daily 200 EMA + Supertrend (7, 3)", overlay=true, 
+         initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+         commission_type=strategy.commission.percent, commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup   = "Strategy Setup & Indicators"
+st_period   = input.int(7, "Supertrend ATR Period", minval=1, group=grp_setup)
+st_mult     = input.float(3.0, "Supertrend Multiplier", minval=0.5, step=0.5, group=grp_setup)
+d_ema_len   = input.int(200, "Daily Trend Filter EMA Length", minval=10, group=grp_setup)
+max_wait_wks= input.int(2, "Max Weeks to wait for Supertrend Buy Reversal", minval=1, maxval=4, group=grp_setup)
+
+grp_exits   = "Exits & Target Profit"
+tp_pct      = input.float(10.0, "Take Profit %", minval=1.0, step=0.5, group=grp_exits)
+
+// =========================================================================
+// TECHNICAL INDICATORS
+// =========================================================================
+// 1. Supertrend (7, 3) on the 1-hour chart
+[st_line, st_dir] = ta.supertrend(st_mult, st_period)
+// st_dir: -1 = Bullish (Buy), 1 = Bearish (Sell) in built-in ta.supertrend
+// To make it intuitive:
+bool st_bullish = st_dir == -1
+bool st_bearish = st_dir == 1
+bool st_flipped_to_sell = st_bearish and (st_dir[1] == -1)
+bool st_flipped_to_buy  = st_bullish and (st_dir[1] == 1)
+
+// 2. Daily 200 EMA Filter (Past 5 Daily Candles BEFORE trigger must be > Daily 200 EMA)
+d_close   = request.security(syminfo.tickerid, "D", close)
+d_ema     = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len))
+
+d_close_1 = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+d_ema_1   = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[1], lookahead=barmerge.lookahead_on)
+d_close_2 = request.security(syminfo.tickerid, "D", close[2], lookahead=barmerge.lookahead_on)
+d_ema_2   = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[2], lookahead=barmerge.lookahead_on)
+d_close_3 = request.security(syminfo.tickerid, "D", close[3], lookahead=barmerge.lookahead_on)
+d_ema_3   = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[3], lookahead=barmerge.lookahead_on)
+d_close_4 = request.security(syminfo.tickerid, "D", close[4], lookahead=barmerge.lookahead_on)
+d_ema_4   = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[4], lookahead=barmerge.lookahead_on)
+d_close_5 = request.security(syminfo.tickerid, "D", close[5], lookahead=barmerge.lookahead_on)
+d_ema_5   = request.security(syminfo.tickerid, "D", ta.ema(close, d_ema_len)[5], lookahead=barmerge.lookahead_on)
+
+bool past_5_daily_above = (d_close_1 > d_ema_1) and (d_close_2 > d_ema_2) and (d_close_3 > d_ema_3) and (d_close_4 > d_ema_4) and (d_close_5 > d_ema_5)
+bool daily_200ema_ok    = past_5_daily_above and (d_close > d_ema)
+
+// 3. Classical Weekly Pivot R3 (from prior completed week's OHLC)
+w_high  = request.security(syminfo.tickerid, "W", high[1], lookahead=barmerge.lookahead_on)
+w_low   = request.security(syminfo.tickerid, "W", low[1], lookahead=barmerge.lookahead_on)
+w_close = request.security(syminfo.tickerid, "W", close[1], lookahead=barmerge.lookahead_on)
+
+w_pivot = (w_high + w_low + w_close) / 3.0
+weekly_r3 = w_high + 2.0 * (w_pivot - w_low)
+
+// =========================================================================
+// STATE MACHINE (Trigger -> Supertrend Sell -> Supertrend Buy within 2 Wks)
+// =========================================================================
+// States:
+// 0: IDLE
+// 1: AWAITING_ST_SELL
+// 2: AWAITING_ST_BUY
+// 3: AWAITING_BREAKOUT
+var int state = 0
+var int trigger_time = 0
+var float qualifying_high = na
+var float entry_price = na
+var float tp_price = na
+var int breakout_bars = 0
+
+// 2 weeks = 14 days in milliseconds
+int two_weeks_ms = max_wait_wks * 7 * 24 * 60 * 60 * 1000
+
+// 1. Check IDLE -> Awaiting Sell
+if (state == 0 and strategy.position_size == 0)
+    bool trigger_candle = (close > weekly_r3) and daily_200ema_ok
+    if (trigger_candle)
+        trigger_time := time
+        state := st_bullish ? 1 : 2
+
+// 2. State 1: Awaiting Supertrend Sell Flip (Within 2 weeks of Weekly R3 trigger)
+if (state == 1)
+    if (time - trigger_time > two_weeks_ms)
+        state := 0 // 2 weeks expired from trigger candle
+    else if (st_flipped_to_sell)
+        state := 2 // Flipped to Sell -> now await Buy reversal
+
+// 3. State 2: Awaiting Supertrend Buy Flip (Within 2 weeks of Weekly R3 trigger)
+if (state == 2)
+    if (time - trigger_time > two_weeks_ms)
+        state := 0 // 2 weeks expired from trigger candle without buy flip
+    else if (st_flipped_to_buy)
+        // Supertrend Buy Signal printed within 2 weeks of Weekly R3 breakout!
+        state := 3
+        qualifying_high := high
+        breakout_bars := 0
+
+// 4. State 3: Awaiting Breakout of Qualifying High
+if (state == 3)
+    breakout_bars := breakout_bars + 1
+    // If Supertrend flips to Sell before breakout, cancel setup
+    if (st_flipped_to_sell)
+        state := 0
+        qualifying_high := na
+    else if (high > qualifying_high and strategy.position_size == 0)
+        // Buy Trigger filled at high of the Supertrend Buy candle
+        entry_price := math.max(open, qualifying_high)
+        tp_price := entry_price * (1.0 + tp_pct / 100.0)
+        strategy.entry("Long", strategy.long, stop=qualifying_high, comment="Buy Breakout")
+        state := 0
+        qualifying_high := na
+    else if (breakout_bars > 10)
+        state := 0
+        qualifying_high := na
+
+// =========================================================================
+// TRADE EXITS (10% TP & Supertrend Sell SL)
+// =========================================================================
+if (strategy.position_size > 0)
+    // 1. Take Profit (+10.0%)
+    strategy.exit("TP 10%", from_entry="Long", limit=tp_price, comment_profit="TP 10% Hit")
+
+    // 2. Stop Loss on Supertrend Sell Signal
+    if (st_flipped_to_sell)
+        strategy.close("Long", comment="SL (Supertrend Sell Signal)")
+
+// Reset tracking when flat
+if (strategy.position_size == 0 and state == 0)
+    entry_price := na
+    tp_price    := na
+
+// =========================================================================
+// VISUAL PLOTS & OVERLAYS
+// =========================================================================
+// Supertrend plot
+plot(st_line, "Supertrend", color = st_bullish ? color.green : color.red, linewidth = 2)
+
+// Weekly R3 plot
+plot(weekly_r3, "Weekly R3", color = color.new(color.purple, 20), linewidth = 2, style = plot.style_linebr)
+
+// Target Profit plot when in trade
+plot(strategy.position_size > 0 ? tp_price : na, "Take Profit (+10%)", color = color.green, linewidth = 2, style = plot.style_linebr)
+plot(state == 3 ? qualifying_high : na, "Armed Buy Stop High", color = color.blue, linewidth = 2, style = plot.style_linebr)
+
+// Visual Signal Markers
+plotshape(state == 3 and breakout_bars == 0, title="Supertrend Buy Reversal", style=shape.triangleup,
+          location=location.belowbar, color=color.green, size=size.normal, text="ST BUY (2W)")
+
+plotshape(st_flipped_to_sell and strategy.position_size > 0, title="Supertrend Sell SL", style=shape.triangledown,
+          location=location.abovebar, color=color.red, size=size.normal, text="SL EXIT")
+
+// Alerts
+alertcondition(state == 3 and breakout_bars == 0, title="Supertrend Buy Signal (Pending Breakout)", 
+               message="Supertrend (7,3) Buy Reversal within 2 weeks of Weekly R3 trigger on {{ticker}} at {{close}}!")
+alertcondition(strategy.position_size > 0 and st_flipped_to_sell, title="Supertrend Sell SL Alert", 
+               message="Supertrend flipped to Sell! Exit Long on {{ticker}} at {{close}}!")

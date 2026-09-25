@@ -1731,6 +1731,17 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             (t_copy.get('net_pnl') is None and 'target' not in reason_str and 'stop' not in reason_str)
         )
 
+        is_short = (
+            str(t_copy.get('trade_type', '')).upper() in ['SHORT', 'SELL'] or
+            str(t_copy.get('direction', '')).upper() in ['SHORT', 'SELL'] or
+            str(t_copy.get('side', '')).upper() in ['SHORT', 'SELL'] or
+            str(t_copy.get('type', '')).upper() in ['SHORT', 'SELL']
+        )
+        t_copy['type'] = 'Short' if is_short else 'Long'
+        t_copy['trade_type'] = 'SHORT' if is_short else 'LONG'
+        t_copy['direction'] = 'SHORT' if is_short else 'LONG'
+        t_copy['side'] = 'SHORT' if is_short else 'LONG'
+
         if is_running:
             t_copy['exit_reason'] = "End of Data"
             t_copy['turnover'] = None
@@ -1747,14 +1758,22 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
         exit_p = float(t_copy['exit_price'])
         qty = int(t_copy['qty'])
 
-        eff_entry = entry_p * (1.0 + slippage_pct / 100.0)
-        eff_exit = exit_p * (1.0 - slippage_pct / 100.0)
-        turnover = (eff_entry + eff_exit) * qty
-        gross_pnl = (eff_exit - eff_entry) * qty
+        if is_short:
+            eff_entry = entry_p * (1.0 - slippage_pct / 100.0)
+            eff_exit = exit_p * (1.0 + slippage_pct / 100.0)
+            turnover = (eff_entry + eff_exit) * qty
+            gross_pnl = (eff_entry - eff_exit) * qty
+            pnl_pct = round(((eff_entry - eff_exit) / eff_entry) * 100.0, 2)
+        else:
+            eff_entry = entry_p * (1.0 + slippage_pct / 100.0)
+            eff_exit = exit_p * (1.0 - slippage_pct / 100.0)
+            turnover = (eff_entry + eff_exit) * qty
+            gross_pnl = (eff_exit - eff_entry) * qty
+            pnl_pct = round(((eff_exit - eff_entry) / eff_entry) * 100.0, 2)
+
         brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
         tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
         net_pnl = round(gross_pnl - brok - tax, 2)
-        pnl_pct = round(((eff_exit - eff_entry) / eff_entry) * 100.0, 2)
 
         t_copy['turnover'] = round(turnover, 2)
         t_copy['gross_pnl'] = round(gross_pnl, 2)
@@ -2415,10 +2434,22 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         bool(tr.get('is_open', False))
                     )
 
+                    is_tr_short = (
+                        str(tr.get('trade_type', '')).upper() in ['SHORT', 'SELL'] or
+                        str(tr.get('direction', '')).upper() in ['SHORT', 'SELL'] or
+                        str(tr.get('side', '')).upper() in ['SHORT', 'SELL'] or
+                        str(tr.get('type', '')).upper() in ['SHORT', 'SELL']
+                    )
+                    trade_type_name = "Short" if is_tr_short else "Long"
+                    trade_type_upper = "SHORT" if is_tr_short else "LONG"
+
                     if is_eod:
                         sym_trades.append({
                             "symbol": symbol,
-                            "type": "Long",
+                            "type": trade_type_name,
+                            "trade_type": trade_type_upper,
+                            "side": trade_type_upper,
+                            "direction": trade_type_upper,
                             "trigger_date": str(tr.get('trigger_date', '-')),
                             "entry_date": str(tr['entry_date']),
                             "entry_price": round(entry_price, 2),
@@ -2440,18 +2471,31 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             "is_open": True
                         })
                     else:
-                        eff_entry = entry_price * (1.0 + slippage_pct / 100.0)
-                        eff_exit = exit_price * (1.0 - slippage_pct / 100.0)
-                        turnover = (eff_entry + eff_exit) * qty
-                        gross_pnl = (eff_exit - eff_entry) * qty
-                        brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
-                        tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
-                        net_pnl = gross_pnl - brok - tax
-                        pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
+                        if is_tr_short:
+                            eff_entry = entry_price * (1.0 - slippage_pct / 100.0)
+                            eff_exit = exit_price * (1.0 + slippage_pct / 100.0)
+                            turnover = (eff_entry + eff_exit) * qty
+                            gross_pnl = (eff_entry - eff_exit) * qty
+                            brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                            tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                            net_pnl = gross_pnl - brok - tax
+                            pnl_pct = ((eff_entry - eff_exit) / eff_entry) * 100.0
+                        else:
+                            eff_entry = entry_price * (1.0 + slippage_pct / 100.0)
+                            eff_exit = exit_price * (1.0 - slippage_pct / 100.0)
+                            turnover = (eff_entry + eff_exit) * qty
+                            gross_pnl = (eff_exit - eff_entry) * qty
+                            brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                            tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                            net_pnl = gross_pnl - brok - tax
+                            pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
                         sym_trades.append({
                             "symbol": symbol,
-                            "type": "Long",
+                            "type": trade_type_name,
+                            "trade_type": trade_type_upper,
+                            "side": trade_type_upper,
+                            "direction": trade_type_upper,
                             "trigger_date": str(tr.get('trigger_date', '-')),
                             "entry_date": str(tr['entry_date']),
                             "entry_price": round(entry_price, 2),
@@ -2475,10 +2519,19 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                 return symbol, sym_trades, None
 
             entry_obj = None
-            for k in ['long_entry', 'entries', 'buy_signal', 'signal']:
+            is_strategy_short = False
+            for k in ['short_entry', 'sell_signal', 'short_signal']:
                 if k in res and res[k] is not None:
-                    entry_obj = res[k]
-                    break
+                    arr = res[k].values if hasattr(res[k], 'values') else res[k]
+                    if np.any(arr):
+                        entry_obj = res[k]
+                        is_strategy_short = True
+                        break
+            if entry_obj is None:
+                for k in ['long_entry', 'entries', 'buy_signal', 'signal']:
+                    if k in res and res[k] is not None:
+                        entry_obj = res[k]
+                        break
 
             tp_val = None
             for k in ['tp_pct', 'target_profit_pct', 'tp', 'target_profit', 'target_pct']:
@@ -2493,7 +2546,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     break
 
             exit_signal_obj = None
-            for k in ['exit_signal', 'exit', 'long_exit']:
+            for k in ['exit_signal', 'exit', 'long_exit', 'short_exit']:
                 if k in res and res[k] is not None:
                     exit_signal_obj = res[k]
                     break
@@ -2505,7 +2558,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     break
 
             trigger_date_obj = None
-            for k in ['trigger_date', 'Trigger_Date', 'trigger_dates', 'buy_trigger_date', 'Buy_Trigger_Date']:
+            for k in ['trigger_date', 'Trigger_Date', 'trigger_dates', 'buy_trigger_date', 'Buy_Trigger_Date', 'sell_trigger_date']:
                 if k in res and res[k] is not None:
                     trigger_date_obj = res[k]
                     break
@@ -2625,23 +2678,31 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         if this_sl > 1.0:
                             this_sl /= 100.0
 
-                        target_price = round(entry_price * (1.0 + this_tp), 2)
-                        stop_price = round(entry_price * (1.0 - this_sl), 2)
+                        if is_strategy_short:
+                            target_price = round(entry_price * (1.0 - this_tp), 2)
+                            stop_price = round(entry_price * (1.0 + this_sl), 2)
+                        else:
+                            target_price = round(entry_price * (1.0 + this_tp), 2)
+                            stop_price = round(entry_price * (1.0 - this_sl), 2)
                 else:
                     high_p = highs[i]
                     low_p = lows[i]
-                    hit_tp = high_p >= target_price
-                    hit_sl = low_p <= stop_price
+                    if is_strategy_short:
+                        hit_tp = low_p <= target_price
+                        hit_sl = high_p >= stop_price
+                    else:
+                        hit_tp = high_p >= target_price
+                        hit_sl = low_p <= stop_price
 
                     exit_price = 0.0
                     exit_reason = ""
                     if hit_tp and hit_sl:
                         if opens[i] >= entry_price:
-                            exit_price = target_price
-                            exit_reason = "Target Profit (TP)"
+                            exit_price = target_price if not is_strategy_short else stop_price
+                            exit_reason = "Target Profit (TP)" if not is_strategy_short else "Stop Loss (SL)"
                         else:
-                            exit_price = stop_price
-                            exit_reason = "Stop Loss (SL)"
+                            exit_price = stop_price if not is_strategy_short else target_price
+                            exit_reason = "Stop Loss (SL)" if not is_strategy_short else "Target Profit (TP)"
                     elif hit_tp:
                         exit_price = target_price
                         exit_reason = "Target Profit (TP)"
@@ -2661,8 +2722,12 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         trade_highs = highs[entry_idx : i + 1]
                         min_p = float(np.min(trade_lows)) if len(trade_lows) > 0 else entry_price
                         max_p = float(np.max(trade_highs)) if len(trade_highs) > 0 else entry_price
-                        mae_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
-                        mfe_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                        if is_strategy_short:
+                            mae_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                            mfe_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                        else:
+                            mae_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                            mfe_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
 
                         try:
                             d_in = datetime.strptime(entry_dt[:10], '%Y-%m-%d')
@@ -2676,10 +2741,16 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         reason_clean = str(exit_reason).strip().lower()
                         is_eod = ('end of data' in reason_clean) or ('end' in reason_clean and 'data' in reason_clean) or ('running' in reason_clean)
 
+                        fallback_type = "Short" if is_strategy_short else "Long"
+                        fallback_upper = "SHORT" if is_strategy_short else "LONG"
+
                         if is_eod:
                             sym_trades.append({
                                 "symbol": symbol,
-                                "type": "Long",
+                                "type": fallback_type,
+                                "trade_type": fallback_upper,
+                                "side": fallback_upper,
+                                "direction": fallback_upper,
                                 "trigger_date": entry_trigger_dt,
                                 "entry_date": entry_dt,
                                 "entry_price": round(entry_price, 2),
@@ -2701,18 +2772,31 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "is_open": True
                             })
                         else:
-                            eff_entry = entry_price * (1.0 + slippage_pct / 100.0)
-                            eff_exit = exit_price * (1.0 - slippage_pct / 100.0)
-                            turnover = (eff_entry + eff_exit) * qty
-                            gross_pnl = (eff_exit - eff_entry) * qty
-                            brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
-                            tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
-                            net_pnl = gross_pnl - brok - tax
-                            pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
+                            if is_strategy_short:
+                                eff_entry = entry_price * (1.0 - slippage_pct / 100.0)
+                                eff_exit = exit_price * (1.0 + slippage_pct / 100.0)
+                                turnover = (eff_entry + eff_exit) * qty
+                                gross_pnl = (eff_entry - eff_exit) * qty
+                                brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                                tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                                net_pnl = gross_pnl - brok - tax
+                                pnl_pct = ((eff_entry - eff_exit) / eff_entry) * 100.0
+                            else:
+                                eff_entry = entry_price * (1.0 + slippage_pct / 100.0)
+                                eff_exit = exit_price * (1.0 - slippage_pct / 100.0)
+                                turnover = (eff_entry + eff_exit) * qty
+                                gross_pnl = (eff_exit - eff_entry) * qty
+                                brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                                tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                                net_pnl = gross_pnl - brok - tax
+                                pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
                             sym_trades.append({
                                 "symbol": symbol,
-                                "type": "Long",
+                                "type": fallback_type,
+                                "trade_type": fallback_upper,
+                                "side": fallback_upper,
+                                "direction": fallback_upper,
                                 "trigger_date": entry_trigger_dt,
                                 "entry_date": entry_dt,
                                 "entry_price": round(entry_price, 2),
@@ -2728,8 +2812,8 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "pnl_pct": round(pnl_pct, 2),
                                 "duration": f"{duration_days}d" if duration_days > 0 else "Same Day",
                                 "duration_days": duration_days,
-                                "mae_pct": round(mae_pct, 2),
-                                "mfe_pct": round(mfe_pct, 2),
+                                "mae_pct": round(mae_val, 2),
+                                "mfe_pct": round(mfe_val, 2),
                                 "weekday": weekday_str,
                                 "is_open": False
                             })
@@ -2742,8 +2826,12 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                 trade_highs = highs[entry_idx : last_i + 1]
                 min_p = float(np.min(trade_lows)) if len(trade_lows) > 0 else entry_price
                 max_p = float(np.max(trade_highs)) if len(trade_highs) > 0 else entry_price
-                mae_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
-                mfe_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                if is_strategy_short:
+                    mae_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                    mfe_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                else:
+                    mae_pct = max(0.0, ((entry_price - min_p) / entry_price) * 100.0) if entry_price > 0 else 0.0
+                    mfe_pct = max(0.0, ((max_p - entry_price) / entry_price) * 100.0) if entry_price > 0 else 0.0
 
                 try:
                     d_in = datetime.strptime(entry_dt[:10], '%Y-%m-%d')
@@ -2754,9 +2842,15 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     duration_days = last_i - entry_idx
                     weekday_str = "Mon"
 
+                fallback_type = "Short" if is_strategy_short else "Long"
+                fallback_upper = "SHORT" if is_strategy_short else "LONG"
+
                 sym_trades.append({
                     "symbol": symbol,
-                    "type": "Long",
+                    "type": fallback_type,
+                    "trade_type": fallback_upper,
+                    "side": fallback_upper,
+                    "direction": fallback_upper,
                     "trigger_date": entry_trigger_dt,
                     "entry_date": entry_dt,
                     "entry_price": round(entry_price, 2),

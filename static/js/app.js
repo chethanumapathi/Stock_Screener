@@ -1378,6 +1378,14 @@ function renderBacktestResults(data) {
                     ? `<span style="color: var(--text-muted); font-size: 0.85rem;" title="Last Close Price (Still Running)">₹${Number(t.exit_price).toFixed(2)}</span>`
                     : `₹${Number(t.exit_price).toFixed(2)}`;
 
+                const isShortTrade = (t.type && String(t.type).toLowerCase().includes('short')) ||
+                                     (t.trade_type && String(t.trade_type).toLowerCase().includes('short')) ||
+                                     (t.side && String(t.side).toLowerCase().includes('short')) ||
+                                     (t.direction && String(t.direction).toLowerCase().includes('short'));
+                const typeBadge = isShortTrade
+                    ? `<span class="badge-red" style="font-weight: 600;">Short</span>`
+                    : `<span class="badge-green" style="font-weight: 600;">Long</span>`;
+
                 tr.innerHTML = `
                     <td style="font-family: var(--font-mono); color: var(--text-dark);">${t.trade_id}</td>
                     <td>
@@ -1388,7 +1396,7 @@ function renderBacktestResults(data) {
                             </button>
                         </div>
                     </td>
-                    <td><span class="badge-green">Long</span></td>
+                    <td>${typeBadge}</td>
                     <td style="font-family: var(--font-mono); color: #a5b4fc;">${formatDateDDMMMYYYY(t.trigger_date)}</td>
                     <td style="font-family: var(--font-mono); color: var(--text-muted);">${formatDateDDMMMYYYY(t.entry_date)}</td>
                     <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(t.entry_price).toFixed(2)}</td>
@@ -1811,10 +1819,15 @@ async function exportBacktestTrades(format = 'excel') {
         ];
         const rows = trades.map(t => {
             const isEndOfData = isEndOfDataTrade(t);
+            const isShortTrade = (t.type && String(t.type).toLowerCase().includes('short')) ||
+                                 (t.trade_type && String(t.trade_type).toLowerCase().includes('short')) ||
+                                 (t.side && String(t.side).toLowerCase().includes('short')) ||
+                                 (t.direction && String(t.direction).toLowerCase().includes('short'));
+            const typeStr = isShortTrade ? 'Short' : (t.type || 'Long');
             return [
                 t.trade_id,
                 t.symbol,
-                t.type,
+                typeStr,
                 `"${formatDateDDMMMYYYY(t.trigger_date)}"`,
                 formatDateDDMMMYYYY(t.entry_date),
                 t.entry_price,
@@ -1852,10 +1865,15 @@ async function exportBacktestTrades(format = 'excel') {
                     strategy_name: strategyName,
                     results: trades.map(t => {
                         const isEndOfData = isEndOfDataTrade(t);
+                        const isShortTrade = (t.type && String(t.type).toLowerCase().includes('short')) ||
+                                             (t.trade_type && String(t.trade_type).toLowerCase().includes('short')) ||
+                                             (t.side && String(t.side).toLowerCase().includes('short')) ||
+                                             (t.direction && String(t.direction).toLowerCase().includes('short'));
+                        const typeStr = isShortTrade ? 'Short' : (t.type || 'Long');
                         return {
                             'Trade #': t.trade_id,
                             'Symbol': t.symbol,
-                            'Type': t.type,
+                            'Type': typeStr,
                             'Trigger Date': formatDateDDMMMYYYY(t.trigger_date),
                             'Entry Date': formatDateDDMMMYYYY(t.entry_date),
                             'Entry Price (₹)': t.entry_price,

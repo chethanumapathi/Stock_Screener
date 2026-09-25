@@ -1,5 +1,5 @@
 """
-Weekly Yearly-R1 Breakout Strategy (RSI > 80 + Next Bar Breakout + 100% TP & 30 EMA Trailing Exit)
+Weekly Yearly-R1 Breakout Strategy (RSI > 80 + 400% TP & 30 EMA Trailing Exit)
 ===================================================================================================
 Timeframe: WEEKLY candles (automatically resamples daily data to weekly W-FRI).
 
@@ -10,7 +10,12 @@ STRATEGY RULES:
      * Strictly requires the company's Net Profit / Net Income to be profitable (> 0)
        for each of the last 2 quarters.
      * Loss-making companies (<= 0) are rejected immediately.
-     * Note: QoQ profit growth is NOT required; only positive profitability (> 0) is enforced.
+   - Quarterly YoY Profit Growth Gate (NEW):
+     * Strictly requires the company's previous 3 quarters to show Year-over-Year (YoY)
+       quarterly profit growth strictly above 25% (YoY Growth >= 25.0%).
+     * For each of the last 3 quarters, compares net profit against the same quarter of the
+       previous year (4 quarters prior / ~365 days prior).
+     * Requires both base and current quarters to be strictly profitable (> 0).
    - Configurable pre-filters (Market Cap, ROE, PE, Debt/Equity) - disabled by default (0).
 
 2. YEARLY PIVOT & R1:
@@ -34,7 +39,7 @@ STRATEGY RULES:
    - Entry Price = HIGH of the qualifying candle (or open[i+1] if gapped above).
 
 5. TARGET PROFIT & EXIT CRITERIA (Established Trades):
-   - Criteria 1: Target Profit of 100% (+100.0% gain from entry price: tp_price = entry_price * 2.0).
+   - Criteria 1: Target Profit of 400% (+400.0% gain from entry price: tp_price = entry_price * 5.0).
      Triggers intrabar when high >= tp_price.
    - Criteria 2: 30 EMA Breakdown Exit:
      When a weekly candle closes below the 30-period EMA (close < ema30), its low becomes the armed low.
@@ -58,13 +63,18 @@ MAX_DEBT_TO_EQUITY = 0.0
 REQUIRE_PROFITABLE = True             # Strictly require Net Profit to be profitable (> 0)
 PROFITABLE_QUARTERS = 2               # Number of recent quarters that must be profitable (> 0)
 
+REQUIRE_YOY_PROFIT_GROWTH = True      # Require previous 3 quarters YoY quarterly profit growth > 25%
+MIN_YOY_PROFIT_GROWTH_PCT = 25.0      # Minimum YoY profit growth % (> 25.0%)
+YOY_QUARTERS_TO_CHECK = 3             # Number of previous quarters to check (3 quarters)
+STRICT_ALL_3_QUARTERS = False         # False: all available YoY pairs of last 3 quarters must be >25% (handles 5-6 quarter data cache); True: strictly requires 3 full pairs
+
 # ============================================================
 # CONFIG - SIGNAL / RSI / EXITS
 # ============================================================
 RSI_PERIOD = 14                  # standard Wilder RSI period
 MIN_RSI = 80.0                   # candle qualifying for a buy must have RSI > 80
 EMA_PERIOD = 30                  # weekly close EMA used for trend trailing exit
-TP_PCT = 100.0                   # fixed target profit in % (100% profit target)
+TP_PCT = 400.0                   # fixed target profit in % (400% profit target)
 DEFAULT_SL_PCT = 10.0            # fallback stop loss % for scalar consumers
 MAX_HOLD_BARS = 250              # safety cap (weeks) so a trade cannot run indefinitely
 
@@ -117,7 +127,9 @@ def check_profitable(symbol: str, quarters: int = 2) -> bool:
         metrics.get('Net Income Common Stockholders') or
         metrics.get('Normalized Income') or
         metrics.get('Net Income Including Noncontrolling Interests') or
-        metrics.get('Net Profit')
+        metrics.get('Net Profit') or
+        metrics.get('Net Income From Continuing Operation Net Minority Interest') or
+        metrics.get('Profit After Tax')
     )
     if not ni_dict:
         return False
@@ -144,6 +156,92 @@ def check_profitable(symbol: str, quarters: int = 2) -> bool:
             return False
 
     return True
+
+
+def check_quarterly_yoy_growth(symbol: str, quarters: int = 3, min_growth_pct: float = 25.0, strict_all: bool = False) -> bool:
+    """
+    Verifies that the stock's previous `quarters` quarters show Year-over-Year (YoY)
+    quarterly profit growth strictly above `min_growth_pct` (e.g. > 25.0%).
+
+    For each of the most recent `quarters` (e.g. 3 quarters):
+    - Identifies the same quarter 1 year ago (4 quarters prior / ~365 days prior).
+    - Requires current quarter Net Income / Profit to be strictly positive (> 0).
+    - Requires prior year quarter Net Income / Profit to be strictly positive (> 0).
+    - Calculates YoY growth: ((curr_profit - prior_profit) / prior_profit) * 100.0
+    - Enforces YoY growth >= min_growth_pct (> 25%).
+    - If any evaluated YoY quarter fails to meet the threshold, returns False immediately.
+
+    If strict_all is True: requires all `quarters` (3 quarters) to have complete YoY data.
+    If strict_all is False: requires all available YoY pairs (at least 1) to pass > 25%.
+    """
+    if not symbol or quarters <= 0:
+        return False
+    stmt = _load_statement_data(symbol)
+    if not stmt:
+        return False
+
+    qpnl = stmt.get('quarterly_pnl', {})
+    dates = qpnl.get('dates', [])
+    metrics = qpnl.get('metrics', {})
+
+    ni_dict = (
+        metrics.get('Net Income') or
+        metrics.get('Net Income Common Stockholders') or
+        metrics.get('Normalized Income') or
+        metrics.get('Net Income Including Noncontrolling Interests') or
+        metrics.get('Net Profit') or
+        metrics.get('Net Income From Continuing Operation Net Minority Interest') or
+        metrics.get('Profit After Tax')
+    )
+    if not ni_dict:
+        return False
+
+    valid_q = []
+    for d in dates:
+        v = ni_dict.get(d)
+        if v is not None and not pd.isna(v):
+            try:
+                valid_q.append((pd.to_datetime(d), float(v)))
+            except (ValueError, TypeError):
+                pass
+
+    # Sort descending (most recent quarter first)
+    valid_q = sorted(valid_q, key=lambda x: x[0], reverse=True)
+    if not valid_q:
+        return False
+
+    num_to_check = min(quarters, len(valid_q))
+    evaluated_count = 0
+
+    for i in range(num_to_check):
+        curr_dt, curr_val = valid_q[i]
+
+        # Look for the same quarter 1 year prior (~365 days prior, 300 to 430 days)
+        prior_candidates = [q for q in valid_q if 300 <= (curr_dt - q[0]).days <= 430]
+        if not prior_candidates and i + 4 < len(valid_q):
+            prior_candidates = [valid_q[i + 4]]
+
+        if not prior_candidates:
+            if strict_all:
+                return False
+            continue
+
+        prior_dt, prior_val = prior_candidates[0]
+
+        # Both quarters must be strictly profitable (> 0)
+        if curr_val <= 0 or prior_val <= 0:
+            return False
+
+        yoy_growth = ((curr_val - prior_val) / prior_val) * 100.0
+        if yoy_growth < min_growth_pct:
+            return False
+
+        evaluated_count += 1
+
+    if strict_all and evaluated_count < quarters:
+        return False
+
+    return evaluated_count > 0
 
 
 # ============================================================
@@ -257,7 +355,7 @@ def simulate_trades(df: pd.DataFrame):
                         "entry_price": round(float(entry_price), 2),
                         "exit_date": dates[i],
                         "exit_price": round(float(exit_p), 2),
-                        "exit_reason": "Target Profit (100% Same Bar)",
+                        "exit_reason": f"Target Profit ({int(TP_PCT)}% Same Bar)",
                         "mae_pct": round(float(mae), 2),
                         "mfe_pct": round(float(mfe), 2),
                         "is_open": False,
@@ -293,7 +391,7 @@ def simulate_trades(df: pd.DataFrame):
                 i += 1
                 continue
 
-            # Check 1: Target Profit of 100%
+            # Check 1: Target Profit
             if high[i] >= tp_price:
                 exit_p = tp_price if open_[i] <= tp_price else open_[i]
                 trades.append({
@@ -301,7 +399,7 @@ def simulate_trades(df: pd.DataFrame):
                     "entry_price": round(float(entry_price), 2),
                     "exit_date": dates[i],
                     "exit_price": round(float(exit_p), 2),
-                    "exit_reason": "Target Profit (100%)",
+                    "exit_reason": f"Target Profit ({int(TP_PCT)}%)",
                     "mae_pct": round(float(mae), 2),
                     "mfe_pct": round(float(mfe), 2),
                     "is_open": False,
@@ -448,6 +546,11 @@ def backtest(df: pd.DataFrame) -> dict:
         if not check_profitable(symbol, quarters=PROFITABLE_QUARTERS):
             return empty_res
 
+    # Quarterly YoY Profit Growth Gate: Previous 3 quarters YoY quarterly growth must be > 25%
+    if REQUIRE_YOY_PROFIT_GROWTH and symbol:
+        if not check_quarterly_yoy_growth(symbol, quarters=YOY_QUARTERS_TO_CHECK, min_growth_pct=MIN_YOY_PROFIT_GROWTH_PCT, strict_all=STRICT_ALL_3_QUARTERS):
+            return empty_res
+
     trades, long_entry_arr, signal_arr, tp_pct_arr, sl_pct_arr = simulate_trades(df)
 
     return {
@@ -459,5 +562,6 @@ def backtest(df: pd.DataFrame) -> dict:
         "sl_pct": pd.Series(sl_pct_arr, index=df.index).fillna(DEFAULT_SL_PCT),
         "df": df
     }
+
 
 screen = backtest
