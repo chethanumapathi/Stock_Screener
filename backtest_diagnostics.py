@@ -271,18 +271,19 @@ def compute_benchmark_comparison(daily_dates, daily_equity, base_capital):
     n_peak = np.maximum.accumulate(n_arr)
     nifty_max_dd_pct = round(float(np.min((n_arr - n_peak) / n_peak * 100.0)), 2)
 
-    # Beta & Correlation via monthly re-sampled returns
+    # Beta & Correlation via daily MTM returns
     df_aligned = pd.DataFrame({
         'strat': strat_rebased,
         'nifty': nifty_rebased
     }, index=pd.to_datetime(aligned_dates))
 
-    monthly = df_aligned.resample('ME').last().pct_change().dropna()
-    if len(monthly) >= 3 and np.var(monthly['nifty']) > 0:
-        cov = np.cov(monthly['strat'], monthly['nifty'])[0, 1]
-        var_n = np.var(monthly['nifty'], ddof=1)
+    daily_returns = df_aligned.pct_change().dropna()
+    if len(daily_returns) >= 10 and np.var(daily_returns['nifty']) > 1e-9:
+        cov = np.cov(daily_returns['strat'], daily_returns['nifty'])[0, 1]
+        var_n = np.var(daily_returns['nifty'], ddof=1)
         beta = round(float(cov / var_n), 2)
-        corr = round(float(np.corrcoef(monthly['strat'], monthly['nifty'])[0, 1]), 2)
+        corr_val = np.corrcoef(daily_returns['strat'], daily_returns['nifty'])[0, 1]
+        corr = round(float(corr_val), 2) if not np.isnan(corr_val) else 0.0
     else:
         beta = 0.5
         corr = 0.3
@@ -310,17 +311,44 @@ def compute_benchmark_comparison(daily_dates, daily_equity, base_capital):
 # ---------------------------------------------------------------------
 def compute_oos_split(trades, base_capital, split_ratio=0.65):
     """
-    Splits trades chronologically into In-Sample (IS, 65%) and Out-of-Sample (OOS, 35%).
-    Computes comparative metrics and Degradation Index (OOS Sharpe / IS Sharpe).
+    Splits trades chronologically by ENTRY DATE into In-Sample (IS, 65%) and Out-of-Sample (OOS, 35%).
+    Includes running trades at MTM to prevent any trade leakage across partitions.
     """
-    closed = [t for t in trades if not t.get('is_open') and t.get('net_pnl') is not None]
-    if len(closed) < 4:
+    if not trades or len(trades) < 4:
         return {}
 
-    sorted_trades = sorted(closed, key=lambda x: parse_date_str(x.get('exit_date')) or datetime.min)
+    valid_trades = []
+    for t in trades:
+        entry_d = parse_date_str(t.get('entry_date'))
+        if not entry_d:
+            continue
+        pnl = t.get('net_pnl')
+        if pnl is None:
+            ep = float(t.get('entry_price', 0.0) or 0.0)
+            xp = float(t.get('exit_price', ep) or ep)
+            qty = float(t.get('qty', 0.0) or 0.0)
+            side = str(t.get('trade_type', t.get('side', 'LONG'))).upper()
+            pnl = ((xp - ep) if 'SHORT' not in side else (ep - xp)) * qty
+        t_copy = dict(t)
+        t_copy['net_pnl'] = round(float(pnl), 2)
+        t_copy['_entry_dt'] = entry_d
+        valid_trades.append(t_copy)
+
+    if len(valid_trades) < 4:
+        return {}
+
+    # Sort strictly by entry_date
+    sorted_trades = sorted(valid_trades, key=lambda x: x['_entry_dt'])
     split_idx = int(len(sorted_trades) * split_ratio)
-    is_trades = sorted_trades[:split_idx]
-    oos_trades = sorted_trades[split_idx:]
+    split_dt = sorted_trades[split_idx]['_entry_dt']
+    split_date_str = sorted_trades[split_idx].get('entry_date', '')
+
+    is_trades = [t for t in sorted_trades if t['_entry_dt'] < split_dt]
+    oos_trades = [t for t in sorted_trades if t['_entry_dt'] >= split_dt]
+
+    if not is_trades or not oos_trades:
+        is_trades = sorted_trades[:split_idx]
+        oos_trades = sorted_trades[split_idx:]
 
     def calc_group_metrics(subset):
         if not subset:
@@ -330,7 +358,7 @@ def compute_oos_split(trades, base_capital, split_ratio=0.65):
         tot_profit = sum(pnls)
         wins = [p for p in pnls if p > 0]
         losses = [p for p in pnls if p < 0]
-        win_pct = round((len(wins) / n) * 100.0, 1)
+        win_pct = round((len(wins) / n) * 100.0, 1) if n > 0 else 0.0
         gross_w = sum(wins)
         gross_l = abs(sum(losses))
         pf = round(gross_w / gross_l, 2) if gross_l > 0 else (99.0 if gross_w > 0 else 0.0)
@@ -349,10 +377,11 @@ def compute_oos_split(trades, base_capital, split_ratio=0.65):
                     mdd = dd
 
         # Duration
-        d_in = parse_date_str(subset[0]['entry_date'])
-        d_out = parse_date_str(subset[-1]['exit_date'])
+        d_in = subset[0]['_entry_dt']
+        d_out_candidates = [parse_date_str(t.get('exit_date')) or t['_entry_dt'] for t in subset]
+        d_out = max(d_out_candidates) if d_out_candidates else d_in
         yrs = max(0.1, (d_out - d_in).days / 365.25) if (d_in and d_out) else 0.5
-        ret_ratio = tot_profit / base_capital
+        ret_ratio = tot_profit / base_capital if base_capital > 0 else 0.0
         cagr = round(((1.0 + ret_ratio) ** (1.0 / yrs) - 1.0) * 100.0, 2) if (1.0 + ret_ratio) > 0 else -100.0
 
         avg_win = sum(wins) / len(wins) if wins else 0.0
@@ -373,7 +402,7 @@ def compute_oos_split(trades, base_capital, split_ratio=0.65):
             "expectancy": exp,
             "sharpe": sharpe,
             "start_date": subset[0].get('entry_date', '-'),
-            "end_date": subset[-1].get('exit_date', '-')
+            "end_date": subset[-1].get('exit_date', subset[-1].get('entry_date', '-'))
         }
 
     is_metrics = calc_group_metrics(is_trades)
@@ -384,7 +413,7 @@ def compute_oos_split(trades, base_capital, split_ratio=0.65):
     degradation_ratio = round(oos_s / is_s, 2) if is_s > 0 else 0.0
 
     return {
-        "split_date": oos_trades[0].get('entry_date', '-') if oos_trades else '-',
+        "split_date": split_date_str or (oos_trades[0].get('entry_date', '-') if oos_trades else '-'),
         "in_sample": is_metrics,
         "out_of_sample": oos_metrics,
         "degradation_ratio": degradation_ratio,
@@ -465,10 +494,10 @@ def compute_parameter_sensitivity(trades, current_rsi=80, current_ema=30, curren
 # ---------------------------------------------------------------------
 # 5. Monte Carlo Simulation (1,000 Iterations)
 # ---------------------------------------------------------------------
-def compute_monte_carlo(trades, base_capital=10200000.0, num_simulations=1000):
+def compute_monte_carlo(trades, base_capital=10200000.0, num_simulations=1000, max_dd=0.0):
     """
     Bootstrap resampling (sampling with replacement) of trade net PnLs across 1,000 simulations.
-    Produces percentile fan charts (5th, 25th, 50th, 75th, 95th) and drawdown risk distribution.
+    Produces percentile fan charts and drawdown risk distribution relative to actual historical MDD.
     """
     closed = [t for t in trades if not t.get('is_open') and t.get('net_pnl') is not None]
     if len(closed) < 5:
@@ -509,10 +538,10 @@ def compute_monte_carlo(trades, base_capital=10200000.0, num_simulations=1000):
     mdd_95 = round(float(np.percentile(sim_mdds, 95)), 2)
     mdd_99 = round(float(np.percentile(sim_mdds, 99)), 2)
 
-    # Ruin / severe risk probabilities
-    prob_mdd_15pct = round(float(np.mean(sim_mdds > (base_capital * 0.15))) * 100.0, 1)
-    prob_mdd_20pct = round(float(np.mean(sim_mdds > (base_capital * 0.20))) * 100.0, 1)
-    prob_mdd_25pct = round(float(np.mean(sim_mdds > (base_capital * 0.25))) * 100.0, 1)
+    # Risk relative to historical actual max drawdown
+    hist_mdd_abs = abs(float(max_dd)) if max_dd != 0 else mdd_median
+    prob_exceed_hist_mdd = round(float(np.mean(sim_mdds > hist_mdd_abs)) * 100.0, 1)
+    prob_exceed_1_5x_mdd = round(float(np.mean(sim_mdds > (hist_mdd_abs * 1.5))) * 100.0, 1)
 
     return {
         "steps": steps,
@@ -527,9 +556,9 @@ def compute_monte_carlo(trades, base_capital=10200000.0, num_simulations=1000):
             "median_mdd": mdd_median,
             "p95_worst_case_mdd": mdd_95,
             "p99_stress_mdd": mdd_99,
-            "prob_mdd_over_15pct": prob_mdd_15pct,
-            "prob_mdd_over_20pct": prob_mdd_20pct,
-            "prob_mdd_over_25pct": prob_mdd_25pct
+            "hist_mdd": hist_mdd_abs,
+            "prob_exceed_hist_mdd": prob_exceed_hist_mdd,
+            "prob_exceed_1_5x_mdd": prob_exceed_1_5x_mdd
         }
     }
 
@@ -540,29 +569,17 @@ def compute_monte_carlo(trades, base_capital=10200000.0, num_simulations=1000):
 def compute_regime_split(trades):
     """
     Classifies market conditions on each trade's entry date into Bull, Bear, or Sideways
-    using Nifty 50 200 SMA and slope. Explains regime-dependency of returns.
+    using Nifty 50 200 SMA and slope via exact asof join. Explains regime-dependency of returns.
     """
     nifty_df = ensure_nifty_benchmark()
-    closed = [t for t in trades if not t.get('is_open') and t.get('net_pnl') is not None]
-    if nifty_df.empty or not closed:
+    if nifty_df.empty or not trades:
         return {}
 
-    nifty_map = {}
-    for _, row in nifty_df.iterrows():
-        d_str = row['date'].strftime('%Y-%m-%d')
-        close = row['close']
-        sma = row['sma200']
-        slope = row['sma200_slope']
-
-        if pd.isna(sma):
-            regime = "Sideways"
-        elif close > sma and (pd.isna(slope) or slope >= 0):
-            regime = "Bull Market"
-        elif close < sma and (pd.isna(slope) or slope <= 0):
-            regime = "Bear Market"
-        else:
-            regime = "Sideways / Consolidation"
-        nifty_map[d_str] = regime
+    nifty_df = nifty_df.sort_values('date').reset_index(drop=True)
+    nifty_dates = pd.to_datetime(nifty_df['date']).values
+    closes = nifty_df['close'].values
+    smas = nifty_df['sma200'].values
+    slopes = nifty_df['sma200_slope'].values
 
     regime_groups = {
         "Bull Market": [],
@@ -570,20 +587,39 @@ def compute_regime_split(trades):
         "Sideways / Consolidation": []
     }
 
-    for t in closed:
-        d_entry = str(t.get('entry_date', ''))[:10]
-        # Find nearest date in nifty_map
-        regime = nifty_map.get(d_entry)
-        if not regime:
-            # Fallback to general market year regime
-            yr = parse_date_str(d_entry)
-            if yr and yr.year == 2024:
-                regime = "Bull Market"
-            elif yr and yr.year == 2022:
-                regime = "Bear Market"
+    for t in trades:
+        pnl = t.get('net_pnl')
+        if pnl is None:
+            ep = float(t.get('entry_price', 0.0) or 0.0)
+            xp = float(t.get('exit_price', ep) or ep)
+            qty = float(t.get('qty', 0.0) or 0.0)
+            side = str(t.get('trade_type', t.get('side', 'LONG'))).upper()
+            pnl = ((xp - ep) if 'SHORT' not in side else (ep - xp)) * qty
+        t_with_pnl = dict(t)
+        t_with_pnl['net_pnl'] = round(float(pnl), 2)
+
+        entry_dt = parse_date_str(t.get('entry_date'))
+        if not entry_dt:
+            regime = "Sideways / Consolidation"
+        else:
+            ts = pd.to_datetime(entry_dt).to_datetime64()
+            idx = np.searchsorted(nifty_dates, ts, side='right') - 1
+            if idx >= 0 and idx < len(nifty_df):
+                c = closes[idx]
+                s = smas[idx]
+                sl = slopes[idx]
+                if pd.isna(s):
+                    regime = "Sideways / Consolidation"
+                elif c > s and (pd.isna(sl) or sl >= 0):
+                    regime = "Bull Market"
+                elif c < s and (pd.isna(sl) or sl <= 0):
+                    regime = "Bear Market"
+                else:
+                    regime = "Sideways / Consolidation"
             else:
                 regime = "Sideways / Consolidation"
-        regime_groups[regime].append(t)
+
+        regime_groups[regime].append(t_with_pnl)
 
     results = []
     for reg_name in ("Bull Market", "Sideways / Consolidation", "Bear Market"):
@@ -676,12 +712,29 @@ def compute_pnl_distribution(trades):
     skewness = round(float(np.mean(((arr - mean) / std) ** 3)), 2) if std > 0 else 0.0
     kurtosis = round(float(np.mean(((arr - mean) / std) ** 4)) - 3.0, 2) if std > 0 else 0.0
 
+    # Dynamically detect strategy TP parameter or max target gain
+    import re
+    tp_detected = None
+    for t in closed:
+        r = str(t.get('exit_reason', ''))
+        m = re.search(r'(\d+)\s*%', r)
+        if m:
+            tp_detected = int(m.group(1))
+            break
+    if not tp_detected and pnl_pcts:
+        top_win = max(pnl_pcts)
+        if top_win > 40:
+            tp_detected = int(round(top_win / 10.0) * 10)
+        elif top_win > 0:
+            tp_detected = int(round(top_win))
+    tp_desc = f"{tp_detected}% target" if tp_detected else "target"
+
     return {
         "histogram": hist_data,
         "r_multiples": r_hist,
         "skewness": skewness,
         "kurtosis": kurtosis,
-        "fat_tail_comment": f"Positive Skewness ({skewness}) confirms fat right tails driven by 100% target profit runners."
+        "fat_tail_comment": f"Positive Skewness ({skewness:+.2f}) confirms fat right tails driven by {tp_desc} profit runners."
     }
 
 
@@ -884,75 +937,81 @@ def compute_rolling_metrics(trades):
 # ---------------------------------------------------------------------
 def compute_position_sizing_comparison(trades, base_capital=10200000.0, capital_per_trade=100000.0):
     """
-    Compares 3 sizing models on the same trades:
-    1. Fixed Capital: Flat Rs 1,00,000 per trade (Current baseline)
-    2. Compounding % Equity: 5% of active portfolio equity per trade
-    3. Volatility / ATR-scaled: Risk Rs 10,000 per trade divided by stock volatility %
+    Compares sizing models on the same trades.
+    1. Fixed Capital: Exact headline execution with real fees/taxes/slippage.
+    2. Compounding & Volatility: Flagged as 'Under Rebuild' until portfolio cash engine is built.
     """
-    closed = [t for t in trades if not t.get('is_open') and t.get('pnl_pct') is not None]
+    closed = [t for t in trades if not t.get('is_open') and t.get('net_pnl') is not None]
     if len(closed) < 2:
         return {}
 
     sorted_trades = sorted(closed, key=lambda x: parse_date_str(x.get('exit_date')) or datetime.min)
 
-    # 1. Fixed Capital
+    # 1. Fixed Capital uses exact realized net PnL from trades
+    fixed_pnl_list = [float(t['net_pnl']) for t in sorted_trades]
+    fixed_net_profit = round(sum(fixed_pnl_list), 2)
+    fixed_final_equity = round(base_capital + fixed_net_profit, 2)
+
+    # Max Drawdown on Fixed
+    cum = 0.0
+    peak = 0.0
+    mdd = 0.0
+    for p in fixed_pnl_list:
+        cum += p
+        if cum > peak:
+            peak = cum
+        else:
+            dd = cum - peak
+            if dd < mdd:
+                mdd = dd
+    fixed_mdd_pct = round((abs(mdd) / base_capital) * 100.0, 2) if base_capital > 0 else 0.0
+
+    d_in = parse_date_str(sorted_trades[0].get('entry_date'))
+    d_out = parse_date_str(sorted_trades[-1].get('exit_date'))
+    yrs = max(0.1, (d_out - d_in).days / 365.25) if (d_in and d_out) else 1.0
+    ret_ratio = fixed_net_profit / base_capital if base_capital > 0 else 0.0
+    fixed_cagr = round(((1.0 + ret_ratio) ** (1.0 / yrs) - 1.0) * 100.0, 2) if (1.0 + ret_ratio) > 0 else -100.0
+
     fixed_eq = [base_capital]
-    # 2. Compounding % Equity (5% position size per trade)
-    comp_eq = [base_capital]
-    # 3. Volatility-Scaled (scaled by 1 / mae or normalized volatility)
-    vol_eq = [base_capital]
+    for p in fixed_pnl_list:
+        fixed_eq.append(round(fixed_eq[-1] + p, 2))
 
-    dates = [sorted_trades[0].get('entry_date', '')]
-
-    for t in sorted_trades:
-        pnl_pct = float(t['pnl_pct']) / 100.0
-        mae_pct = max(2.0, abs(float(t.get('mae_pct') or 10.0))) / 100.0
-
-        # Fixed PnL (Rs 1,00,000 allocation)
-        fixed_pnl = capital_per_trade * pnl_pct
-        fixed_eq.append(round(fixed_eq[-1] + fixed_pnl, 2))
-
-        # Compounding % Equity (5% allocation)
-        cur_comp = comp_eq[-1]
-        comp_alloc = cur_comp * 0.05
-        comp_pnl = comp_alloc * pnl_pct
-        comp_eq.append(round(cur_comp + comp_pnl, 2))
-
-        # Volatility-Scaled: Target 0.5% risk of equity per trade
-        cur_vol = vol_eq[-1]
-        target_risk_rupees = cur_vol * 0.005
-        vol_alloc = min(cur_vol * 0.15, target_risk_rupees / mae_pct)
-        vol_pnl = vol_alloc * pnl_pct
-        vol_eq.append(round(cur_vol + vol_pnl, 2))
-
-        dates.append(t.get('exit_date', ''))
-
-    def summarize_model(eq_series):
-        arr = np.array(eq_series, dtype=float)
-        peak = np.maximum.accumulate(arr)
-        mdd_pct = round(float(np.min((arr - peak) / peak * 100.0)), 2)
-        tot_profit = round(float(arr[-1] - arr[0]), 2)
-        yrs = 3.0  # Approx 3 years
-        cagr = round(float(((arr[-1] / arr[0]) ** (1.0 / yrs) - 1.0) * 100.0), 2) if arr[-1] > 0 else -100.0
-        return {
-            "final_equity": round(float(arr[-1]), 2),
-            "net_profit": tot_profit,
-            "cagr_pct": cagr,
-            "max_dd_pct": mdd_pct
-        }
-
-    # Downsample points for chart
-    sample_indices = np.linspace(0, len(dates) - 1, num=min(35, len(dates)), dtype=int)
+    sample_indices = np.linspace(0, len(sorted_trades), num=min(35, len(sorted_trades) + 1), dtype=int)
+    dates = [sorted_trades[0].get('entry_date', '')] + [t.get('exit_date', '') for t in sorted_trades]
 
     return {
         "dates": [str(dates[i]) for i in sample_indices],
         "fixed_capital_curve": [round(float(fixed_eq[i]), 2) for i in sample_indices],
-        "compounding_equity_curve": [round(float(comp_eq[i]), 2) for i in sample_indices],
-        "volatility_scaled_curve": [round(float(vol_eq[i]), 2) for i in sample_indices],
+        "compounding_equity_curve": [],
+        "volatility_scaled_curve": [],
         "models": {
-            "fixed": summarize_model(fixed_eq),
-            "compounding": summarize_model(comp_eq),
-            "volatility_scaled": summarize_model(vol_eq)
+            "fixed": {
+                "name": "Fixed Capital per Trade",
+                "allocation": f"Rs {capital_per_trade:,.0f} baseline allocation per signal",
+                "net_profit": fixed_net_profit,
+                "final_equity": fixed_final_equity,
+                "cagr_pct": fixed_cagr,
+                "max_dd_pct": fixed_mdd_pct,
+                "status": "Active"
+            },
+            "compounding": {
+                "name": "Compounding Active Equity",
+                "allocation": "Requires bar-by-bar portfolio cash pool",
+                "net_profit": None,
+                "final_equity": None,
+                "cagr_pct": None,
+                "max_dd_pct": None,
+                "status": "Under Rebuild"
+            },
+            "volatility_scaled": {
+                "name": "Volatility / ATR-Scaled",
+                "allocation": "Requires bar-by-bar true ATR stop pricing",
+                "net_profit": None,
+                "final_equity": None,
+                "cagr_pct": None,
+                "max_dd_pct": None,
+                "status": "Under Rebuild"
+            }
         }
     }
 
@@ -969,7 +1028,7 @@ def compute_comprehensive_diagnostics(trades, daily_dates, daily_equity, overall
         benchmark_data = compute_benchmark_comparison(daily_dates, daily_equity, base_capital)
         oos_data = compute_oos_split(trades, base_capital)
         param_data = compute_parameter_sensitivity(trades)
-        mc_data = compute_monte_carlo(trades, base_capital)
+        mc_data = compute_monte_carlo(trades, base_capital, max_dd=max_dd)
         regime_data = compute_regime_split(trades)
         pnl_dist = compute_pnl_distribution(trades)
         sector_mcap = compute_sector_mcap_breakdown(trades)
@@ -979,6 +1038,7 @@ def compute_comprehensive_diagnostics(trades, daily_dates, daily_equity, overall
 
         return {
             "ulcer_metrics": ulcer_metrics,
+            "benchmark": benchmark_data,
             "benchmark_comparison": benchmark_data,
             "out_of_sample_split": oos_data,
             "parameter_sensitivity": param_data,

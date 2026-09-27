@@ -1,0 +1,157 @@
+//@version=5
+strategy("Daily Monthly-R3 Breakout above Yearly-R2 Strategy", 
+         shorttitle="Daily MR3 + YR2 Breakout (Weekly 30 EMA SL)", 
+         overlay=true, 
+         initial_capital=100000, 
+         default_qty_type=strategy.percent_of_equity, 
+         default_qty_value=100,
+         commission_type=strategy.commission.percent, 
+         commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup    = "Pivot & Indicator Settings"
+w_ema_len    = input.int(30, "Weekly EMA Period for SL", minval=5, group=grp_setup)
+
+grp_exits    = "Target Profit & Stop Loss Rules"
+tp_pct       = input.float(40.0, "Target Profit %", minval=1.0, maxval=500.0, step=1.0, group=grp_exits)
+
+grp_visuals  = "Display & Visuals"
+show_pivots  = input.bool(true, "Show Monthly R3 & Yearly R2 Lines", group=grp_visuals)
+show_w_ema   = input.bool(true, "Show Weekly 30 EMA", group=grp_visuals)
+show_table   = input.bool(true, "Show Strategy Status Dashboard", group=grp_visuals)
+
+
+// =========================================================================
+// PIVOT CALCULATIONS (Prior Completed Periods - Zero Lookahead)
+// =========================================================================
+// 1. Monthly Pivots (Prior Completed Month): PP + 2*(High - Low)
+m_high  = request.security(syminfo.tickerid, "1M", high[1], barmerge.gaps_off, barmerge.lookahead_off)
+m_low   = request.security(syminfo.tickerid, "1M", low[1], barmerge.gaps_off, barmerge.lookahead_off)
+m_close = request.security(syminfo.tickerid, "1M", close[1], barmerge.gaps_off, barmerge.lookahead_off)
+
+m_pp    = (m_high + m_low + m_close) / 3.0
+monthly_r3 = m_pp + 2.0 * (m_high - m_low)
+
+// 2. Yearly Pivots (Prior Completed Year): PP + (High - Low)
+y_high  = request.security(syminfo.tickerid, "12M", high[1], barmerge.gaps_off, barmerge.lookahead_off)
+y_low   = request.security(syminfo.tickerid, "12M", low[1], barmerge.gaps_off, barmerge.lookahead_off)
+y_close = request.security(syminfo.tickerid, "12M", close[1], barmerge.gaps_off, barmerge.lookahead_off)
+
+y_pp    = (y_high + y_low + y_close) / 3.0
+yearly_r2 = y_pp + (y_high - y_low)
+
+// 3. Weekly 30 EMA & Completed Weekly Low (Prior Completed Week)
+w_close = request.security(syminfo.tickerid, "W", close[1], barmerge.gaps_off, barmerge.lookahead_off)
+w_low   = request.security(syminfo.tickerid, "W", low[1], barmerge.gaps_off, barmerge.lookahead_off)
+w_ema30 = request.security(syminfo.tickerid, "W", ta.ema(close, w_ema_len)[1], barmerge.gaps_off, barmerge.lookahead_off)
+
+
+// =========================================================================
+// STRATEGY STATE & TRIGGER LOGIC
+// =========================================================================
+// 1. Setup Qualification:
+// - Daily candle closes above Monthly R3
+// - Fresh cross (previous close was at or below Monthly R3)
+// - When this candle has closed above Monthly R3, it should be above Yearly R2
+bool fresh_mr3_breakout = ta.crossover(close, monthly_r3)
+bool above_yearly_r2    = close > yearly_r2
+bool qualifying_candle  = fresh_mr3_breakout and above_yearly_r2
+
+var bool awaiting_breakout = false
+var float qualifying_high  = na
+var float entry_price      = na
+var float tp_price         = na
+var float armed_sl_low     = na
+
+// When a candle qualifies, mark its HIGH and arm the buy-stop for next day
+if (qualifying_candle and strategy.position_size == 0)
+    awaiting_breakout := true
+    qualifying_high   := high
+
+// Entry Execution: Buy-stop at the qualifying candle's HIGH on the NEXT candle
+if (awaiting_breakout and strategy.position_size == 0)
+    strategy.entry("Long", strategy.long, stop=qualifying_high, comment="Buy Stop High")
+    
+    // If the bar finishes and order was not filled, cancel pending breakout
+    if (barstate.isconfirmed and strategy.position_size == 0 and bar_index > nz(ta.valuewhen(qualifying_candle, bar_index, 0)))
+        awaiting_breakout := false
+
+// Position Detection & Level Initialization
+bool is_fresh_entry = strategy.position_size > 0 and strategy.position_size[1] == 0
+
+if (is_fresh_entry)
+    entry_price       := strategy.position_avg_price
+    tp_price          := entry_price * (1.0 + tp_pct / 100.0)
+    armed_sl_low      := na
+    awaiting_breakout := false
+
+// Position Management & Stop Loss Tracking
+bool is_new_week = ta.change(time("W")) != 0
+
+if (strategy.position_size > 0)
+    // Synchronize weekly 30 EMA breakdown when a week completes
+    if (is_new_week)
+        if (w_close < w_ema30)
+            // Weekly candle closed below 30 EMA -> low of this candle becomes armed SL
+            armed_sl_low := na(armed_sl_low) ? w_low : math.min(armed_sl_low, w_low)
+        else
+            // Price closed back above 30 EMA -> breakdown disarmed
+            armed_sl_low := na
+
+    // 1. Target Profit (+40%)
+    strategy.exit("TP 40%", from_entry="Long", limit=tp_price, comment="TP 40%")
+    
+    // 2. Stop Loss: Weekly Close Below 30 EMA and Low of that candle broken
+    if (not na(armed_sl_low) and low < armed_sl_low)
+        strategy.close("Long", comment="SL (Weekly Close < 30 EMA & Low Broken)")
+else
+    entry_price  := na
+    tp_price     := na
+    armed_sl_low := na
+
+
+// =========================================================================
+// PLOTS & VISUAL HIGHLIGHTS
+// =========================================================================
+plot(show_pivots ? monthly_r3 : na, "Monthly R3", color=color.new(#FF9800, 0), linewidth=2, style=plot.style_stepline)
+plot(show_pivots ? yearly_r2 : na, "Yearly R2", color=color.new(#00E5FF, 0), linewidth=2, style=plot.style_stepline)
+plot(show_w_ema ? w_ema30 : na, "Weekly 30 EMA", color=color.new(#9C27B0, 0), linewidth=2, style=plot.style_stepline)
+
+plot(strategy.position_size > 0 ? tp_price : na, "Target Profit (+40%)", color=color.green, linewidth=2, style=plot.style_linebr)
+plot(strategy.position_size > 0 and not na(armed_sl_low) ? armed_sl_low : na, "Armed SL (Weekly Low)", color=color.red, linewidth=2, style=plot.style_linebr)
+
+// Visual candle markers
+bgcolor(qualifying_candle ? color.new(color.purple, 85) : na, title="Qualifying Candle BG")
+plotshape(qualifying_candle and strategy.position_size == 0, "Signal Armed", shape.triangleup, location.belowbar, color.purple, size=size.small, text="ARMED")
+
+
+// =========================================================================
+// STRATEGY STATUS DASHBOARD TABLE
+// =========================================================================
+var table info_table = table.new(position.top_right, 2, 7, bgcolor=color.new(#1e222d, 10), border_color=#363c4e, border_width=1)
+
+if (show_table and barstate.islast)
+    table.cell(info_table, 0, 0, "Strategy", bgcolor=#2962ff, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 0, "Monthly R3 + Yearly R2", bgcolor=#2962ff, text_color=color.white, text_size=size.small)
+
+    table.cell(info_table, 0, 1, "Status", text_color=color.white, text_size=size.small)
+    string status_txt = strategy.position_size > 0 ? "IN TRADE" : (awaiting_breakout ? "AWAITING BREAKOUT" : "IDLE")
+    color status_col = strategy.position_size > 0 ? color.green : (awaiting_breakout ? color.orange : color.gray)
+    table.cell(info_table, 1, 1, status_txt, text_color=status_col, text_size=size.small)
+
+    table.cell(info_table, 0, 2, "Monthly R3", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 2, str.tostring(monthly_r3, "#.##"), text_color=#FF9800, text_size=size.small)
+
+    table.cell(info_table, 0, 3, "Yearly R2", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 3, str.tostring(yearly_r2, "#.##"), text_color=#00E5FF, text_size=size.small)
+
+    table.cell(info_table, 0, 4, "Weekly 30 EMA", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 4, str.tostring(w_ema30, "#.##"), text_color=#9C27B0, text_size=size.small)
+
+    table.cell(info_table, 0, 5, "Target Profit", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 5, strategy.position_size > 0 ? str.tostring(tp_price, "#.##") + " (+40%)" : "+40.0%", text_color=color.green, text_size=size.small)
+
+    table.cell(info_table, 0, 6, "Stop Loss", text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 6, strategy.position_size > 0 and not na(armed_sl_low) ? str.tostring(armed_sl_low, "#.##") : "Weekly < 30 EMA Low", text_color=color.red, text_size=size.small)

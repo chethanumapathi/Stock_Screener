@@ -109,22 +109,7 @@ const elements = {
     btSavedStrategiesList: document.getElementById('bt-saved-strategies-list'),
     btReportReadyModal: document.getElementById('bt-report-ready-modal'),
     btnCloseBtReadyModal: document.getElementById('btn-close-bt-ready-modal'),
-    btnBtReadyDismiss: document.getElementById('btn-bt-ready-dismiss'),
     btnBtReadyView: document.getElementById('btn-bt-ready-view'),
-    btnBtReadyPrint: document.getElementById('btn-bt-ready-print'),
-    btReadySubtitle: document.getElementById('bt-ready-subtitle'),
-    btReadyNetPnl: document.getElementById('bt-ready-net-pnl'),
-    btReadyRoi: document.getElementById('bt-ready-roi'),
-    btReadyWinrate: document.getElementById('bt-ready-winrate'),
-    btReadyWinLoss: document.getElementById('bt-ready-win-loss'),
-    btReadyTrades: document.getElementById('bt-ready-trades'),
-    btReadyTradesStatus: document.getElementById('bt-ready-trades-status'),
-    btReadyPf: document.getElementById('bt-ready-pf'),
-    btReadyMaxdd: document.getElementById('bt-ready-maxdd'),
-    btReadyTimeframe: document.getElementById('bt-ready-timeframe'),
-    btReadySegment: document.getElementById('bt-ready-segment'),
-    btReadyDuration: document.getElementById('bt-ready-duration'),
-    btReadyDaterange: document.getElementById('bt-ready-daterange'),
 
     // Diagnostics Suite Controls
     btnToggleDiagnostics: document.getElementById('btn-toggle-diagnostics'),
@@ -3180,64 +3165,6 @@ function playReportReadyChime() {
 
 function showBacktestReadyModal(data) {
     if (!elements.btReportReadyModal) return;
-
-    const trades = data.trades || [];
-    const openTradesCount = trades.filter(isEndOfDataTrade).length;
-    const closedTradesCount = trades.length - openTradesCount;
-    const winsCount = data.winning_trades || 0;
-    const lossesCount = data.losing_trades || 0;
-    const netPnl = Number(data.net_pnl) || 0;
-    const roiPct = Number(data.return_pct) || 0;
-    const winRate = Number(data.win_rate_pct) || 0;
-    const pf = (data.profit_factor !== null && data.profit_factor !== undefined) ? Number(data.profit_factor).toFixed(2) : '-';
-    const maxDd = (data.max_drawdown_pct !== null && data.max_drawdown_pct !== undefined) ? `${Number(data.max_drawdown_pct).toFixed(2)}%` : '-';
-    const tf = String(data.timeframe || '1d').toUpperCase();
-    const seg = String(data.segment || 'nifty50').toUpperCase();
-    const duration = data.duration_seconds ? `${data.duration_seconds}s` : 'Instant';
-
-    if (elements.btReadySubtitle) {
-        elements.btReadySubtitle.textContent = `Completed ${trades.length} simulation trades across ${seg} on ${tf === '1W' ? 'WEEKLY' : (tf === '1MO' ? 'MONTHLY' : tf)} timeframe.`;
-    }
-
-    if (elements.btReadyNetPnl) {
-        elements.btReadyNetPnl.textContent = `${netPnl >= 0 ? '+' : ''}₹${formatNumber(netPnl)}`;
-        elements.btReadyNetPnl.className = `bt-ready-kpi-val ${netPnl >= 0 ? 'positive' : 'negative'}`;
-    }
-    if (elements.btReadyRoi) {
-        elements.btReadyRoi.textContent = `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(2)}% Net Return`;
-    }
-    if (elements.btReadyWinrate) {
-        elements.btReadyWinrate.textContent = `${winRate.toFixed(1)}%`;
-    }
-    if (elements.btReadyWinLoss) {
-        elements.btReadyWinLoss.textContent = `${winsCount} Wins / ${lossesCount} Losses`;
-    }
-    if (elements.btReadyTrades) {
-        elements.btReadyTrades.textContent = `${trades.length}`;
-    }
-    if (elements.btReadyTradesStatus) {
-        elements.btReadyTradesStatus.textContent = openTradesCount > 0 ? `${closedTradesCount} Closed | ${openTradesCount} Running` : `${closedTradesCount} Closed Trades`;
-    }
-    if (elements.btReadyPf) {
-        elements.btReadyPf.textContent = pf;
-    }
-    if (elements.btReadyMaxdd) {
-        elements.btReadyMaxdd.textContent = `Max DD: ${maxDd}`;
-    }
-    if (elements.btReadyTimeframe) {
-        elements.btReadyTimeframe.textContent = tf === '1W' ? 'Weekly' : (tf === '1MO' ? 'Monthly' : (tf === '1D' ? 'Daily (EOD)' : tf));
-    }
-    if (elements.btReadySegment) {
-        elements.btReadySegment.textContent = seg;
-    }
-    if (elements.btReadyDuration) {
-        elements.btReadyDuration.textContent = duration;
-    }
-    if (elements.btReadyDaterange) {
-        const s = elements.btScreenStartDate ? elements.btScreenStartDate.value : '';
-        const e = elements.btScreenEndDate ? elements.btScreenEndDate.value : '';
-        elements.btReadyDaterange.textContent = (s && e) ? `${s} to ${e}` : (e ? `Up to ${e}` : 'Full Available History');
-    }
 
     elements.btReportReadyModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';

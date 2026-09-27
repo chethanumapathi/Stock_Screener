@@ -1629,6 +1629,140 @@ def format_date_dd_mmm_yyyy(d_str):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0:
         return dt.strftime('%d-%b-%Y %H:%M')
     return dt.strftime('%d-%b-%Y')
+def compute_continuous_drawdown_metrics(daily_dates_list, daily_equity_list, overall_max_dd=0.0):
+    """
+    Computes rigorous peak-to-recovery drawdown metrics on continuous daily equity curve:
+    - Maximum Drawdown lifecycle: Peak Date, Trough Date, Recovery Date
+    - Contraction Days (Peak to Trough)
+    - Recovery Days (Trough to Recovery)
+    - Total MDD Duration (Peak to Recovery)
+    - Longest Underwater Period across the entire backtest
+    """
+    if not daily_equity_list or len(daily_equity_list) < 2 or overall_max_dd >= 0:
+        return {
+            "duration_of_mdd": "-",
+            "mdd_total_days": 0,
+            "mdd_contraction_days": 0,
+            "mdd_recovery_days": 0,
+            "mdd_peak_str": "-",
+            "mdd_trough_str": "-",
+            "mdd_recovery_str": "-",
+            "longest_underwater_str": "-",
+            "longest_underwater_days": 0
+        }
+
+    eq = np.array(daily_equity_list, dtype=float)
+    peak = np.maximum.accumulate(eq)
+    dds = eq - peak
+    dates = []
+    for d in daily_dates_list:
+        if isinstance(d, datetime):
+            dates.append(d)
+        elif isinstance(d, pd.Timestamp):
+            dates.append(d.to_pydatetime())
+        else:
+            try:
+                dates.append(datetime.strptime(str(d)[:10], '%Y-%m-%d'))
+            except Exception:
+                dates.append(datetime.min)
+    n = len(eq)
+
+    underwater_periods = []
+    in_dd = False
+    p_idx = 0
+    t_idx = 0
+    min_dd = 0.0
+
+    for i in range(n):
+        if eq[i] < peak[i]:
+            if not in_dd:
+                in_dd = True
+                p_idx = max(0, i - 1)
+                t_idx = i
+                min_dd = dds[i]
+            else:
+                if dds[i] < min_dd:
+                    min_dd = dds[i]
+                    t_idx = i
+        else:
+            if in_dd:
+                in_dd = False
+                rec_idx = i
+                p_dt = dates[p_idx]
+                t_dt = dates[t_idx]
+                r_dt = dates[rec_idx]
+                underwater_periods.append({
+                    "peak_date": p_dt,
+                    "trough_date": t_dt,
+                    "recovery_date": r_dt,
+                    "depth": min_dd,
+                    "contraction_days": max(1, (t_dt - p_dt).days),
+                    "recovery_days": max(0, (r_dt - t_dt).days),
+                    "total_days": max(1, (r_dt - p_dt).days),
+                    "is_recovered": True
+                })
+
+    if in_dd:
+        p_dt = dates[p_idx]
+        t_dt = dates[t_idx]
+        r_dt = dates[-1]
+        underwater_periods.append({
+            "peak_date": p_dt,
+            "trough_date": t_dt,
+            "recovery_date": r_dt,
+            "depth": min_dd,
+            "contraction_days": max(1, (t_dt - p_dt).days),
+            "recovery_days": max(0, (r_dt - t_dt).days),
+            "total_days": max(1, (r_dt - p_dt).days),
+            "is_recovered": False
+        })
+
+    if not underwater_periods:
+        return {
+            "duration_of_mdd": "-",
+            "mdd_total_days": 0,
+            "mdd_contraction_days": 0,
+            "mdd_recovery_days": 0,
+            "mdd_peak_str": "-",
+            "mdd_trough_str": "-",
+            "mdd_recovery_str": "-",
+            "longest_underwater_str": "-",
+            "longest_underwater_days": 0
+        }
+
+    # MDD period is the period with the minimum depth (deepest dollar loss)
+    mdd_period = min(underwater_periods, key=lambda x: x["depth"])
+    p_str = mdd_period["peak_date"].strftime('%d-%b-%Y') if mdd_period["peak_date"] != datetime.min else "-"
+    t_str = mdd_period["trough_date"].strftime('%d-%b-%Y') if mdd_period["trough_date"] != datetime.min else "-"
+    is_rec = mdd_period["is_recovered"]
+    r_str = mdd_period["recovery_date"].strftime('%d-%b-%Y') if is_rec else f"{mdd_period['recovery_date'].strftime('%d-%b-%Y')} (Ongoing)"
+
+    tot_days = mdd_period["total_days"]
+    c_days = mdd_period["contraction_days"]
+    r_days = mdd_period["recovery_days"]
+
+    if is_rec:
+        dur_mdd_str = f"{tot_days}d [{p_str} to {r_str}] (Fall: {c_days}d, Rec: {r_days}d)"
+    else:
+        dur_mdd_str = f"{tot_days}d [{p_str} to {r_str}] (Fall: {c_days}d, Ongoing)"
+
+    # Longest continuous underwater period
+    longest_period = max(underwater_periods, key=lambda x: x["total_days"])
+    lp_p_str = longest_period["peak_date"].strftime('%d-%b-%Y') if longest_period["peak_date"] != datetime.min else "-"
+    lp_r_str = longest_period["recovery_date"].strftime('%d-%b-%Y') if longest_period["is_recovered"] else f"{longest_period['recovery_date'].strftime('%d-%b-%Y')} (Ongoing)"
+    longest_str = f"{longest_period['total_days']}d [{lp_p_str} to {lp_r_str}]"
+
+    return {
+        "duration_of_mdd": dur_mdd_str,
+        "mdd_total_days": tot_days,
+        "mdd_contraction_days": c_days,
+        "mdd_recovery_days": r_days,
+        "mdd_peak_str": p_str,
+        "mdd_trough_str": t_str,
+        "mdd_recovery_str": r_str,
+        "longest_underwater_str": longest_str,
+        "longest_underwater_days": longest_period["total_days"]
+    }
 
 def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True, include_taxes=True, brokerage_per_order=20.0, weekday_filter=None, capital_per_trade=100000.0, month_filter=None, compute_diagnostics=False):
     """
@@ -1889,42 +2023,52 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             curr_win = 0
             curr_lose = 0
 
-    # Drawdown Curve
+    # Drawdown Curve: Aggregate all exits on the same bar (same exit_date)
+    # to eliminate arbitrary intra-bar row-ordering artifacts and concurrency ambiguity
+    bar_exits_map = {}
+    for t in sorted_trades:
+        ex_d = t.get('exit_date', '')
+        if ex_d not in bar_exits_map:
+            bar_exits_map[ex_d] = []
+        bar_exits_map[ex_d].append(t)
+
     cum_equity = 0.0
     peak = 0.0
-    peak_date = sorted_trades[0]['exit_date']
-    
+    first_bar_date = list(bar_exits_map.keys())[0] if bar_exits_map else "-"
+    peak_date = first_bar_date
+
     overall_max_dd = 0.0
     mdd_peak_date = peak_date
     mdd_trough_date = peak_date
-    
+
     chart_dates = []
     chart_drawdowns = []
-    
+
     trades_in_curr_dd = 0
     max_trades_in_dd = 0
 
-    for t in sorted_trades:
-        cum_equity += t['net_pnl']
-        exit_dt = t['exit_date']
-        
+    for ex_d, bar_trades in bar_exits_map.items():
+        bar_net_pnl = sum(t['net_pnl'] for t in bar_trades)
+        cum_equity += bar_net_pnl
+        n_bar = len(bar_trades)
+
         if cum_equity >= peak:
             peak = cum_equity
-            peak_date = exit_dt
+            peak_date = ex_d
             dd = 0.0
             trades_in_curr_dd = 0
         else:
             dd = cum_equity - peak
-            trades_in_curr_dd += 1
+            trades_in_curr_dd += n_bar
             if trades_in_curr_dd > max_trades_in_dd:
                 max_trades_in_dd = trades_in_curr_dd
-            
+
             if dd < overall_max_dd:
                 overall_max_dd = dd
                 mdd_peak_date = peak_date
-                mdd_trough_date = exit_dt
+                mdd_trough_date = ex_d
 
-        chart_dates.append(format_date_dd_mmm_yyyy(exit_dt))
+        chart_dates.append(format_date_dd_mmm_yyyy(ex_d))
         chart_drawdowns.append(round(dd, 2))
 
     try:
@@ -2026,6 +2170,16 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             daily_dates_list.append(cur_d_str)
             daily_equity_list.append(round(running_eq, 2))
             cur_d += timedelta(days=1)
+
+    # Compute comprehensive peak-to-recovery drawdown metrics from daily continuous equity curve
+    dd_cont_metrics = compute_continuous_drawdown_metrics(daily_dates_list, daily_equity_list, overall_max_dd)
+    if dd_cont_metrics["duration_of_mdd"] != "-":
+        duration_of_mdd = dd_cont_metrics["duration_of_mdd"]
+    mdd_total_days = dd_cont_metrics["mdd_total_days"]
+    mdd_contraction_days = dd_cont_metrics["mdd_contraction_days"]
+    mdd_recovery_days = dd_cont_metrics["mdd_recovery_days"]
+    longest_underwater_str = dd_cont_metrics["longest_underwater_str"]
+    longest_underwater_days = dd_cont_metrics["longest_underwater_days"]
 
     # Year-wise & Month-wise Returns Matrix
     years_dict = {
@@ -2289,6 +2443,11 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
             "max_loss_single": max_loss_single,
             "max_drawdown": round(overall_max_dd, 2),
             "duration_of_max_drawdown": duration_of_mdd,
+            "longest_underwater_period": longest_underwater_str,
+            "longest_underwater_days": longest_underwater_days,
+            "mdd_total_days": mdd_total_days,
+            "mdd_contraction_days": mdd_contraction_days,
+            "mdd_recovery_days": mdd_recovery_days,
             "return_over_max_dd": return_over_max_dd,
             "reward_to_risk_ratio": reward_to_risk,
             "expectancy_ratio": expectancy,
@@ -3881,7 +4040,7 @@ def generate_backtest_pdf(report_data):
         ["Max Trades in DD", str(rep.get('max_trades_in_drawdown', 0))],
         ["Max Single Profit", f"Rs {rep.get('max_profit_single', 0.0):,.2f}"],
         ["Max Single Loss", f"Rs {rep.get('max_loss_single', 0.0):,.2f}"],
-        ["Duration of Max DD", str(rep.get('duration_of_max_drawdown', '-'))[:15]],
+        ["Duration of Max DD", f"{rep.get('mdd_total_days', 0)}d" if rep.get('mdd_total_days') else str(rep.get('duration_of_max_drawdown', '-'))[:15]],
         ["Return over Max DD", f"{rep.get('return_over_max_dd', 0.0):.2f}"],
     ]
     col4 = [
@@ -3928,12 +4087,15 @@ def generate_backtest_pdf(report_data):
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(summary_table)
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 3))
+    note_text = "<font size='6.5' color='#64748b'><i>*Note: Sharpe, Sortino & MDD duration are derived from continuous portfolio daily equity curves; MAE/MFE are measured from daily bar extremes during trade holding periods.</i></font>"
+    elements.append(Paragraph(note_text, styles['Normal']))
+    elements.append(Spacer(1, 5))
     
     # Year-wise Matrix Table
     elements.append(Paragraph("<b>Year-wise & Month-wise Returns (Rs)</b>", section_title))
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    headers = ['Year'] + months + ['Total', 'Max DD', 'Days for MDD', 'CAGR']
+    headers = ['Year'] + months + ['Total', 'Max DD', 'Days for MDD', 'Return on peak capital']
     
     rows_data = [headers]
     yw_rows = report_data.get('year_wise_returns', [])
@@ -3988,7 +4150,7 @@ def generate_backtest_pdf(report_data):
     if len(rows_data) == 1:
         rows_data.append(['No data'] + ['-'] * 16)
         
-    col_w = [38] + [42]*12 + [54, 52, 72, 46]
+    col_w = [34] + [40]*12 + [52, 50, 72, 72]
     matrix_table = Table(rows_data, colWidths=col_w)
     matrix_table.setStyle(TableStyle(style_commands))
     elements.append(matrix_table)
@@ -4089,12 +4251,14 @@ def generate_backtest_pdf(report_data):
         mc_stats = mc.get('stats', {})
         elements.append(Paragraph("<b>3. Monte Carlo Simulation (1,000 Randomized Bootstrap Resamplings)</b>", section_title))
         
+        hist_mdd_val = mc_stats.get('hist_mdd', 0.0)
+        prob_exceed = mc_stats.get('prob_exceed_hist_mdd', 0.0)
         mc_rows = [
             ["Monte Carlo Stress Metric", "Simulated Level", "Institutional Risk Assessment"],
-            ["Median Max Drawdown", f"Rs {mc_stats.get('median_mdd', 0.0):,.2f}", "Typical expected drawdown across 50% of simulated alternative histories"],
-            ["95th %ile Worst Drawdown", f"Rs {mc_stats.get('p95_worst_case_mdd', 0.0):,.2f}", "Value-at-Risk boundary (Only 5% chance of worse drawdown under trade reshuffle)"],
+            ["Median Max Drawdown", f"Rs {mc_stats.get('median_mdd', 0.0):,.2f}", "Typical expected drawdown across 50% of simulated alternative trade orderings"],
+            ["95th %ile Worst Drawdown", f"Rs {mc_stats.get('p95_worst_case_mdd', 0.0):,.2f}", "Value-at-Risk boundary (5% chance of deeper drawdown under adverse trade reshuffle)"],
             ["99th %ile Stress Drawdown", f"Rs {mc_stats.get('p99_stress_mdd', 0.0):,.2f}", "Extreme tail-risk stress boundary (1-in-100 adverse trade clustering)"],
-            ["Probability (Drawdown > 20%)", f"{mc_stats.get('prob_mdd_over_20pct', 0.0):.1f}%", "Likelihood of severe capital impairment (> 20% equity drawdown)"]
+            ["Probability (DD > Historical MDD)", f"{prob_exceed:.1f}%", f"Likelihood of simulated drawdown exceeding historical MDD (Rs {hist_mdd_val:,.0f}) under reshuffling*"]
         ]
         t_mc = Table(mc_rows, colWidths=[200, 160, 432])
         t_mc.setStyle(TableStyle([
@@ -4111,6 +4275,7 @@ def generate_backtest_pdf(report_data):
             ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f8fafc')),
         ]))
         elements.append(t_mc)
+        elements.append(Paragraph("<font size='6.5' color='#64748b'><i>*Note: Resampling evaluates trade sequencing risk; concurrent position drawdown risk is governed by simultaneous multi-stock exposure.</i></font>", styles['Normal']))
         elements.append(Spacer(1, 6))
         
         # 4. Market Regime Breakdown
@@ -4163,8 +4328,8 @@ def generate_backtest_pdf(report_data):
         pos_rows = [
             ["Model Architecture", "Capital Allocation Sizing Logic", "Net Profit (Rs)", "Max Drawdown %", "CAGR %", "Final Capital (Rs)"],
             ["Fixed Capital per Trade", f"Rs {capital:,.0f} baseline allocation per signal", f"Rs {m_fixed.get('net_profit', 0.0):,.2f}", f"{m_fixed.get('max_dd_pct', 0.0):.2f}%", f"{m_fixed.get('cagr_pct', 0.0):.2f}%", f"Rs {m_fixed.get('final_equity', 0.0):,.2f}"],
-            ["Compounding Active Equity", "5% dynamic reinvestment of running active equity", f"Rs {m_comp.get('net_profit', 0.0):,.2f}", f"{m_comp.get('max_dd_pct', 0.0):.2f}%", f"{m_comp.get('cagr_pct', 0.0):.2f}%", f"Rs {m_comp.get('final_equity', 0.0):,.2f}"],
-            ["Volatility / ATR-Scaled", "0.5% account risk scaled by ATR stop distance", f"Rs {m_vol.get('net_profit', 0.0):,.2f}", f"{m_vol.get('max_dd_pct', 0.0):.2f}%", f"{m_vol.get('cagr_pct', 0.0):.2f}%", f"Rs {m_vol.get('final_equity', 0.0):,.2f}"]
+            ["Compounding Active Equity", "Requires portfolio cash engine", "Under Rebuild", "-", "-", "-"],
+            ["Volatility / ATR-Scaled", "Requires bar-by-bar ATR pricing", "Under Rebuild", "-", "-", "-"]
         ]
         t_pos = Table(pos_rows, colWidths=[150, 192, 110, 100, 90, 150])
         t_pos.setStyle(TableStyle([
@@ -4291,6 +4456,12 @@ def generate_backtest_pdf(report_data):
         
         mdd_val = rep.get('max_drawdown', 0.0)
         mdd_dur = rep.get('duration_of_max_drawdown', '-')
+        longest_underwater = rep.get('longest_underwater_period', '-')
+        mdd_total_days = rep.get('mdd_total_days', 0)
+        mdd_c_days = rep.get('mdd_contraction_days', 0)
+        mdd_r_days = rep.get('mdd_recovery_days', 0)
+        
+        mdd_dur_display = f"{mdd_total_days}d ({mdd_c_days}d fall / {mdd_r_days}d rec)" if mdd_total_days > 0 else str(mdd_dur)
         trades_in_dd = rep.get('max_trades_in_drawdown', 0)
         ret_mdd = rep.get('return_over_max_dd', 0.0)
         rec_fac = rep.get('recovery_factor', 0.0)
@@ -4298,10 +4469,10 @@ def generate_backtest_pdf(report_data):
         tuw_pct = rep.get('time_under_water_pct', 0.0)
         
         dd_summary_matrix = [
-            ["Max Drawdown (Rs)", "Duration of MDD", "Max Trades in DD", "Return / Max DD", "Recovery Factor", "Ulcer Index (UI)", "Time Under Water %"],
-            [f"Rs {mdd_val:,.2f}", str(mdd_dur), str(trades_in_dd), f"{ret_mdd:.2f}", f"{rec_fac:.2f}x", f"{ulc_idx:.2f}", f"{tuw_pct:.1f}%"]
+            ["Max Drawdown (Rs)", "Duration of MDD", "Max Underwater Period", "Max Trades in DD", "Recovery Factor", "Ulcer Index (UI)", "Time Under Water %"],
+            [f"Rs {mdd_val:,.2f}", str(mdd_dur_display), str(longest_underwater), str(trades_in_dd), f"{rec_fac:.2f}x", f"{ulc_idx:.2f}", f"{tuw_pct:.1f}%"]
         ]
-        dd_summary_table = Table(dd_summary_matrix, colWidths=[118, 128, 106, 110, 110, 110, 110])
+        dd_summary_table = Table(dd_summary_matrix, colWidths=[114, 134, 126, 94, 94, 90, 140])
         dd_summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
