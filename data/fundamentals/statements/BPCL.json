@@ -5,10 +5,10 @@
     "companyName": "Bharat Petroleum Corporation Limited",
     "sector": "Energy",
     "industry": "Oil & Gas Refining & Marketing",
-    "marketCapCr": 131296.53,
-    "pe": 7.66,
-    "forwardPE": 7.75,
-    "pb": 1.31,
+    "marketCapCr": 131809.24,
+    "pe": 7.69,
+    "forwardPE": 7.78,
+    "pb": 1.32,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.54,
@@ -16,7 +16,7 @@
     "quickRatio": null,
     "operatingMargin": -4.05,
     "profitMargin": 3.47,
-    "dividendYield": 6.7,
+    "dividendYield": 6.48,
     "trailingEps": 40.11,
     "forwardEps": 39.67,
     "pegRatio": 0.28,
@@ -24,7 +24,7 @@
     "quarterlyRevenueGrowth": 34.4,
     "bookValue": 234.37,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:11:34"
+    "lastUpdated": "2026-09-27 15:52:37"
   },
   "quarterly_pnl": {
     "dates": [
@@ -675,9 +675,9 @@
       },
       "Net Income Common Stockholders": {
         "2026-03-31": 25843.45,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 13336.55,
+        "2024-03-31": 26858.84,
+        "2023-03-31": 2131.05,
         "2022-03-31": null
       },
       "Otherunder Preferred Stock Dividend": {
@@ -948,7 +948,7 @@
         "Diluted EPS": 31.21,
         "Basic EPS": 31.21,
         "Diluted NI Availto Com Stockholders": 13336.55,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 13336.55,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 13336.55,
         "Minority Interests": 0.0,
@@ -1001,7 +1001,7 @@
         "Diluted EPS": 63.04,
         "Basic EPS": 63.04,
         "Diluted NI Availto Com Stockholders": 26858.84,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 26858.84,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 26858.84,
         "Minority Interests": 0.0,
@@ -1054,7 +1054,7 @@
         "Diluted EPS": 5.0,
         "Basic EPS": 5.0,
         "Diluted NI Availto Com Stockholders": 2131.05,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 2131.05,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 2131.05,
         "Minority Interests": 0.0,
@@ -3058,9 +3058,9 @@
       },
       "Long Term Debt Issuance": {
         "2026-03-31": 6702.18,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 10229.3,
+        "2024-03-31": 5481.98,
+        "2023-03-31": 14784.43,
         "2022-03-31": null
       },
       "Investing Cash Flow": {
@@ -3349,7 +3349,7 @@
         "Net Short Term Debt Issuance": 6182.44,
         "Net Long Term Debt Issuance": -1454.97,
         "Long Term Debt Payments": -11684.27,
-        "Long Term Debt Issuance": null,
+        "Long Term Debt Issuance": 10229.3,
         "Investing Cash Flow": -19179.99,
         "Net Other Investing Changes": 219.85,
         "Interest Received Cfi": 1043.61,
@@ -3402,7 +3402,7 @@
         "Net Short Term Debt Issuance": 78.36,
         "Net Long Term Debt Issuance": -15569.42,
         "Long Term Debt Payments": -21051.4,
-        "Long Term Debt Issuance": null,
+        "Long Term Debt Issuance": 5481.98,
         "Investing Cash Flow": -10554.31,
         "Net Other Investing Changes": 215.1,
         "Interest Received Cfi": 1100.78,
@@ -3455,7 +3455,7 @@
         "Net Short Term Debt Issuance": -290.98,
         "Net Long Term Debt Issuance": 1720.66,
         "Long Term Debt Payments": -13063.77,
-        "Long Term Debt Issuance": null,
+        "Long Term Debt Issuance": 14784.43,
         "Investing Cash Flow": -7806.41,
         "Net Other Investing Changes": 554.49,
         "Interest Received Cfi": 681.55,
@@ -3542,5 +3542,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:11:36"
+  "last_updated": "2026-09-27 15:52:38"
 }

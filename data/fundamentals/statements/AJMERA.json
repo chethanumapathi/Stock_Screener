@@ -5,10 +5,10 @@
     "companyName": "Ajmera Realty & Infra India Limited",
     "sector": "Real Estate",
     "industry": "Real Estate - Development",
-    "marketCapCr": 2226.74,
-    "pe": 14.4,
-    "forwardPE": 5.69,
-    "pb": 1.59,
+    "marketCapCr": 2377.68,
+    "pe": 15.35,
+    "forwardPE": 6.07,
+    "pb": 1.7,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.47,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 28.29,
     "profitMargin": 13.45,
-    "dividendYield": 0.87,
-    "trailingEps": 7.86,
+    "dividendYield": 0.83,
+    "trailingEps": 7.87,
     "forwardEps": 19.9,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 12.5,
     "quarterlyRevenueGrowth": 22.6,
     "bookValue": 71.18,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:05:39"
+    "lastUpdated": "2026-09-27 15:41:41"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1623,6 +1623,13 @@
         "2023-03-31": 1175.31,
         "2022-03-31": null
       },
+      "Other Inventories": {
+        "2026-03-31": null,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": 84.69,
+        "2022-03-31": 57.58
+      },
       "Finished Goods": {
         "2026-03-31": 67.15,
         "2025-03-31": 40.14,
@@ -1779,6 +1786,7 @@
         "Restricted Cash": 0.25,
         "Prepaid Assets": 148.65,
         "Inventory": 1495.23,
+        "Other Inventories": null,
         "Finished Goods": 67.15,
         "Work In Process": 1428.08,
         "Other Receivables": 53.05,
@@ -1862,6 +1870,7 @@
         "Restricted Cash": 0.45,
         "Prepaid Assets": 139.34,
         "Inventory": 1291.9,
+        "Other Inventories": null,
         "Finished Goods": 40.14,
         "Work In Process": 1251.77,
         "Other Receivables": 45.79,
@@ -1945,6 +1954,7 @@
         "Restricted Cash": 1.08,
         "Prepaid Assets": 117.28,
         "Inventory": 1156.73,
+        "Other Inventories": null,
         "Finished Goods": 97.34,
         "Work In Process": 1059.39,
         "Other Receivables": 11.53,
@@ -2028,6 +2038,7 @@
         "Restricted Cash": 1.7,
         "Prepaid Assets": 24.01,
         "Inventory": 1175.31,
+        "Other Inventories": 84.69,
         "Finished Goods": 65.11,
         "Work In Process": 1110.19,
         "Other Receivables": 15.5,
@@ -2111,6 +2122,7 @@
         "Restricted Cash": null,
         "Prepaid Assets": null,
         "Inventory": null,
+        "Other Inventories": 57.58,
         "Finished Goods": null,
         "Work In Process": null,
         "Other Receivables": null,
@@ -3322,5 +3334,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:05:45"
+  "last_updated": "2026-09-27 15:41:43"
 }

@@ -5,10 +5,10 @@
     "companyName": "BEML Limited",
     "sector": "Industrials",
     "industry": "Conglomerates",
-    "marketCapCr": 16811.05,
-    "pe": 93.75,
-    "forwardPE": 27.9,
-    "pb": 5.73,
+    "marketCapCr": 16961.8,
+    "pe": 97.67,
+    "forwardPE": 28.11,
+    "pb": 5.78,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.11,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": -2.61,
     "profitMargin": 3.93,
-    "dividendYield": 0.91,
-    "trailingEps": 21.53,
-    "forwardEps": 72.35,
+    "dividendYield": 0.87,
+    "trailingEps": 20.85,
+    "forwardEps": 72.45,
     "pegRatio": 1.06,
     "quarterlyEarningsGrowth": null,
     "quarterlyRevenueGrowth": 29.3,
     "bookValue": 352.25,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:10:15"
+    "lastUpdated": "2026-09-27 15:50:19"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1262,8 +1262,8 @@
       },
       "Non Current Pension And Other Postretirement Benefit Plans": {
         "2026-03-31": 0.37,
-        "2025-03-31": null,
-        "2024-03-31": null,
+        "2025-03-31": 0.36,
+        "2024-03-31": 0.36,
         "2023-03-31": 0.34,
         "2022-03-31": null
       },
@@ -1785,7 +1785,7 @@
         "Total Liabilities Net Minority Interest": 2985.55,
         "Total Non Current Liabilities Net Minority Interest": 1118.16,
         "Other Non Current Liabilities": 0.0,
-        "Non Current Pension And Other Postretirement Benefit Plans": null,
+        "Non Current Pension And Other Postretirement Benefit Plans": 0.36,
         "Non Current Deferred Revenue": 840.19,
         "Long Term Debt And Capital Lease Obligation": 9.07,
         "Long Term Capital Lease Obligation": 9.07,
@@ -1870,7 +1870,7 @@
         "Total Liabilities Net Minority Interest": 2777.81,
         "Total Non Current Liabilities Net Minority Interest": 890.99,
         "Other Non Current Liabilities": 643.39,
-        "Non Current Pension And Other Postretirement Benefit Plans": null,
+        "Non Current Pension And Other Postretirement Benefit Plans": 0.36,
         "Non Current Deferred Revenue": 644.16,
         "Long Term Debt And Capital Lease Obligation": 9.49,
         "Long Term Capital Lease Obligation": 9.49,
@@ -3202,5 +3202,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:10:16"
+  "last_updated": "2026-09-27 15:50:21"
 }

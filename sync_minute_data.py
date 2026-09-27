@@ -36,7 +36,8 @@ logger = logging.getLogger("minute_sync")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
-ZERODHA_MINUTE_DIR = r"C:\Zerodha Historical Data\data\minute"
+LOCAL_MINUTE_DIR = os.path.join(DATA_DIR, 'minute')
+ZERODHA_MINUTE_DIR = LOCAL_MINUTE_DIR if (os.path.exists(LOCAL_MINUTE_DIR) and len(os.listdir(LOCAL_MINUTE_DIR)) > 0) else r"C:\Zerodha Historical Data\data\minute"
 NIFTY50_FILE = os.path.join(DATA_DIR, 'nifty50.csv')
 NIFTY500_FILE = os.path.join(DATA_DIR, 'nifty500.csv')
 

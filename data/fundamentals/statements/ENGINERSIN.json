@@ -5,10 +5,10 @@
     "companyName": "Engineers India Limited",
     "sector": "Industrials",
     "industry": "Engineering & Construction",
-    "marketCapCr": 14821.06,
-    "pe": 19.01,
-    "forwardPE": 19.32,
-    "pb": 4.72,
+    "marketCapCr": 17740.87,
+    "pe": 22.63,
+    "forwardPE": 22.39,
+    "pb": 5.65,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.53,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 14.23,
     "profitMargin": 20.22,
-    "dividendYield": 1.91,
-    "trailingEps": 13.87,
-    "forwardEps": 13.65,
+    "dividendYield": 1.58,
+    "trailingEps": 13.95,
+    "forwardEps": 14.1,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 141.5,
     "quarterlyRevenueGrowth": -5.8,
     "bookValue": 55.83,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:18:38"
+    "lastUpdated": "2026-09-27 16:07:53"
   },
   "quarterly_pnl": {
     "dates": [
@@ -303,10 +303,10 @@
       "Operating Income": {
         "2026-06-30": 116.65,
         "2026-03-31": 141.01,
-        "2025-12-31": null,
-        "2025-09-30": null,
-        "2025-06-30": null,
-        "2025-03-31": 290.07
+        "2025-12-31": 342.0,
+        "2025-09-30": 109.61,
+        "2025-06-30": 61.54,
+        "2025-03-31": null
       },
       "Operating Expense": {
         "2026-06-30": 374.83,
@@ -499,7 +499,7 @@
         "Special Income Charges": 0.0,
         "Net Non Operating Interest Income Expense": -0.6,
         "Interest Expense Non Operating": 0.6,
-        "Operating Income": null,
+        "Operating Income": 342.0,
         "Operating Expense": 392.33,
         "Other Operating Expenses": 99.87,
         "Depreciation And Amortization In Income Statement": 10.23,
@@ -544,7 +544,7 @@
         "Special Income Charges": 0.0,
         "Net Non Operating Interest Income Expense": -0.55,
         "Interest Expense Non Operating": 0.55,
-        "Operating Income": null,
+        "Operating Income": 109.61,
         "Operating Expense": 331.09,
         "Other Operating Expenses": 54.44,
         "Depreciation And Amortization In Income Statement": 10.13,
@@ -589,7 +589,7 @@
         "Special Income Charges": 0.0,
         "Net Non Operating Interest Income Expense": -0.62,
         "Interest Expense Non Operating": 0.62,
-        "Operating Income": null,
+        "Operating Income": 61.54,
         "Operating Expense": 363.31,
         "Other Operating Expenses": 102.18,
         "Depreciation And Amortization In Income Statement": 10.55,
@@ -634,7 +634,7 @@
         "Special Income Charges": null,
         "Net Non Operating Interest Income Expense": null,
         "Interest Expense Non Operating": null,
-        "Operating Income": 290.07,
+        "Operating Income": null,
         "Operating Expense": null,
         "Other Operating Expenses": null,
         "Depreciation And Amortization In Income Statement": null,
@@ -2943,10 +2943,10 @@
       },
       "Capital Expenditure": {
         "2026-03-31": -68.95,
-        "2025-03-31": null,
-        "2024-03-31": null,
+        "2025-03-31": -41.91,
+        "2024-03-31": -34.0,
         "2023-03-31": -34.7,
-        "2022-03-31": -25.67
+        "2022-03-31": null
       },
       "End Cash Position": {
         "2026-03-31": 87.79,
@@ -3272,7 +3272,7 @@
         "date": "2025-03-31",
         "Free Cash Flow": 75.11,
         "Repurchase Of Capital Stock": null,
-        "Capital Expenditure": null,
+        "Capital Expenditure": -41.91,
         "End Cash Position": 138.64,
         "Other Cash Adjustment Outside Changein Cash": null,
         "Beginning Cash Position": 250.66,
@@ -3317,7 +3317,7 @@
         "date": "2024-03-31",
         "Free Cash Flow": 187.96,
         "Repurchase Of Capital Stock": null,
-        "Capital Expenditure": null,
+        "Capital Expenditure": -34.0,
         "End Cash Position": 250.66,
         "Other Cash Adjustment Outside Changein Cash": null,
         "Beginning Cash Position": 63.48,
@@ -3407,7 +3407,7 @@
         "date": "2022-03-31",
         "Free Cash Flow": null,
         "Repurchase Of Capital Stock": 0.0,
-        "Capital Expenditure": -25.67,
+        "Capital Expenditure": null,
         "End Cash Position": null,
         "Other Cash Adjustment Outside Changein Cash": null,
         "Beginning Cash Position": null,
@@ -3450,5 +3450,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:18:40"
+  "last_updated": "2026-09-27 16:07:57"
 }

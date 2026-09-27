@@ -5,10 +5,10 @@
     "companyName": "Central Bank of India",
     "sector": "Financial Services",
     "industry": "Banks - Regional",
-    "marketCapCr": 27353.33,
-    "pe": 6.01,
+    "marketCapCr": 28222.27,
+    "pe": 6.27,
     "forwardPE": null,
-    "pb": 0.67,
+    "pb": 0.69,
     "roe": 11.56,
     "roa": 0.88,
     "debtToEquity": null,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 39.67,
     "profitMargin": 27.84,
-    "dividendYield": 4.56,
-    "trailingEps": 5.03,
+    "dividendYield": 4.45,
+    "trailingEps": 4.97,
     "forwardEps": null,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 3.2,
     "quarterlyRevenueGrowth": -3.2,
     "bookValue": 45.2,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:13:00"
+    "lastUpdated": "2026-09-27 15:54:33"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1070,9 +1070,9 @@
       },
       "Available For Sale Securities": {
         "2026-03-31": 678.47,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null
+        "2025-03-31": 482.39,
+        "2024-03-31": 496.96,
+        "2023-03-31": 226.69
       },
       "Long Term Equity Investment": {
         "2026-03-31": 907.26,
@@ -1244,7 +1244,7 @@
         "Total Assets": 480456.84,
         "Investments And Advances": 141652.26,
         "Investmentin Financial Assets": 140697.48,
-        "Available For Sale Securities": null,
+        "Available For Sale Securities": 482.39,
         "Long Term Equity Investment": 954.78,
         "Investmentsin Associatesat Cost": 954.78,
         "Goodwill And Other Intangible Assets": 8.89,
@@ -1289,7 +1289,7 @@
         "Total Assets": 447771.57,
         "Investments And Advances": 144010.02,
         "Investmentin Financial Assets": 143180.65,
-        "Available For Sale Securities": null,
+        "Available For Sale Securities": 496.96,
         "Long Term Equity Investment": 829.37,
         "Investmentsin Associatesat Cost": 829.37,
         "Goodwill And Other Intangible Assets": 8.89,
@@ -1334,7 +1334,7 @@
         "Total Assets": 407079.71,
         "Investments And Advances": 136569.38,
         "Investmentin Financial Assets": 135910.17,
-        "Available For Sale Securities": null,
+        "Available For Sale Securities": 226.69,
         "Long Term Equity Investment": 659.22,
         "Investmentsin Associatesat Cost": 659.22,
         "Goodwill And Other Intangible Assets": 8.89,
@@ -1978,6 +1978,12 @@
         "2024-03-31": 3.02,
         "2023-03-31": 3.62
       },
+      "Purchase Of PPE": {
+        "2026-03-31": -457.86,
+        "2025-03-31": -455.21,
+        "2024-03-31": -587.25,
+        "2023-03-31": -212.28
+      },
       "Operating Cash Flow": {
         "2026-03-31": 2803.98,
         "2025-03-31": -2459.64,
@@ -2056,6 +2062,7 @@
         "Investing Cash Flow": -453.86,
         "Net PPE Purchase And Sale": -453.86,
         "Sale Of PPE": 4.0,
+        "Purchase Of PPE": -457.86,
         "Operating Cash Flow": 2803.98,
         "Taxes Refund Paid": -371.6,
         "Change In Working Capital": -4694.23,
@@ -2083,6 +2090,7 @@
         "Investing Cash Flow": -450.77,
         "Net PPE Purchase And Sale": -450.77,
         "Sale Of PPE": 4.44,
+        "Purchase Of PPE": -455.21,
         "Operating Cash Flow": -2459.64,
         "Taxes Refund Paid": 805.06,
         "Change In Working Capital": -11389.75,
@@ -2110,6 +2118,7 @@
         "Investing Cash Flow": -584.23,
         "Net PPE Purchase And Sale": -584.23,
         "Sale Of PPE": 3.02,
+        "Purchase Of PPE": -587.25,
         "Operating Cash Flow": -5909.91,
         "Taxes Refund Paid": -258.57,
         "Change In Working Capital": -13671.19,
@@ -2137,6 +2146,7 @@
         "Investing Cash Flow": -208.66,
         "Net PPE Purchase And Sale": -208.66,
         "Sale Of PPE": 3.62,
+        "Purchase Of PPE": -212.28,
         "Operating Cash Flow": -8786.34,
         "Taxes Refund Paid": -307.77,
         "Change In Working Capital": -15871.45,
@@ -2150,5 +2160,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:13:03"
+  "last_updated": "2026-09-27 15:54:35"
 }

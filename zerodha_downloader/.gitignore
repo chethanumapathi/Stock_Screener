@@ -1,0 +1,19 @@
+# Environment credentials
+.env
+.kite_token.json
+
+# Downloaded data
+data/
+*.csv
+*.parquet
+
+# Python cache & build files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.log

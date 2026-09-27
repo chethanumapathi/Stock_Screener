@@ -5,10 +5,10 @@
     "companyName": "ABB India Limited",
     "sector": "Industrials",
     "industry": "Specialty Industrial Machinery",
-    "marketCapCr": 150179.47,
-    "pe": 94.89,
-    "forwardPE": 67.57,
-    "pb": 16.09,
+    "marketCapCr": 149448.37,
+    "pe": 94.34,
+    "forwardPE": 67.24,
+    "pb": 16.01,
     "roe": 19.13,
     "roa": 7.91,
     "debtToEquity": 1.55,
@@ -17,14 +17,14 @@
     "operatingMargin": 11.46,
     "profitMargin": 21.35,
     "dividendYield": 0.56,
-    "trailingEps": 74.69,
+    "trailingEps": 74.76,
     "forwardEps": 104.88,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 3.0,
     "quarterlyRevenueGrowth": 12.1,
     "bookValue": 440.55,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:03:47"
+    "lastUpdated": "2026-09-27 15:38:48"
   },
   "quarterly_pnl": {
     "dates": [
@@ -115,9 +115,9 @@
       "Net Income From Continuing And Discontinued Operation": {
         "2026-06-30": 3623000000.0,
         "2026-03-31": 17836500000.0,
-        "2025-12-31": null,
-        "2025-06-30": null,
-        "2025-03-31": null
+        "2025-12-31": 4328500000.0,
+        "2025-06-30": 3517400000.0,
+        "2025-03-31": 4746300000.0
       },
       "Total Expenses": {
         "2026-06-30": 3113.22,
@@ -407,7 +407,7 @@
         "Net Interest Income": -5.35,
         "Interest Expense": 5.35,
         "Normalized Income": 434.32,
-        "Net Income From Continuing And Discontinued Operation": null,
+        "Net Income From Continuing And Discontinued Operation": 4328500000.0,
         "Total Expenses": 2989.18,
         "Diluted Average Shares": 211869799.0,
         "Basic Average Shares": 211869799.0,
@@ -449,7 +449,7 @@
         "Net Interest Income": -4.18,
         "Interest Expense": 4.18,
         "Normalized Income": 342.55,
-        "Net Income From Continuing And Discontinued Operation": null,
+        "Net Income From Continuing And Discontinued Operation": 3517400000.0,
         "Total Expenses": 2543.75,
         "Diluted Average Shares": 211891566.0,
         "Basic Average Shares": 211891566.0,
@@ -491,7 +491,7 @@
         "Net Interest Income": -4.69,
         "Interest Expense": 4.69,
         "Normalized Income": 457.31,
-        "Net Income From Continuing And Discontinued Operation": null,
+        "Net Income From Continuing And Discontinued Operation": 4746300000.0,
         "Total Expenses": 2464.17,
         "Diluted Average Shares": 211888393.0,
         "Basic Average Shares": 211888393.0,
@@ -3188,6 +3188,13 @@
         "2023-12-31": 0.0,
         "2022-12-31": -333.35,
         "2021-12-31": -46.81
+      },
+      "Net Income From Continuing Operations": {
+        "2025-12-31": 22284200000.0,
+        "2024-12-31": 25092900000.0,
+        "2023-12-31": 16507000000.0,
+        "2022-12-31": 13502600000.0,
+        "2021-12-31": null
       }
     },
     "records": [
@@ -3230,7 +3237,8 @@
         "Gain Loss On Investment Securities": -143.11,
         "Net Foreign Currency Exchange Gain Loss": 41.07,
         "Gain Loss On Sale Of PPE": 1.9,
-        "Gain Loss On Sale Of Business": null
+        "Gain Loss On Sale Of Business": null,
+        "Net Income From Continuing Operations": 22284200000.0
       },
       {
         "date": "2024-12-31",
@@ -3271,7 +3279,8 @@
         "Gain Loss On Investment Securities": 42.38,
         "Net Foreign Currency Exchange Gain Loss": -37.52,
         "Gain Loss On Sale Of PPE": 6.05,
-        "Gain Loss On Sale Of Business": null
+        "Gain Loss On Sale Of Business": null,
+        "Net Income From Continuing Operations": 25092900000.0
       },
       {
         "date": "2023-12-31",
@@ -3312,7 +3321,8 @@
         "Gain Loss On Investment Securities": 13.79,
         "Net Foreign Currency Exchange Gain Loss": 5.61,
         "Gain Loss On Sale Of PPE": 6.97,
-        "Gain Loss On Sale Of Business": 0.0
+        "Gain Loss On Sale Of Business": 0.0,
+        "Net Income From Continuing Operations": 16507000000.0
       },
       {
         "date": "2022-12-31",
@@ -3353,7 +3363,8 @@
         "Gain Loss On Investment Securities": -35.83,
         "Net Foreign Currency Exchange Gain Loss": 27.66,
         "Gain Loss On Sale Of PPE": -2.36,
-        "Gain Loss On Sale Of Business": -333.35
+        "Gain Loss On Sale Of Business": -333.35,
+        "Net Income From Continuing Operations": 13502600000.0
       },
       {
         "date": "2021-12-31",
@@ -3394,9 +3405,10 @@
         "Gain Loss On Investment Securities": null,
         "Net Foreign Currency Exchange Gain Loss": null,
         "Gain Loss On Sale Of PPE": null,
-        "Gain Loss On Sale Of Business": -46.81
+        "Gain Loss On Sale Of Business": -46.81,
+        "Net Income From Continuing Operations": null
       }
     ]
   },
-  "last_updated": "2026-09-17 14:03:49"
+  "last_updated": "2026-09-27 15:38:49"
 }

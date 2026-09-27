@@ -5,10 +5,10 @@
     "companyName": "Ceigall India Limited",
     "sector": "Industrials",
     "industry": "Engineering & Construction",
-    "marketCapCr": 6733.02,
-    "pe": 20.51,
-    "forwardPE": 16.24,
-    "pb": 3.09,
+    "marketCapCr": 6691.21,
+    "pe": 20.62,
+    "forwardPE": 16.14,
+    "pb": 3.07,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.61,
@@ -17,14 +17,14 @@
     "operatingMargin": 13.44,
     "profitMargin": 7.7,
     "dividendYield": 13.0,
-    "trailingEps": 18.84,
+    "trailingEps": 18.63,
     "forwardEps": 23.8,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 15.3,
     "quarterlyRevenueGrowth": 15.7,
     "bookValue": 125.14,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:12:52"
+    "lastUpdated": "2026-09-27 15:54:18"
   },
   "quarterly_pnl": {
     "dates": [
@@ -555,13 +555,13 @@
     ],
     "metrics": {
       "Tax Effect Of Unusual Items": {
-        "2026-03-31": 1.58,
+        "2026-03-31": 1.71,
         "2025-03-31": 2.58,
         "2024-03-31": 2.73,
         "2023-03-31": 1.12
       },
       "Tax Rate For Calcs": {
-        "2026-03-31": 0.26,
+        "2026-03-31": 0.28,
         "2025-03-31": 0.25,
         "2024-03-31": 0.25,
         "2023-03-31": 0.26
@@ -633,7 +633,7 @@
         "2023-03-31": 11.02
       },
       "Normalized Income": {
-        "2026-03-31": 307.38,
+        "2026-03-31": 307.51,
         "2025-03-31": 286.47,
         "2024-03-31": 297.93,
         "2023-03-31": 164.04
@@ -858,8 +858,8 @@
     "records": [
       {
         "date": "2026-03-31",
-        "Tax Effect Of Unusual Items": 1.58,
-        "Tax Rate For Calcs": 0.26,
+        "Tax Effect Of Unusual Items": 1.71,
+        "Tax Rate For Calcs": 0.28,
         "Normalized EBITDA": 615.63,
         "Total Unusual Items": 6.09,
         "Total Unusual Items Excluding Goodwill": 6.09,
@@ -871,7 +871,7 @@
         "Net Interest Income": -6.56,
         "Interest Expense": 142.39,
         "Interest Income": 40.5,
-        "Normalized Income": 307.38,
+        "Normalized Income": 307.51,
         "Net Income From Continuing And Discontinued Operation": 3118870000.0,
         "Total Expenses": 3113.68,
         "Rent Expense Supplemental": 54.34,
@@ -3202,5 +3202,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:12:54"
+  "last_updated": "2026-09-27 15:54:19"
 }

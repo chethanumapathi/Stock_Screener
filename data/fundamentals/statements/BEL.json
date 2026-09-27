@@ -5,10 +5,10 @@
     "companyName": "Bharat Electronics Limited",
     "sector": "Industrials",
     "industry": "Aerospace & Defense",
-    "marketCapCr": 288407.32,
-    "pe": 46.69,
-    "forwardPE": 34.97,
-    "pb": 12.02,
+    "marketCapCr": 287676.35,
+    "pe": 46.96,
+    "forwardPE": 35.01,
+    "pb": 11.99,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.27,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 22.13,
     "profitMargin": 21.4,
-    "dividendYield": 0.65,
-    "trailingEps": 8.45,
-    "forwardEps": 11.28,
+    "dividendYield": 0.64,
+    "trailingEps": 8.38,
+    "forwardEps": 11.24,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 8.7,
     "quarterlyRevenueGrowth": 24.9,
     "bookValue": 32.82,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:30:19"
+    "lastUpdated": "2026-09-27 15:50:12"
   },
   "quarterly_pnl": {
     "dates": [
@@ -712,9 +712,9 @@
       },
       "Net Income Including Noncontrolling Interests": {
         "2026-03-31": 6062.26,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null
+        "2025-03-31": 5322.68,
+        "2024-03-31": 3985.24,
+        "2023-03-31": 2986.24
       },
       "Net Income Continuous Operations": {
         "2026-03-31": 60622600000.0,
@@ -958,7 +958,7 @@
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 5321.44,
         "Minority Interests": -1.24,
-        "Net Income Including Noncontrolling Interests": null,
+        "Net Income Including Noncontrolling Interests": 5322.68,
         "Net Income Continuous Operations": 53226800000.0,
         "Tax Provision": 1811.85,
         "Pretax Income": 7099.0,
@@ -1014,7 +1014,7 @@
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 3984.52,
         "Minority Interests": -0.72,
-        "Net Income Including Noncontrolling Interests": null,
+        "Net Income Including Noncontrolling Interests": 3985.24,
         "Net Income Continuous Operations": 39852400000.0,
         "Tax Provision": 1323.1,
         "Pretax Income": 5266.21,
@@ -1070,7 +1070,7 @@
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 2984.42,
         "Minority Interests": -1.82,
-        "Net Income Including Noncontrolling Interests": null,
+        "Net Income Including Noncontrolling Interests": 2986.24,
         "Net Income Continuous Operations": 29862400000.0,
         "Tax Provision": 982.56,
         "Pretax Income": 3922.91,
@@ -1407,7 +1407,7 @@
         "2026-03-31": -86.58,
         "2025-03-31": -285.97,
         "2024-03-31": -217.81,
-        "2023-03-31": -191.9,
+        "2023-03-31": 5.87,
         "2022-03-31": null
       },
       "Non Current Prepaid Assets": {
@@ -1558,10 +1558,17 @@
         "2022-03-31": null
       },
       "Other Current Assets": {
-        "2026-03-31": 91.99,
-        "2025-03-31": 292.97,
-        "2024-03-31": 225.69,
-        "2023-03-31": 228.38,
+        "2026-03-31": 5.41,
+        "2025-03-31": 7.0,
+        "2024-03-31": 7.88,
+        "2023-03-31": 30.61,
+        "2022-03-31": null
+      },
+      "Current Deferred Assets": {
+        "2026-03-31": 86.58,
+        "2025-03-31": 285.97,
+        "2024-03-31": 217.81,
+        "2023-03-31": 197.77,
         "2022-03-31": null
       },
       "Restricted Cash": {
@@ -1744,7 +1751,8 @@
         "Land And Improvements": 423.69,
         "Properties": 0.0,
         "Current Assets": 38056.87,
-        "Other Current Assets": 91.99,
+        "Other Current Assets": 5.41,
+        "Current Deferred Assets": 86.58,
         "Restricted Cash": 68.36,
         "Prepaid Assets": 2187.93,
         "Inventory": 10175.53,
@@ -1828,7 +1836,8 @@
         "Land And Improvements": 418.08,
         "Properties": 0.0,
         "Current Assets": 34857.88,
-        "Other Current Assets": 292.97,
+        "Other Current Assets": 7.0,
+        "Current Deferred Assets": 285.97,
         "Restricted Cash": 49.62,
         "Prepaid Assets": 2041.48,
         "Inventory": 9118.98,
@@ -1912,7 +1921,8 @@
         "Land And Improvements": 387.41,
         "Properties": 0.0,
         "Current Assets": 34062.98,
-        "Other Current Assets": 225.69,
+        "Other Current Assets": 7.88,
+        "Current Deferred Assets": 217.81,
         "Restricted Cash": 24.1,
         "Prepaid Assets": 2209.93,
         "Inventory": 7446.89,
@@ -1974,7 +1984,7 @@
         "Accounts Payable": 3330.38,
         "Total Assets": 35491.17,
         "Total Non Current Assets": 5443.43,
-        "Other Non Current Assets": -191.9,
+        "Other Non Current Assets": 5.87,
         "Non Current Prepaid Assets": 21.41,
         "Non Current Deferred Assets": 197.77,
         "Non Current Deferred Taxes Assets": 503.72,
@@ -1996,7 +2006,8 @@
         "Land And Improvements": 382.8,
         "Properties": 0.0,
         "Current Assets": 30047.74,
-        "Other Current Assets": 228.38,
+        "Other Current Assets": 30.61,
+        "Current Deferred Assets": 197.77,
         "Restricted Cash": 19.73,
         "Prepaid Assets": 1912.84,
         "Inventory": 6448.04,
@@ -2081,6 +2092,7 @@
         "Properties": null,
         "Current Assets": null,
         "Other Current Assets": null,
+        "Current Deferred Assets": null,
         "Restricted Cash": null,
         "Prepaid Assets": null,
         "Inventory": null,
@@ -2355,8 +2367,12 @@
         "2025-03-31": 34857.88
       },
       "Other Current Assets": {
-        "2026-03-31": 91.99,
-        "2025-03-31": 292.97
+        "2026-03-31": 5.41,
+        "2025-03-31": 7.0
+      },
+      "Current Deferred Assets": {
+        "2026-03-31": 86.58,
+        "2025-03-31": 285.97
       },
       "Restricted Cash": {
         "2026-03-31": 68.36,
@@ -2488,7 +2504,8 @@
         "Land And Improvements": 423.69,
         "Properties": 0.0,
         "Current Assets": 38056.87,
-        "Other Current Assets": 91.99,
+        "Other Current Assets": 5.41,
+        "Current Deferred Assets": 86.58,
         "Restricted Cash": 68.36,
         "Prepaid Assets": 2187.93,
         "Inventory": 10175.53,
@@ -2570,7 +2587,8 @@
         "Land And Improvements": 418.08,
         "Properties": 0.0,
         "Current Assets": 34857.88,
-        "Other Current Assets": 292.97,
+        "Other Current Assets": 7.0,
+        "Current Deferred Assets": 285.97,
         "Restricted Cash": 49.62,
         "Prepaid Assets": 2041.48,
         "Inventory": 9118.98,
@@ -3050,5 +3068,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:30:21"
+  "last_updated": "2026-09-27 15:50:14"
 }

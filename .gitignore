@@ -16,3 +16,8 @@ kotak_credentials.env
 .env
 .kotak_*.json
 kotak_scrip_master_*.csv
+
+# Zerodha data and credentials
+data/minute/
+zerodha_downloader/.env
+zerodha_downloader/.kite_token.json

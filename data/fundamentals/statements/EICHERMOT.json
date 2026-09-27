@@ -5,10 +5,10 @@
     "companyName": "Eicher Motors Limited",
     "sector": "Consumer Cyclical",
     "industry": "Auto Manufacturers",
-    "marketCapCr": 206797.2,
-    "pe": 35.84,
-    "forwardPE": 27.63,
-    "pb": 8.23,
+    "marketCapCr": 202047.97,
+    "pe": 34.96,
+    "forwardPE": 27.0,
+    "pb": 8.04,
     "roe": null,
     "roa": null,
     "debtToEquity": 2.05,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 19.8,
     "profitMargin": 23.21,
-    "dividendYield": 1.1,
-    "trailingEps": 210.16,
+    "dividendYield": 1.11,
+    "trailingEps": 210.5,
     "forwardEps": 272.6,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 21.3,
     "quarterlyRevenueGrowth": 31.5,
     "bookValue": 915.01,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:30:33"
+    "lastUpdated": "2026-09-27 16:05:38"
   },
   "quarterly_pnl": {
     "dates": [
@@ -2564,8 +2564,8 @@
       },
       "Other Non Current Assets": {
         "2026-03-31": 336.22,
-        "2025-09-30": null,
-        "2025-03-31": null
+        "2025-09-30": 224.39,
+        "2025-03-31": 151.85
       },
       "Non Current Prepaid Assets": {
         "2026-03-31": 199.98,
@@ -2867,7 +2867,7 @@
         "Accounts Payable": 2813.84,
         "Total Assets": 28944.11,
         "Total Non Current Assets": 20928.55,
-        "Other Non Current Assets": null,
+        "Other Non Current Assets": 224.39,
         "Non Current Prepaid Assets": null,
         "Non Current Deferred Taxes Assets": null,
         "Investmentin Financial Assets": 13232.3,
@@ -2947,7 +2947,7 @@
         "Accounts Payable": 2529.75,
         "Total Assets": 27174.41,
         "Total Non Current Assets": 20220.25,
-        "Other Non Current Assets": null,
+        "Other Non Current Assets": 151.85,
         "Non Current Prepaid Assets": 93.68,
         "Non Current Deferred Taxes Assets": 0.0,
         "Investmentin Financial Assets": 12847.64,
@@ -3500,5 +3500,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:30:35"
+  "last_updated": "2026-09-27 16:05:42"
 }

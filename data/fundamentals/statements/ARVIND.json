@@ -5,9 +5,9 @@
     "companyName": "Arvind Limited",
     "sector": "Consumer Cyclical",
     "industry": "Textile Manufacturing",
-    "marketCapCr": 14390.16,
-    "pe": 34.74,
-    "forwardPE": 21.37,
+    "marketCapCr": 14392.78,
+    "pe": 34.73,
+    "forwardPE": 21.33,
     "pb": 3.56,
     "roe": null,
     "roa": null,
@@ -17,14 +17,14 @@
     "operatingMargin": 5.88,
     "profitMargin": 4.23,
     "dividendYield": 0.82,
-    "trailingEps": 15.8,
-    "forwardEps": 25.69,
+    "trailingEps": 15.81,
+    "forwardEps": 25.74,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 0.4,
     "quarterlyRevenueGrowth": 24.7,
     "bookValue": 154.29,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:07:16"
+    "lastUpdated": "2026-09-27 15:45:14"
   },
   "quarterly_pnl": {
     "dates": [
@@ -686,9 +686,9 @@
       "Normalized EBITDA": {
         "2026-03-31": 1084.06,
         "2025-03-31": 914.25,
-        "2024-03-31": null,
-        "2023-03-31": null,
-        "2022-03-31": 788.72
+        "2024-03-31": 900.62,
+        "2023-03-31": 897.41,
+        "2022-03-31": null
       },
       "Total Unusual Items": {
         "2026-03-31": -33.87,
@@ -1176,7 +1176,7 @@
         "date": "2024-03-31",
         "Tax Effect Of Unusual Items": -2.93,
         "Tax Rate For Calcs": 0.24,
-        "Normalized EBITDA": null,
+        "Normalized EBITDA": 900.62,
         "Total Unusual Items": -12.23,
         "Total Unusual Items Excluding Goodwill": -12.23,
         "Net Income From Continuing Operation Net Minority Interest": 3366100000.0,
@@ -1234,7 +1234,7 @@
         "date": "2023-03-31",
         "Tax Effect Of Unusual Items": -0.1,
         "Tax Rate For Calcs": 0.15,
-        "Normalized EBITDA": null,
+        "Normalized EBITDA": 897.41,
         "Total Unusual Items": -0.71,
         "Total Unusual Items Excluding Goodwill": -0.71,
         "Net Income From Continuing Operation Net Minority Interest": 4080900000.0,
@@ -1292,7 +1292,7 @@
         "date": "2022-03-31",
         "Tax Effect Of Unusual Items": null,
         "Tax Rate For Calcs": null,
-        "Normalized EBITDA": 788.72,
+        "Normalized EBITDA": null,
         "Total Unusual Items": null,
         "Total Unusual Items Excluding Goodwill": null,
         "Net Income From Continuing Operation Net Minority Interest": null,
@@ -3338,8 +3338,8 @@
       "Net Other Investing Changes": {
         "2026-03-31": -13.18,
         "2025-03-31": -35.47,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2024-03-31": 1.77,
+        "2023-03-31": -3.45,
         "2022-03-31": null
       },
       "Interest Received Cfi": {
@@ -3690,7 +3690,7 @@
         "Long Term Debt Payments": -476.71,
         "Long Term Debt Issuance": 222.26,
         "Investing Cash Flow": -276.85,
-        "Net Other Investing Changes": null,
+        "Net Other Investing Changes": 1.77,
         "Interest Received Cfi": 4.43,
         "Dividends Received Cfi": 1.51,
         "Net Investment Purchase And Sale": -29.09,
@@ -3746,7 +3746,7 @@
         "Long Term Debt Payments": -309.36,
         "Long Term Debt Issuance": 11.49,
         "Investing Cash Flow": -135.4,
-        "Net Other Investing Changes": null,
+        "Net Other Investing Changes": -3.45,
         "Interest Received Cfi": 14.77,
         "Dividends Received Cfi": 0.5,
         "Net Investment Purchase And Sale": -18.27,
@@ -3836,5 +3836,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:07:18"
+  "last_updated": "2026-09-27 15:45:16"
 }

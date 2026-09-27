@@ -48,12 +48,14 @@ NIFTY500_FILE = os.path.join(DATA_DIR, 'nifty500.csv')
 FNO_FILE = os.path.join(DATA_DIR, 'fno.csv')
 
 # Zerodha Historical Minute Parquet Directory
-ZERODHA_MINUTE_DIR = r"C:\Zerodha Historical Data\data\minute"
+LOCAL_MINUTE_DIR = os.path.join(DATA_DIR, 'minute')
+ZERODHA_MINUTE_DIR = LOCAL_MINUTE_DIR if (os.path.exists(LOCAL_MINUTE_DIR) and len(os.listdir(LOCAL_MINUTE_DIR)) > 0) else r"C:\Zerodha Historical Data\data\minute"
 ADJUSTED_DAILY_DIR = os.path.join(DATA_DIR, 'adjusted_daily')
 
 # Ensure local directories exist
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(BHAV_DIR, exist_ok=True)
+os.makedirs(LOCAL_MINUTE_DIR, exist_ok=True)
 os.makedirs(FUNDAMENTALS_DIR, exist_ok=True)
 os.makedirs(STATEMENTS_DIR, exist_ok=True)
 os.makedirs(ADJUSTED_DAILY_DIR, exist_ok=True)
@@ -603,7 +605,7 @@ def get_ticker_data_duckdb(symbol, timeframe='1d', start_date=None, end_date=Non
         df['Dividend_Yield'] = fund.get('dividendYield')
 
     # Raw minute Parquet files in ZERODHA_MINUTE_DIR are permanently split-adjusted and seamless
-    if parquet_path and ZERODHA_MINUTE_DIR.lower() in parquet_path.lower():
+    if parquet_path and ('minute' in parquet_path.lower() or ZERODHA_MINUTE_DIR.lower() in parquet_path.lower()):
         df._is_split_adjusted = True
 
     if auto_adjust and not getattr(df, '_is_split_adjusted', False):

@@ -5,10 +5,10 @@
     "companyName": "Aurobindo Pharma Limited",
     "sector": "Healthcare",
     "industry": "Drug Manufacturers - Specialty & Generic",
-    "marketCapCr": 97302.16,
-    "pe": 26.67,
-    "forwardPE": 18.19,
-    "pb": 2.59,
+    "marketCapCr": 98504.7,
+    "pe": 26.73,
+    "forwardPE": 18.39,
+    "pb": 2.62,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.21,
@@ -17,14 +17,14 @@
     "operatingMargin": 15.24,
     "profitMargin": 10.63,
     "dividendYield": 24.0,
-    "trailingEps": 63.42,
-    "forwardEps": 92.98,
+    "trailingEps": 64.04,
+    "forwardEps": 93.08,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 25.2,
     "quarterlyRevenueGrowth": 16.3,
     "bookValue": 652.39,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:08:21"
+    "lastUpdated": "2026-09-27 15:46:57"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1345,9 +1345,9 @@
       },
       "Net Debt": {
         "2026-03-31": 484.8,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 2372.73,
+        "2024-03-31": 2921.74,
+        "2023-03-31": 465.23,
         "2022-03-31": null
       },
       "Total Debt": {
@@ -2066,7 +2066,7 @@
         "date": "2025-03-31",
         "Ordinary Shares Number": 580801623.0,
         "Share Issued": 58.08,
-        "Net Debt": null,
+        "Net Debt": 2372.73,
         "Total Debt": 8262.87,
         "Tangible Book Value": 28414.6,
         "Invested Capital": 40595.0,
@@ -2160,7 +2160,7 @@
         "date": "2024-03-31",
         "Ordinary Shares Number": 585938609.0,
         "Share Issued": 58.59,
-        "Net Debt": null,
+        "Net Debt": 2921.74,
         "Total Debt": 6647.63,
         "Tangible Book Value": 25766.19,
         "Invested Capital": 36158.02,
@@ -2254,7 +2254,7 @@
         "date": "2023-03-31",
         "Ordinary Shares Number": 585938609.0,
         "Share Issued": 58.59,
-        "Net Debt": null,
+        "Net Debt": 465.23,
         "Total Debt": 5286.21,
         "Tangible Book Value": 22917.93,
         "Invested Capital": 31701.37,
@@ -3696,5 +3696,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:08:23"
+  "last_updated": "2026-09-27 15:46:59"
 }

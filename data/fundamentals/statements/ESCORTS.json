@@ -5,10 +5,10 @@
     "companyName": "Escorts Kubota Limited",
     "sector": "Industrials",
     "industry": "Farm & Heavy Construction Machinery",
-    "marketCapCr": 31225.77,
-    "pe": 22.59,
-    "forwardPE": 20.42,
-    "pb": 2.57,
+    "marketCapCr": 31420.52,
+    "pe": 22.73,
+    "forwardPE": 20.55,
+    "pb": 2.58,
     "roe": null,
     "roa": null,
     "debtToEquity": 1.31,
@@ -17,14 +17,14 @@
     "operatingMargin": 9.02,
     "profitMargin": 11.29,
     "dividendYield": 1.16,
-    "trailingEps": 125.63,
+    "trailingEps": 125.65,
     "forwardEps": 138.97,
     "pegRatio": 1.61,
     "quarterlyEarningsGrowth": -72.4,
     "quarterlyRevenueGrowth": 28.3,
     "bookValue": 1105.92,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:19:07"
+    "lastUpdated": "2026-09-27 16:08:42"
   },
   "quarterly_pnl": {
     "dates": [
@@ -677,10 +677,10 @@
       },
       "Interest Income": {
         "2026-03-31": 355.97,
-        "2025-03-31": null,
+        "2025-03-31": 209.91,
         "2024-03-31": 222.56,
-        "2023-03-31": null,
-        "2022-03-31": 46.37
+        "2023-03-31": 162.03,
+        "2022-03-31": null
       },
       "Normalized Income": {
         "2026-03-31": 1195.27,
@@ -1050,7 +1050,7 @@
         "EBIT": 1378.52,
         "Net Interest Income": 180.74,
         "Interest Expense": 27.51,
-        "Interest Income": null,
+        "Interest Income": 209.91,
         "Normalized Income": 937.84,
         "Net Income From Continuing And Discontinued Operation": 12649400000.0,
         "Total Expenses": 9182.39,
@@ -1166,7 +1166,7 @@
         "EBIT": 845.34,
         "Net Interest Income": 148.76,
         "Interest Expense": 10.75,
-        "Interest Income": null,
+        "Interest Income": 162.03,
         "Normalized Income": 648.92,
         "Net Income From Continuing And Discontinued Operation": 6367800000.0,
         "Total Expenses": 7600.61,
@@ -1224,7 +1224,7 @@
         "EBIT": null,
         "Net Interest Income": null,
         "Interest Expense": null,
-        "Interest Income": 46.37,
+        "Interest Income": null,
         "Normalized Income": null,
         "Net Income From Continuing And Discontinued Operation": null,
         "Total Expenses": null,
@@ -1315,10 +1315,10 @@
         "2022-03-31": null
       },
       "Tangible Book Value": {
-        "2026-03-31": null,
-        "2025-03-31": null,
+        "2026-03-31": 12259.81,
+        "2025-03-31": 10265.1,
         "2024-03-31": 9291.16,
-        "2023-03-31": null,
+        "2023-03-31": 8113.35,
         "2022-03-31": null
       },
       "Invested Capital": {
@@ -1862,9 +1862,9 @@
       },
       "Cash Financial": {
         "2026-03-31": 62.95,
-        "2025-03-31": null,
+        "2025-03-31": 51.5,
         "2024-03-31": 113.22,
-        "2023-03-31": null,
+        "2023-03-31": 72.1,
         "2022-03-31": null
       }
     },
@@ -1876,7 +1876,7 @@
         "Share Issued": 11.19,
         "Net Debt": null,
         "Total Debt": 161.89,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 12259.81,
         "Invested Capital": 12409.04,
         "Working Capital": 6995.54,
         "Net Tangible Assets": 12259.81,
@@ -1963,7 +1963,7 @@
         "Share Issued": 11.19,
         "Net Debt": null,
         "Total Debt": 105.18,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 10265.1,
         "Invested Capital": 10369.05,
         "Working Capital": 4647.56,
         "Net Tangible Assets": 10265.1,
@@ -2041,7 +2041,7 @@
         "Other Short Term Investments": 2911.56,
         "Cash And Cash Equivalents": 342.67,
         "Cash Equivalents": 291.17,
-        "Cash Financial": null
+        "Cash Financial": 51.5
       },
       {
         "date": "2024-03-31",
@@ -2137,7 +2137,7 @@
         "Share Issued": 13.19,
         "Net Debt": null,
         "Total Debt": 57.3,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 8113.35,
         "Invested Capital": 8186.71,
         "Working Capital": 3187.51,
         "Net Tangible Assets": 8113.35,
@@ -2215,7 +2215,7 @@
         "Other Short Term Investments": 1897.89,
         "Cash And Cash Equivalents": 182.15,
         "Cash Equivalents": 110.05,
-        "Cash Financial": null
+        "Cash Financial": 72.1
       },
       {
         "date": "2022-03-31",
@@ -3514,5 +3514,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:19:09"
+  "last_updated": "2026-09-27 16:08:47"
 }

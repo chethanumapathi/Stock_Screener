@@ -5,10 +5,10 @@
     "companyName": "Cipla Limited",
     "sector": "Healthcare",
     "industry": "Drug Manufacturers - Specialty & Generic",
-    "marketCapCr": 111161.32,
-    "pe": 32.79,
-    "forwardPE": 21.68,
-    "pb": 3.23,
+    "marketCapCr": 113077.64,
+    "pe": 33.56,
+    "forwardPE": 22.05,
+    "pb": 3.28,
     "roe": null,
     "roa": null,
     "debtToEquity": 1.78,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 12.55,
     "profitMargin": 12.01,
-    "dividendYield": 0.96,
-    "trailingEps": 41.96,
-    "forwardEps": 63.47,
+    "dividendYield": 0.93,
+    "trailingEps": 41.71,
+    "forwardEps": 63.48,
     "pegRatio": null,
     "quarterlyEarningsGrowth": -39.2,
     "quarterlyRevenueGrowth": 3.5,
     "bookValue": 426.25,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:30:26"
+    "lastUpdated": "2026-09-27 15:55:34"
   },
   "quarterly_pnl": {
     "dates": [
@@ -375,9 +375,9 @@
       "Operating Revenue": {
         "2026-06-30": 7077.02,
         "2026-03-31": 6464.26,
-        "2025-12-31": null,
-        "2025-06-30": null,
-        "2025-03-31": null,
+        "2025-12-31": 6962.97,
+        "2025-06-30": 6837.04,
+        "2025-03-31": 6597.72,
         "2024-12-31": null
       }
     },
@@ -518,7 +518,7 @@
         "Gross Profit": 4330.89,
         "Cost Of Revenue": 2632.08,
         "Total Revenue": 6962.97,
-        "Operating Revenue": null
+        "Operating Revenue": 6962.97
       },
       {
         "date": "2025-06-30",
@@ -564,7 +564,7 @@
         "Gross Profit": 4666.33,
         "Cost Of Revenue": 2170.71,
         "Total Revenue": 6837.04,
-        "Operating Revenue": null
+        "Operating Revenue": 6837.04
       },
       {
         "date": "2025-03-31",
@@ -610,7 +610,7 @@
         "Gross Profit": 4408.7,
         "Cost Of Revenue": 2189.02,
         "Total Revenue": 6597.72,
-        "Operating Revenue": null
+        "Operating Revenue": 6597.72
       },
       {
         "date": "2024-12-31",
@@ -802,9 +802,9 @@
       },
       "Net Income Common Stockholders": {
         "2026-03-31": 3879.23,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null
+        "2025-03-31": 5272.52,
+        "2024-03-31": 4121.55,
+        "2023-03-31": 2801.91
       },
       "Otherunder Preferred Stock Dividend": {
         "2026-03-31": 0.0,
@@ -1075,7 +1075,7 @@
         "Diluted EPS": 65.24,
         "Basic EPS": 65.29,
         "Diluted NI Availto Com Stockholders": 5272.52,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 5272.52,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 5272.52,
         "Minority Interests": 3.32,
@@ -1132,7 +1132,7 @@
         "Diluted EPS": 51.01,
         "Basic EPS": 51.05,
         "Diluted NI Availto Com Stockholders": 4121.55,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 4121.55,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 4121.55,
         "Minority Interests": -32.17,
@@ -1189,7 +1189,7 @@
         "Diluted EPS": 34.69,
         "Basic EPS": 34.72,
         "Diluted NI Availto Com Stockholders": 2801.91,
-        "Net Income Common Stockholders": null,
+        "Net Income Common Stockholders": 2801.91,
         "Otherunder Preferred Stock Dividend": 0.0,
         "Net Income": 2801.91,
         "Minority Interests": -30.98,
@@ -2440,7 +2440,7 @@
       },
       "Current Provisions": {
         "2026-03-31": 2259.15,
-        "2025-03-31": null
+        "2025-03-31": 1716.61
       },
       "Payables": {
         "2026-03-31": 3969.45,
@@ -2758,7 +2758,7 @@
         "Current Debt And Capital Lease Obligation": 185.72,
         "Current Capital Lease Obligation": 105.6,
         "Current Debt": 80.12,
-        "Current Provisions": null,
+        "Current Provisions": 1716.61,
         "Payables": 3461.58,
         "Other Payable": 533.05,
         "Dividends Payable": 14.29,
@@ -3510,5 +3510,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:30:28"
+  "last_updated": "2026-09-27 15:55:36"
 }

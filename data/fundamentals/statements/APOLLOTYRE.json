@@ -5,10 +5,10 @@
     "companyName": "Apollo Tyres Limited",
     "sector": "Consumer Cyclical",
     "industry": "Auto Parts",
-    "marketCapCr": 25875.74,
-    "pe": 15.17,
-    "forwardPE": 12.2,
-    "pb": 1.55,
+    "marketCapCr": 25309.58,
+    "pe": 14.84,
+    "forwardPE": 11.93,
+    "pb": 1.51,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.22,
@@ -16,7 +16,7 @@
     "quickRatio": null,
     "operatingMargin": 6.45,
     "profitMargin": 5.83,
-    "dividendYield": 2.71,
+    "dividendYield": 2.75,
     "trailingEps": 26.97,
     "forwardEps": 33.53,
     "pegRatio": null,
@@ -24,7 +24,7 @@
     "quarterlyRevenueGrowth": 12.8,
     "bookValue": 264.24,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:06:58"
+    "lastUpdated": "2026-09-27 15:44:15"
   },
   "quarterly_pnl": {
     "dates": [
@@ -727,7 +727,7 @@
       "Reconciled Cost Of Revenue": {
         "2026-03-31": 15703.22,
         "2025-03-31": 14830.25,
-        "2024-03-31": null,
+        "2024-03-31": 13796.75,
         "2023-03-31": 14782.05
       },
       "EBITDA": {
@@ -787,8 +787,8 @@
       "Diluted Average Shares": {
         "2026-03-31": 633891790.0,
         "2025-03-31": 635100946.0,
-        "2024-03-31": null,
-        "2023-03-31": null
+        "2024-03-31": 635100946.0,
+        "2023-03-31": 635100946.0
       },
       "Basic Average Shares": {
         "2026-03-31": 633754010.0,
@@ -1123,7 +1123,7 @@
         "Total Unusual Items Excluding Goodwill": -65.83,
         "Net Income From Continuing Operation Net Minority Interest": 17218660000.0,
         "Reconciled Depreciation": 1477.83,
-        "Reconciled Cost Of Revenue": null,
+        "Reconciled Cost Of Revenue": 13796.75,
         "EBITDA": 4513.45,
         "EBIT": 3035.62,
         "Net Interest Income": -492.25,
@@ -1133,7 +1133,7 @@
         "Net Income From Continuing And Discontinued Operation": 17218660000.0,
         "Total Expenses": 22029.76,
         "Rent Expense Supplemental": 43.71,
-        "Diluted Average Shares": null,
+        "Diluted Average Shares": 635100946.0,
         "Basic Average Shares": 635100946.0,
         "Diluted EPS": 27.11,
         "Basic EPS": 27.11,
@@ -1189,7 +1189,7 @@
         "Net Income From Continuing And Discontinued Operation": 10458440000.0,
         "Total Expenses": 22207.06,
         "Rent Expense Supplemental": 21.44,
-        "Diluted Average Shares": null,
+        "Diluted Average Shares": 635100946.0,
         "Basic Average Shares": 635100946.0,
         "Diluted EPS": 16.47,
         "Basic EPS": 16.47,
@@ -3161,10 +3161,10 @@
       },
       "Net Issuance Payments Of Debt": {
         "2026-03-31": -802.97,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
-        "2022-03-31": -187.51
+        "2025-03-31": -521.82,
+        "2024-03-31": -1611.41,
+        "2023-03-31": -748.4,
+        "2022-03-31": null
       },
       "Net Short Term Debt Issuance": {
         "2026-03-31": -156.46,
@@ -3474,7 +3474,7 @@
         "Preferred Stock Issuance": null,
         "Net Common Stock Issuance": 0.0,
         "Common Stock Payments": 0.0,
-        "Net Issuance Payments Of Debt": null,
+        "Net Issuance Payments Of Debt": -521.82,
         "Net Short Term Debt Issuance": 556.84,
         "Net Long Term Debt Issuance": -1078.66,
         "Long Term Debt Payments": -1078.66,
@@ -3529,7 +3529,7 @@
         "Preferred Stock Issuance": null,
         "Net Common Stock Issuance": null,
         "Common Stock Payments": null,
-        "Net Issuance Payments Of Debt": null,
+        "Net Issuance Payments Of Debt": -1611.41,
         "Net Short Term Debt Issuance": -245.65,
         "Net Long Term Debt Issuance": -1365.77,
         "Long Term Debt Payments": -1365.77,
@@ -3584,7 +3584,7 @@
         "Preferred Stock Issuance": null,
         "Net Common Stock Issuance": null,
         "Common Stock Payments": null,
-        "Net Issuance Payments Of Debt": null,
+        "Net Issuance Payments Of Debt": -748.4,
         "Net Short Term Debt Issuance": -341.9,
         "Net Long Term Debt Issuance": -406.5,
         "Long Term Debt Payments": -906.5,
@@ -3639,7 +3639,7 @@
         "Preferred Stock Issuance": 0.0,
         "Net Common Stock Issuance": null,
         "Common Stock Payments": null,
-        "Net Issuance Payments Of Debt": -187.51,
+        "Net Issuance Payments Of Debt": null,
         "Net Short Term Debt Issuance": null,
         "Net Long Term Debt Issuance": null,
         "Long Term Debt Payments": null,
@@ -3676,5 +3676,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:07:00"
+  "last_updated": "2026-09-27 15:44:17"
 }

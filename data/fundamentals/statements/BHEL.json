@@ -5,10 +5,10 @@
     "companyName": "Bharat Heavy Electricals Limited",
     "sector": "Industrials",
     "industry": "Specialty Industrial Machinery",
-    "marketCapCr": 149519.79,
-    "pe": 61.87,
-    "forwardPE": 30.71,
-    "pb": 5.72,
+    "marketCapCr": 145881.05,
+    "pe": 59.51,
+    "forwardPE": 29.96,
+    "pb": 5.58,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.31,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 5.48,
     "profitMargin": 6.76,
-    "dividendYield": 34.0,
-    "trailingEps": 6.94,
+    "dividendYield": 33.0,
+    "trailingEps": 7.04,
     "forwardEps": 13.98,
     "pegRatio": null,
     "quarterlyEarningsGrowth": null,
     "quarterlyRevenueGrowth": 40.3,
     "bookValue": 75.09,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:10:41"
+    "lastUpdated": "2026-09-27 15:51:04"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1309,6 +1309,13 @@
         "2023-03-31": 5419.76,
         "2022-03-31": null
       },
+      "Current Capital Lease Obligation": {
+        "2026-03-31": 68.77,
+        "2025-03-31": 57.21,
+        "2024-03-31": 24.91,
+        "2023-03-31": 34.76,
+        "2022-03-31": null
+      },
       "Current Debt": {
         "2026-03-31": 7950.0,
         "2025-03-31": 8795.0,
@@ -1693,6 +1700,7 @@
         "Current Liabilities": 32302.18,
         "Other Current Liabilities": 10559.6,
         "Current Debt And Capital Lease Obligation": 8018.77,
+        "Current Capital Lease Obligation": 68.77,
         "Current Debt": 7950.0,
         "Current Provisions": 1918.91,
         "Payables": 12272.05,
@@ -1776,6 +1784,7 @@
         "Current Liabilities": 28225.59,
         "Other Current Liabilities": 6776.63,
         "Current Debt And Capital Lease Obligation": 8852.21,
+        "Current Capital Lease Obligation": 57.21,
         "Current Debt": 8795.0,
         "Current Provisions": 1815.31,
         "Payables": 11154.98,
@@ -1859,6 +1868,7 @@
         "Current Liabilities": 25247.24,
         "Other Current Liabilities": 4066.94,
         "Current Debt And Capital Lease Obligation": 8832.91,
+        "Current Capital Lease Obligation": 24.91,
         "Current Debt": 8808.0,
         "Current Provisions": 2318.27,
         "Payables": 10284.13,
@@ -1942,6 +1952,7 @@
         "Current Liabilities": 23479.55,
         "Other Current Liabilities": 3962.29,
         "Current Debt And Capital Lease Obligation": 5419.76,
+        "Current Capital Lease Obligation": 34.76,
         "Current Debt": 5385.0,
         "Current Provisions": 2796.63,
         "Payables": 11552.92,
@@ -2025,6 +2036,7 @@
         "Current Liabilities": null,
         "Other Current Liabilities": null,
         "Current Debt And Capital Lease Obligation": null,
+        "Current Capital Lease Obligation": null,
         "Current Debt": null,
         "Current Provisions": null,
         "Payables": null,
@@ -3124,5 +3136,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:10:42"
+  "last_updated": "2026-09-27 15:51:06"
 }

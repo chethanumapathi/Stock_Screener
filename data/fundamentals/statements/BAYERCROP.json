@@ -5,10 +5,10 @@
     "companyName": "Bayer CropScience Limited",
     "sector": "Basic Materials",
     "industry": "Agricultural Inputs",
-    "marketCapCr": 17523.37,
-    "pe": 23.97,
-    "forwardPE": 20.78,
-    "pb": 5.91,
+    "marketCapCr": 16707.67,
+    "pe": 22.83,
+    "forwardPE": 19.81,
+    "pb": 5.63,
     "roe": null,
     "roa": null,
     "debtToEquity": 2.76,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 17.3,
     "profitMargin": 13.08,
-    "dividendYield": 3.81,
-    "trailingEps": 162.66,
+    "dividendYield": 4.03,
+    "trailingEps": 162.83,
     "forwardEps": 187.62,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 15.4,
     "quarterlyRevenueGrowth": -4.2,
     "bookValue": 659.89,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:09:53"
+    "lastUpdated": "2026-09-27 15:49:41"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1815,9 +1815,9 @@
       },
       "Work In Process": {
         "2026-03-31": 521.2,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 391.3,
+        "2024-03-31": 209.3,
+        "2023-03-31": 219.9,
         "2022-03-31": null
       },
       "Raw Materials": {
@@ -2032,7 +2032,7 @@
         "Inventory": 2361.8,
         "Other Inventories": 64.9,
         "Finished Goods": 701.3,
-        "Work In Process": null,
+        "Work In Process": 391.3,
         "Raw Materials": 1204.3,
         "Other Receivables": 5.2,
         "Accounts Receivable": 952.1,
@@ -2108,7 +2108,7 @@
         "Inventory": 1545.2,
         "Other Inventories": 65.5,
         "Finished Goods": 542.7,
-        "Work In Process": null,
+        "Work In Process": 209.3,
         "Raw Materials": 727.7,
         "Other Receivables": 6.0,
         "Accounts Receivable": 960.1,
@@ -2184,7 +2184,7 @@
         "Inventory": 1807.2,
         "Other Inventories": 79.7,
         "Finished Goods": 586.0,
-        "Work In Process": null,
+        "Work In Process": 219.9,
         "Raw Materials": 921.6,
         "Other Receivables": 3.9,
         "Accounts Receivable": 975.6,
@@ -3442,5 +3442,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:09:54"
+  "last_updated": "2026-09-27 15:49:42"
 }

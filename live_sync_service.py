@@ -29,7 +29,10 @@ import fetch_kotak_history as fkh
 import sync_minute_data as smd
 
 IST = timezone(timedelta(hours=5, minutes=30))
-ZERODHA_MINUTE_DIR = r"C:\Zerodha Historical Data\data\minute"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+LOCAL_MINUTE_DIR = os.path.join(DATA_DIR, 'minute')
+ZERODHA_MINUTE_DIR = LOCAL_MINUTE_DIR if (os.path.exists(LOCAL_MINUTE_DIR) and len(os.listdir(LOCAL_MINUTE_DIR)) > 0) else r"C:\Zerodha Historical Data\data\minute"
 
 logger = logging.getLogger("live_sync")
 if not logger.handlers:
