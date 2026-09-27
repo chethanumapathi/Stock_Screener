@@ -657,12 +657,8 @@ function selectStrategy(index) {
                 elements.screenStartDate.value = elements.screenEndDate.value;
             }
         }
-        if (strat.code.includes('MIN_MARKET_CAP_CR = 5000') || strat.name.toLowerCase().includes('5 min')) {
-            if (elements.minMcapInput) elements.minMcapInput.value = '5000';
-            if (elements.minMcapSelect) elements.minMcapSelect.value = '5000';
-            if (elements.segmentSelect && elements.segmentSelect.value === 'nifty50') {
-                elements.segmentSelect.value = 'nifty500';
-            }
+        if (elements.segmentSelect && elements.segmentSelect.value === 'nifty50') {
+            elements.segmentSelect.value = 'nifty500';
         }
     } else {
         if (elements.codeEditor) elements.codeEditor.value = '';
@@ -826,7 +822,6 @@ function selectBacktestStrategy(index) {
             if (elements.btSegmentSelect && elements.btSegmentSelect.value === 'nifty50') {
                 elements.btSegmentSelect.value = 'nifty500';
             }
-            if (elements.btMinMcapInput) elements.btMinMcapInput.value = '5000';
             showToast("Configured '5 Minutes' timeframe and 'Nifty 500' segment for this strategy.", "info");
         } else if ((strat.code && strat.code.includes('_ensure_weekly_df')) ||
             (strat.name && (strat.name.toLowerCase().includes('weekly') || strat.name.toLowerCase().includes('yearly-r1')))) {
