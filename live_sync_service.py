@@ -98,6 +98,7 @@ class LiveSyncService:
         self.last_updated_count: int = 0
         self.last_total_count: int = 0
         self.last_error: Optional[str] = None
+        self._symbol_last_sync: Dict[str, float] = {}
         self._lock = threading.Lock()
 
     def get_status(self) -> Dict[str, Any]:
@@ -161,10 +162,11 @@ class LiveSyncService:
         else:
             return smd.get_prioritized_symbols(tier='nifty50')
 
-    def sync_symbols_now(self, symbols: List[str], target_date: Optional[str] = None) -> Dict[str, Any]:
+    def sync_symbols_now(self, symbols: List[str], target_date: Optional[str] = None, force: bool = False) -> Dict[str, Any]:
         """
         Synchronously fetches intraday 1-minute candles from Kotak Neo for given symbols,
         stitches them atomically into Parquet files, and ingests them into OrderFlowEngine.
+        Applies a 60s freshness cache to prevent duplicate fetches on frequent live scans.
         """
         if not (self.client_mgr and self.scrip_resolver):
             return {
@@ -182,18 +184,72 @@ class LiveSyncService:
         to_date_str = min(sync_date_str, today_str)
         from_date_str = sync_date_str
 
+        now_ts = time.time()
+        freshness_threshold_s = 60.0
+
+        # Guard against concurrent executions
+        with self._lock:
+            if self.is_running:
+                logger.info(f"LiveSync is already actively running, skipping concurrent request for {len(symbols)} symbols.")
+                return {
+                    "success": True,
+                    "updated": 0,
+                    "total": len(symbols),
+                    "duration_s": 0.0,
+                    "updated_symbols": [],
+                    "failed_symbols": [],
+                    "sync_time": self.last_sync_time or datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'),
+                    "message": "Sync already running"
+                }
+            self.is_running = True
+
+        def _symbol_needs_sync(s):
+            clean_s = s.strip().upper().replace('.NS', '')
+            last_sync = self._symbol_last_sync.get(clean_s, 0.0)
+            if last_sync > 0.0:
+                return (now_ts - last_sync) >= freshness_threshold_s
+            p_file = os.path.join(ZERODHA_MINUTE_DIR, f"{clean_s}.parquet")
+            if os.path.exists(p_file):
+                try:
+                    mtime = os.path.getmtime(p_file)
+                    if (now_ts - mtime) < freshness_threshold_s:
+                        self._symbol_last_sync[clean_s] = mtime
+                        return False
+                except Exception:
+                    pass
+            return True
+
+        # Filter symbols that genuinely need synchronization
+        if not force:
+            needed_symbols = [s for s in symbols if _symbol_needs_sync(s)]
+        else:
+            needed_symbols = symbols
+
+        if not needed_symbols:
+            logger.info(f"All {len(symbols)} symbols are already fresh (synced within last {int(freshness_threshold_s)}s).")
+            with self._lock:
+                self.is_running = False
+            return {
+                "success": True,
+                "updated": len(symbols),
+                "total": len(symbols),
+                "duration_s": 0.0,
+                "updated_symbols": symbols,
+                "failed_symbols": [],
+                "sync_time": self.last_sync_time or datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+        # If more than 50 symbols, do the first 50 in foreground to keep HTTP responsive, rest in background
+        foreground_symbols = needed_symbols[:50]
+        background_symbols = needed_symbols[50:]
+
         start_time = time.time()
         updated_symbols = []
         failed_symbols = []
 
-        with self._lock:
-            self.is_running = True
-
-        try:
-            total = len(symbols)
-            logger.info(f"Syncing live intraday 1-minute data for {total} symbols ({from_date_str} to {to_date_str})...")
-
-            for idx, sym in enumerate(symbols, 1):
+        def _sync_worker(sym_list):
+            nonlocal updated_symbols, failed_symbols
+            for idx, sym in enumerate(sym_list, 1):
                 clean_sym = sym.strip().upper().replace('.NS', '')
                 tok = self.scrip_resolver.get_token(clean_sym)
                 if not tok:
@@ -215,6 +271,7 @@ class LiveSyncService:
                         ok, total_rows, msg = fkh.stitch_and_save_parquet(p_file, df, symbol=clean_sym)
                         if ok:
                             updated_symbols.append(clean_sym)
+                            self._symbol_last_sync[clean_sym] = time.time()
                         else:
                             failed_symbols.append(clean_sym)
 
@@ -228,6 +285,16 @@ class LiveSyncService:
                     logger.debug(f"Live sync error for {clean_sym}: {ex}")
                     failed_symbols.append(clean_sym)
 
+        try:
+            total = len(needed_symbols)
+            logger.info(f"Syncing live intraday 1-minute data for {len(foreground_symbols)} symbols ({from_date_str} to {to_date_str})...")
+            _sync_worker(foreground_symbols)
+
+            if background_symbols:
+                logger.info(f"Offloading remaining {len(background_symbols)} symbols to background sync thread...")
+                t = threading.Thread(target=_sync_worker, args=(background_symbols,), daemon=True)
+                t.start()
+
             duration = time.time() - start_time
             with self._lock:
                 self.last_sync_time = datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S')
@@ -236,11 +303,11 @@ class LiveSyncService:
                 self.last_total_count = total
                 self.last_error = None
 
-            logger.info(f"Live sync complete: {len(updated_symbols)}/{total} symbols updated in {duration:.1f}s.")
+            logger.info(f"Live sync complete: {len(updated_symbols)}/{len(foreground_symbols)} foreground symbols updated in {duration:.1f}s.")
             return {
                 "success": True,
                 "updated": len(updated_symbols),
-                "total": total,
+                "total": len(symbols),
                 "duration_s": round(duration, 2),
                 "updated_symbols": updated_symbols,
                 "failed_symbols": failed_symbols,

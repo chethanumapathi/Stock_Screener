@@ -4,8 +4,14 @@ import re
 import time
 import logging
 import json
+import threading
 import webbrowser
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+try:
+    from zoneinfo import ZoneInfo
+    IST = ZoneInfo("Asia/Kolkata")
+except Exception:
+    IST = timezone(timedelta(hours=5, minutes=30))
 import requests
 import pandas as pd
 import numpy as np
@@ -3109,12 +3115,18 @@ def api_status():
     total_sessions = 0
 
     try:
-        p = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
-        if not os.path.exists(p):
-            p = get_ticker_parquet_path('RELIANCE')
-        if p and os.path.exists(p):
-            con = get_duckdb_connection()
-            res = con.execute("SELECT MIN(CAST(date AS DATE))::VARCHAR, MAX(CAST(date AS DATE))::VARCHAR, COUNT(DISTINCT CAST(date AS DATE)) FROM read_parquet(?)", [p.replace('\\', '/')]).fetchone()
+        con = get_duckdb_connection()
+        p_daily = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
+        p_min = get_ticker_parquet_path('RELIANCE')
+        sources = []
+        if p_daily and os.path.exists(p_daily):
+            sources.append(f"SELECT MIN(CAST(date AS DATE)) as min_d, MAX(CAST(date AS DATE)) as max_d, COUNT(DISTINCT CAST(date AS DATE)) as cnt FROM read_parquet('{p_daily.replace('\\', '/')}')")
+        if p_min and os.path.exists(p_min):
+            sources.append(f"SELECT MIN(CAST(date AS DATE)) as min_d, MAX(CAST(date AS DATE)) as max_d, COUNT(DISTINCT CAST(date AS DATE)) as cnt FROM read_parquet('{p_min.replace('\\', '/')}')")
+
+        if sources:
+            union_sql = f"SELECT MIN(min_d)::VARCHAR, MAX(max_d)::VARCHAR, MAX(cnt) FROM ({' UNION ALL '.join(sources)})"
+            res = con.execute(union_sql).fetchone()
             if res and res[0] and res[1]:
                 oldest_date = str(res[0])[:10]
                 latest_date = str(res[1])[:10]
@@ -3142,14 +3154,20 @@ def api_status():
 
 @app.route('/api/dates', methods=['GET'])
 def api_dates():
-    # Prefer accurate DuckDB dates from adjusted daily/minute parquet
+    # Prefer accurate DuckDB dates from adjusted daily and minute parquet
     try:
-        p = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
-        if not os.path.exists(p):
-            p = get_ticker_parquet_path('RELIANCE')
-        if p and os.path.exists(p):
-            con = get_duckdb_connection()
-            dates = con.execute("SELECT DISTINCT CAST(date AS DATE)::VARCHAR as d FROM read_parquet(?) ORDER BY d DESC", [p.replace('\\', '/')]).fetchdf()['d'].tolist()
+        con = get_duckdb_connection()
+        p_daily = os.path.join(ADJUSTED_DAILY_DIR, 'RELIANCE.parquet')
+        p_min = get_ticker_parquet_path('RELIANCE')
+        sources = []
+        if p_daily and os.path.exists(p_daily):
+            sources.append(f"SELECT DISTINCT CAST(date AS DATE)::VARCHAR as d FROM read_parquet('{p_daily.replace('\\', '/')}')")
+        if p_min and os.path.exists(p_min):
+            sources.append(f"SELECT DISTINCT CAST(date AS DATE)::VARCHAR as d FROM read_parquet('{p_min.replace('\\', '/')}')")
+
+        if sources:
+            union_sql = " UNION ".join(sources) + " ORDER BY d DESC"
+            dates = con.execute(union_sql).fetchdf()['d'].tolist()
             if dates:
                 return jsonify({"dates": dates})
     except Exception as e:
@@ -3476,14 +3494,32 @@ def api_screen():
     if not code_str:
         return jsonify({"status": "error", "message": "Screening Python code is required"}), 400
 
-    # If live mode is requested, sync latest intraday 1-minute candles for the segment first
-    if live_mode and segment in ['nifty50', 'fno', 'watchlist']:
-        try:
-            engine = OrderFlowEngine.get_instance()
-            service = LiveSyncService.get_instance(orderflow_engine=engine)
-            service.sync_segment_now(segment=segment, custom_symbols=watchlist)
-        except Exception as e:
-            logger.warning(f"Live pre-screen sync notice: {e}")
+    now_ist = datetime.now(IST)
+    today_str = now_ist.strftime('%Y-%m-%d')
+
+    if live_mode:
+        # Default date range to today for real-time live screening
+        if not end_date or end_date < today_str:
+            end_date = today_str
+        if not start_date or start_date < today_str:
+            start_date = today_str
+
+        # Auto-switch timeframe to 5m if strategy requires it
+        if timeframe in ['1d', 'daily', 'day'] and ('VOLUME_LOOKBACK_5MIN' in code_str or '5 min' in code_str.lower() or '5-min' in code_str.lower()):
+            timeframe = '5m'
+
+        # Sync latest intraday 1-minute candles for the segment in background
+        if segment in ['nifty50', 'fno', 'nifty500', 'watchlist']:
+            try:
+                engine = OrderFlowEngine.get_instance()
+                service = LiveSyncService.get_instance(orderflow_engine=engine)
+                threading.Thread(
+                    target=service.sync_segment_now,
+                    kwargs={"segment": segment, "custom_symbols": watchlist},
+                    daemon=True
+                ).start()
+            except Exception as e:
+                logger.warning(f"Live pre-screen sync notice: {e}")
 
     result = run_screener_logic(code_str, segment, timeframe=timeframe, watchlist_symbols=watchlist, start_date=start_date, end_date=end_date, min_market_cap_cr=min_market_cap_cr)
     return jsonify(sanitize_nan_values(result))

@@ -395,18 +395,23 @@ async function loadStatus() {
             const count = data.parquet_symbols_count || data.total_symbols;
             if (elements.dbStatusText) elements.dbStatusText.textContent = `● DuckDB: ${formatNumber(count)} Tickers Ready`;
 
+            const todayStr = new Date().toISOString().split('T')[0];
+            const maxDateLimit = (data.latest_date && data.latest_date > todayStr) ? data.latest_date : todayStr;
             if (data.latest_date) {
                 if (elements.screenEndDate) {
                     elements.screenEndDate.value = data.latest_date;
-                    elements.screenEndDate.max = data.latest_date;
+                    elements.screenEndDate.max = maxDateLimit;
                 }
                 if (elements.btScreenEndDate) {
                     elements.btScreenEndDate.value = data.latest_date;
-                    elements.btScreenEndDate.max = data.latest_date;
+                    elements.btScreenEndDate.max = maxDateLimit;
                 }
             }
             if (data.oldest_date) {
-                if (elements.screenStartDate) elements.screenStartDate.value = data.latest_date || data.oldest_date;
+                if (elements.screenStartDate) {
+                    elements.screenStartDate.value = data.latest_date || data.oldest_date;
+                    elements.screenStartDate.max = maxDateLimit;
+                }
                 if (elements.btScreenStartDate) elements.btScreenStartDate.value = data.oldest_date;
             }
         } else {
@@ -457,20 +462,21 @@ async function loadDates() {
             }
 
             const latestTradingDate = AppState.dates[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+            const maxDateLimit = (latestTradingDate && latestTradingDate > todayStr) ? latestTradingDate : todayStr;
             if (elements.screenEndDate) {
-                elements.screenEndDate.value = latestTradingDate;
-                elements.screenEndDate.max = latestTradingDate;
+                elements.screenEndDate.value = latestTradingDate || todayStr;
+                elements.screenEndDate.max = maxDateLimit;
             }
             if (elements.screenStartDate) {
-                elements.screenStartDate.value = latestTradingDate;
-                elements.screenStartDate.max = latestTradingDate;
+                elements.screenStartDate.value = latestTradingDate || todayStr;
+                elements.screenStartDate.max = maxDateLimit;
             }
             if (elements.btScreenEndDate) {
-                elements.btScreenEndDate.value = latestTradingDate;
-                elements.btScreenEndDate.max = latestTradingDate;
+                elements.btScreenEndDate.value = latestTradingDate || todayStr;
+                elements.btScreenEndDate.max = maxDateLimit;
             }
 
-            const todayStr = new Date().toISOString().split('T')[0];
             if (elements.rangeSyncEnd) {
                 elements.rangeSyncEnd.value = todayStr;
                 elements.rangeSyncEnd.max = todayStr;
@@ -656,9 +662,6 @@ function selectStrategy(index) {
             if (elements.screenStartDate && elements.screenEndDate && elements.screenEndDate.value) {
                 elements.screenStartDate.value = elements.screenEndDate.value;
             }
-        }
-        if (elements.segmentSelect && elements.segmentSelect.value === 'nifty50') {
-            elements.segmentSelect.value = 'nifty500';
         }
     } else {
         if (elements.codeEditor) elements.codeEditor.value = '';
@@ -903,10 +906,26 @@ async function runScreener(isLive = false) {
         return;
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (isLive) {
+        if (elements.screenStartDate) elements.screenStartDate.value = todayStr;
+        if (elements.screenEndDate) elements.screenEndDate.value = todayStr;
+    }
+
     const segment = elements.segmentSelect ? elements.segmentSelect.value : 'nifty50';
-    const timeframe = elements.timeframeSelect ? elements.timeframeSelect.value : '1d';
-    const startDate = elements.screenStartDate ? elements.screenStartDate.value || null : null;
-    const endDate = elements.screenEndDate ? elements.screenEndDate.value || null : null;
+    let timeframe = elements.timeframeSelect ? elements.timeframeSelect.value : '1d';
+    // Auto-detect 5m strategy requirement if timeframe left on 1d
+    if (code.includes('VOLUME_LOOKBACK_5MIN') || code.toLowerCase().includes('5 min') || code.toLowerCase().includes('5-min')) {
+        timeframe = '5m';
+        if (elements.timeframeSelect) elements.timeframeSelect.value = '5m';
+    }
+
+    let startDate = elements.screenStartDate ? elements.screenStartDate.value || null : null;
+    let endDate = elements.screenEndDate ? elements.screenEndDate.value || null : null;
+    if (isLive) {
+        startDate = todayStr;
+        endDate = todayStr;
+    }
     const minMcap = elements.minMcapInput ? Number(elements.minMcapInput.value) || 0 : 2000;
 
     if (elements.btnRunScreener) elements.btnRunScreener.disabled = true;
@@ -2781,7 +2800,15 @@ async function syncDateRange() {
 // Watchlist File Upload Handler
 function initWatchlistUpload() {
     if (elements.segmentSelect) {
+        const savedSeg = localStorage.getItem('screener_segment');
+        if (savedSeg && Array.from(elements.segmentSelect.options).some(o => o.value === savedSeg)) {
+            elements.segmentSelect.value = savedSeg;
+            if (elements.watchlistUploadGroup) {
+                elements.watchlistUploadGroup.style.display = (savedSeg === 'watchlist') ? 'block' : 'none';
+            }
+        }
         elements.segmentSelect.addEventListener('change', (e) => {
+            localStorage.setItem('screener_segment', e.target.value);
             if (elements.watchlistUploadGroup) {
                 elements.watchlistUploadGroup.style.display = (e.target.value === 'watchlist') ? 'block' : 'none';
             }
