@@ -1,0 +1,155 @@
+//@version=5
+strategy("15-Min Volume Breakout (300) + Daily R3 + Monthly R1 + RSI>88 Long (Buy High | TP 3% | VWAP & 15m High SL)", 
+         overlay=true, 
+         initial_capital=100000, 
+         default_qty_type=strategy.percent_of_equity, 
+         default_qty_value=100,
+         commission_type=strategy.commission.percent, 
+         commission_value=0.03)
+
+// =========================================================================
+// INPUT PARAMETERS
+// =========================================================================
+grp_setup     = "Strategy Rules & Filters"
+rsi_len       = input.int(14, "15m RSI Length", minval=1, group=grp_setup)
+rsi_thresh    = input.float(88.0, "15m RSI Threshold (>)", minval=50.0, maxval=95.0, group=grp_setup)
+vol_lookback  = input.int(300, "15m Volume Lookback Bars", minval=50, maxval=500, group=grp_setup)
+tp_pct        = input.float(3.0, "Target Profit %", minval=0.5, step=0.5, group=grp_setup)
+
+grp_time      = "Session Time Constraints (IST)"
+cutoff_hour   = input.int(12, "Entry Cutoff Hour (24h)", minval=9, maxval=15, group=grp_time)
+cutoff_min    = input.int(0, "Entry Cutoff Minute", minval=0, maxval=59, group=grp_time)
+sqoff_hour    = input.int(15, "EOD Square-off Hour (24h)", minval=14, maxval=15, group=grp_time)
+sqoff_min     = input.int(15, "EOD Square-off Minute", minval=0, maxval=59, group=grp_time)
+
+// =========================================================================
+// TECHNICAL INDICATORS (15-Minute Context)
+// =========================================================================
+// 1. Session VWAP (resets daily at 09:15 IST)
+session_vwap = ta.vwap
+
+// 2. Classical Daily Pivot Levels (from prior completed day's OHLC)
+d_high  = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+d_low   = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+d_close = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+
+d_pivot  = (d_high + d_low + d_close) / 3.0
+daily_r3 = d_high + 2.0 * (d_pivot - d_low)
+
+// 3. Classical Monthly Pivot Levels (from prior completed month's OHLC)
+m_high  = request.security(syminfo.tickerid, "1M", high[1], lookahead=barmerge.lookahead_on)
+m_low   = request.security(syminfo.tickerid, "1M", low[1], lookahead=barmerge.lookahead_on)
+m_close = request.security(syminfo.tickerid, "1M", close[1], lookahead=barmerge.lookahead_on)
+
+m_pivot    = (m_high + m_low + m_close) / 3.0
+monthly_r1 = 2.0 * m_pivot - m_low
+
+// 4. Higher Timeframe 15-Minute Data
+vol_15m      = request.security(syminfo.tickerid, "15", volume)
+vol_15m_max  = request.security(syminfo.tickerid, "15", ta.highest(volume[1], vol_lookback))
+close_15m    = request.security(syminfo.tickerid, "15", close)
+high_15m     = request.security(syminfo.tickerid, "15", high)
+rsi_15m      = request.security(syminfo.tickerid, "15", ta.rsi(close, rsi_len))
+
+bool is_new_15m_bar = ta.change(time("15")) != 0
+
+// =========================================================================
+// CONDITIONS CHECK
+// =========================================================================
+bool cond_vol_brk = not na(vol_15m_max) and (vol_15m > vol_15m_max)
+bool cond_r3      = not na(daily_r3) and (close_15m > daily_r3)
+bool cond_mr1     = not na(monthly_r1) and (close_15m > monthly_r1)
+bool cond_rsi     = not na(rsi_15m) and (rsi_15m > rsi_thresh)
+
+bool before_cutoff = (hour < cutoff_hour) or (hour == cutoff_hour and minute <= cutoff_min)
+bool is_sqoff_time = (hour > sqoff_hour) or (hour == sqoff_hour and minute >= sqoff_min)
+
+bool is_new_day = ta.change(time("D")) != 0
+var bool tp_hit_today = false
+if is_new_day
+    tp_hit_today := false
+
+// Qualifying Setup Trigger (15m candle completing with all rules)
+bool setup_trigger = is_new_15m_bar and cond_vol_brk and cond_r3 and cond_mr1 and cond_rsi and before_cutoff and not tp_hit_today
+
+// =========================================================================
+// STATE MACHINE (Buy-Stop at Setup High, TP 3%, Dynamic VWAP / 15m High SL)
+// =========================================================================
+var int state = 0  // 0: IDLE, 1: AWAITING_BREAKOUT, 2: IN_TRADE
+var float setup_high = na
+var float entry_price = na
+var float tp_price = na
+var float active_sl = na
+var float pending_sl = na
+
+// 1. Arm Buy-Stop Setup when 15m candle qualifies
+if (setup_trigger and state == 0 and strategy.position_size == 0)
+    setup_high := high_15m
+    state := 1
+
+// 2. Awaiting Breakout -> Buy at Setup High
+if (state == 1 and strategy.position_size == 0)
+    if not before_cutoff or is_new_day
+        state := 0
+        setup_high := na
+    else if high >= setup_high
+        entry_price := math.max(open, setup_high)
+        tp_price    := entry_price * (1.0 + tp_pct / 100.0)
+        active_sl   := na
+        pending_sl  := na
+        state       := 2
+        strategy.entry("Long", strategy.long, stop=setup_high, comment="Buy Breakout")
+
+// 3. In Trade Management (TP 3%, Dynamic VWAP / 15m High SL, EOD Square-off)
+if (strategy.position_size > 0)
+    // Update SL shifted from prior candle's close
+    if not na(pending_sl)
+        active_sl := pending_sl
+        pending_sl := na
+
+    // A) Target Profit (+3.0%)
+    if high >= tp_price
+        strategy.exit("TP 3%", "Long", limit=tp_price, comment="TP +3%")
+        tp_hit_today := true
+        state := 0
+        setup_high := na
+        active_sl := na
+
+    // B) Stop Loss Hit (active from prior candle's low)
+    else if not na(active_sl) and low <= active_sl
+        strategy.exit("SL", "Long", stop=active_sl, comment="SL Hit")
+        state := 0
+        setup_high := na
+        active_sl := na
+
+    // C) EOD Square-off (15:15 IST)
+    else if is_sqoff_time or is_new_day
+        strategy.close("Long", comment="EOD 15:15 Close")
+        state := 0
+        setup_high := na
+        active_sl := na
+
+    // D) SL Updates on candle close (active next candle):
+    //    - Close below session VWAP moves SL to that candle's low
+    //    - Close at/below the 15-min high moves SL to that candle's low
+    bool close_below_vwap = close < session_vwap
+    bool close_below_15m  = not na(setup_high) and (close <= setup_high)
+
+    if (close_below_vwap or close_below_15m)
+        pending_sl := low
+
+if (strategy.position_size == 0 and state == 2)
+    state := 0
+
+// =========================================================================
+// VISUAL PLOTS & SIGNALS
+// =========================================================================
+plot(session_vwap, "Session VWAP", color=color.new(color.orange, 0), linewidth=2)
+plot(daily_r3, "Daily R3", color=color.new(color.purple, 20), linewidth=2, style=plot.style_stepline)
+plot(monthly_r1, "Monthly R1", color=color.new(color.blue, 20), linewidth=2, style=plot.style_stepline)
+plot(state > 0 ? setup_high : na, "Setup 15m High", color=color.new(color.yellow, 0), style=plot.style_circles, linewidth=2)
+plot(strategy.position_size > 0 ? tp_price : na, "TP (+3%)", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size > 0 and not na(active_sl) ? active_sl : na, "Active Dynamic SL", color=color.new(color.red, 0), style=plot.style_linebr, linewidth=2)
+
+plotshape(setup_trigger, "Setup Trigger", shape.triangleup, location.belowbar, color.new(color.green, 0), size=size.small, text="SETUP 15m")
+bgcolor(setup_trigger ? color.new(color.green, 90) : na)

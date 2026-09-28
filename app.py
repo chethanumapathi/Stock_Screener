@@ -927,8 +927,8 @@ def run_screener_logic(code_str, segment, timeframe='1d', watchlist_symbols=None
     Executes user's custom python screen(df) logic across multiple timeframes (1m, 5m, 15m, 1h, 1d)
     using DuckDB for high performance.
     """
-    # Auto-detect if strategy explicitly requires 5-minute data but timeframe was left as '1d'
-    if timeframe in ['1d', 'daily', 'day'] and ('VOLUME_LOOKBACK_5MIN' in code_str or '5 min' in code_str.lower() or '5-min' in code_str.lower()):
+    # Auto-detect if strategy explicitly requires 5-minute/15-minute data but timeframe was left as '1d'
+    if timeframe in ['1d', 'daily', 'day'] and any(k in code_str for k in ['VOLUME_LOOKBACK_5MIN', 'VOLUME_LOOKBACK_15MIN']) or any(k in code_str.lower() for k in ['5 min', '5-min', '15 min', '15-min']):
         logger.info("Auto-switching screener timeframe to '5m' based on strategy requirements...")
         timeframe = '5m'
 
@@ -3505,7 +3505,7 @@ def api_screen():
             start_date = today_str
 
         # Auto-switch timeframe to 5m if strategy requires it
-        if timeframe in ['1d', 'daily', 'day'] and ('VOLUME_LOOKBACK_5MIN' in code_str or '5 min' in code_str.lower() or '5-min' in code_str.lower()):
+        if timeframe in ['1d', 'daily', 'day'] and (any(k in code_str for k in ['VOLUME_LOOKBACK_5MIN', 'VOLUME_LOOKBACK_15MIN']) or any(k in code_str.lower() for k in ['5 min', '5-min', '15 min', '15-min'])):
             timeframe = '5m'
 
         # Sync latest intraday 1-minute candles for the segment in background
