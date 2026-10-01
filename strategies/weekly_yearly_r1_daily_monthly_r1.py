@@ -304,7 +304,7 @@ def _simulate_one_trade(low, high, close, opn, entry_idx, entry_price, tp_price,
     # Reached end of available data with position still open
     mae_pct = (min_low - entry_price) / entry_price * 100.0
     mfe_pct = (max_high - entry_price) / entry_price * 100.0
-    return n - 1, close[-1], "End of Data", mae_pct, mfe_pct
+    return n - 1, close[-1], "Still Running", mae_pct, mfe_pct
 
 
 # =========================================================================
@@ -425,12 +425,12 @@ def backtest(df: pd.DataFrame) -> dict:
                 "entry_price": round(float(ep), 2),
                 "sl_price": round(float(sp), 2),
                 "tp_price": round(float(tp), 2),
-                "exit_date": str(date_strs[ex_idx])[:10],
+                "exit_date": "-" if (reason in ["Still Running", "End of Data"]) else str(date_strs[ex_idx])[:10],
                 "exit_price": round(float(ex_p), 2),
-                "exit_reason": reason,
+                "exit_reason": "Still Running" if is_open else reason,
                 "mae_pct": round(float(mae_pct), 2),
                 "mfe_pct": round(float(mfe_pct), 2),
-                "is_open": (reason == "End of Data")
+                "is_open": (reason in ["Still Running", "End of Data"])
             })
             i = ex_idx + 1
         else:

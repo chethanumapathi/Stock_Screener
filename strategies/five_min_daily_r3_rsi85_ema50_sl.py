@@ -457,9 +457,9 @@ def simulate_trades(df_input: pd.DataFrame):
         trades.append({
             "entry_date": dates_1m[trade_entry_idx],
             "entry_price": round(float(entry_price), 2),
-            "exit_date": dates_1m[-1],
+            "exit_date": "-",
             "exit_price": round(float(close_1m[-1]), 2),
-            "exit_reason": "End of Data",
+            "exit_reason": "Still Running",
             "trade_type": "SHORT",
             "side": "SHORT",
             "direction": "SHORT",

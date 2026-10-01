@@ -270,9 +270,9 @@ def simulate_trades(df: pd.DataFrame):
         trades.append({
             "entry_date": date_strs[trade_entry_idx],
             "entry_price": round(float(entry_price), 2),
-            "exit_date": date_strs[exit_idx],
+            "exit_date": "-" if is_open else date_strs[exit_idx],
             "exit_price": round(float(exit_px), 2),
-            "exit_reason": reason,
+            "exit_reason": "Still Running" if is_open else reason,
             "mae_pct": round(float(mae), 2),
             "mfe_pct": round(float(mfe), 2),
             "is_open": bool(is_open),
@@ -385,7 +385,7 @@ def simulate_trades(df: pd.DataFrame):
                     state = "AWAITING_ST_BUY"
 
     if state == "IN_TRADE":
-        close_trade(n - 1, close[-1], "End of Data", is_open=True)
+        close_trade(n - 1, close[-1], "Still Running", is_open=True)
 
     indicators = {
         'Weekly_R3': weekly_r3,

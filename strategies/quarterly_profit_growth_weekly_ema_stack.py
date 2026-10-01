@@ -275,9 +275,9 @@ def backtest(df: pd.DataFrame) -> dict:
         trades.append({
             'entry_date': entry_date,
             'entry_price': round(float(entry_price), 2),
-            'exit_date': dates[-1],
+            'exit_date': '-',
             'exit_price': round(float(closes[-1]), 2),
-            'exit_reason': 'End of Data (Running)',
+            'exit_reason': 'Still Running',
             'pnl_pct': round(float(pnl_pct), 2),
             'mfe_pct': round(float(max_favorable), 2),
             'mae_pct': round(float(max_adverse), 2),

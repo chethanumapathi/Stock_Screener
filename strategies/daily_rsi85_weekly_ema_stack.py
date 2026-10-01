@@ -356,10 +356,10 @@ def simulate_trades(df: pd.DataFrame):
                     "entry_price": round(float(entry_price), 2),
                     "exit_date": dates[i],
                     "exit_price": round(float(close[i]), 2),
-                    "exit_reason": "OPEN_TIMEOUT",
+                    "exit_reason": "Max Hold Bars Timeout",
                     "mae_pct": round(float(mae), 2),
                     "mfe_pct": round(float(mfe), 2),
-                    "is_open": True,
+                    "is_open": False,
                 })
                 state = "IDLE"
                 armed_sl_low = None
@@ -538,9 +538,9 @@ def simulate_trades(df: pd.DataFrame):
         trades.append({
             "entry_date": dates[trade_entry_idx],
             "entry_price": round(float(entry_price), 2),
-            "exit_date": dates[-1],
+            "exit_date": "-",
             "exit_price": round(float(close[-1]), 2),
-            "exit_reason": "End of Data",
+            "exit_reason": "Still Running",
             "mae_pct": round(float(mae), 2),
             "mfe_pct": round(float(mfe), 2),
             "is_open": True,

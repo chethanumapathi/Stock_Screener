@@ -804,10 +804,12 @@ def fetch_fno_symbols():
             logger.error(f"Error reading local FnO file: {e}")
 
     try:
-        url = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+        url = "https://nsearchives.nseindia.com/content/fo/fo_mktlots.csv"
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
         if r.status_code == 200:
-            df = pd.read_csv(io.StringIO(r.text))
+            lines = [l.strip() for l in r.text.splitlines() if l.strip()]
+            data_lines = [l for l in lines if len([p for p in l.split(',') if p.strip()]) >= 2]
+            df = pd.read_csv(io.StringIO('\n'.join(data_lines)))
             df.columns = df.columns.str.strip()
             symbol_col = None
             for col in df.columns:
@@ -816,7 +818,7 @@ def fetch_fno_symbols():
                     break
             if symbol_col:
                 symbols = df[symbol_col].dropna().str.strip().unique().tolist()
-                symbols = [s for s in symbols if s not in ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'NIFTYNXT50', 'Symbol']]
+                symbols = [s for s in symbols if s not in ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'NIFTYNXT50', 'Symbol', 'SYMBOL']]
                 pd.DataFrame({'Symbol': sorted(symbols)}).to_csv(FNO_FILE, index=False)
                 return sorted(symbols)
     except Exception as e:
@@ -1787,6 +1789,9 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
                 "overall_profit": 0.0,
                 "no_of_trades": 0,
                 "open_trades": 0,
+                "still_running_trades": 0,
+                "still_running_mtm": 0.0,
+                "still_running_str": "0 (₹ 0.00)",
                 "avg_profit_per_trade": 0.0,
                 "win_pct": 0.0,
                 "loss_pct": 0.0,
@@ -1877,14 +1882,17 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
         t_copy['direction'] = 'SHORT' if is_short else 'LONG'
         t_copy['side'] = 'SHORT' if is_short else 'LONG'
 
-        is_open_trade = bool(
+        is_timeout_exit = ('timeout' in reason_str) or (reason_str == 'open_timeout')
+        is_open_trade = not is_timeout_exit and bool(
             t_copy.get('is_open') is True or
             str(t_copy.get('is_open', '')).lower() == 'true' or
             'still running' in reason_str or
             'end of data' in reason_str or
-            reason_str in ['open', 'open_timeout', 'running'] or
+            reason_str in ['open', 'running'] or
             exit_dt_val in ['', '-', 'None', 'nan']
         )
+        if is_timeout_exit:
+            t_copy['is_open'] = False
 
         entry_p = float(t_copy['entry_price'])
         exit_p = float(t_copy['exit_price']) if (t_copy.get('exit_price') is not None and not pd.isna(t_copy.get('exit_price'))) else entry_p
@@ -2607,18 +2615,32 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     mae_val = float(tr.get('mae_pct', 0.0)) if tr.get('mae_pct') is not None else 0.0
                     mfe_val = float(tr.get('mfe_pct', 0.0)) if tr.get('mfe_pct') is not None else 0.0
 
+                    ex_clean = str(ex_reason).strip().lower()
+                    exit_dt_str = str(tr.get('exit_date', '')).strip()
+                    is_timeout_exit = ('timeout' in ex_clean) or (ex_clean == 'open_timeout')
+
+                    is_open_trade = not is_timeout_exit and bool(
+                        tr.get('is_open') is True or
+                        str(tr.get('is_open', '')).lower() == 'true' or
+                        ex_clean in ['still running', 'end of data', 'open', 'running'] or
+                        'still running' in ex_clean or
+                        'end of data' in ex_clean or
+                        exit_dt_str in ['', '-', 'None', 'nan']
+                    )
+
+                    last_bar_date_str = str(df_symbol['date'].iloc[-1])[:10] if ('date' in df_symbol.columns and len(df_symbol) > 0) else ''
+
                     try:
                         d_in = datetime.strptime(str(tr['entry_date'])[:10], '%Y-%m-%d')
-                        d_out = datetime.strptime(str(tr['exit_date'])[:10], '%Y-%m-%d')
-                        duration_days = (d_out - d_in).days
+                        if is_open_trade or exit_dt_str in ['', '-', 'None', 'nan']:
+                            d_out = datetime.strptime(last_bar_date_str, '%Y-%m-%d') if last_bar_date_str else d_in
+                        else:
+                            d_out = datetime.strptime(exit_dt_str[:10], '%Y-%m-%d')
+                        duration_days = max(0, (d_out - d_in).days)
                         weekday_str = d_in.strftime('%a')
                     except Exception:
                         duration_days = 0
                         weekday_str = "Mon"
-
-                    ex_clean = str(ex_reason).strip().lower()
-                    ex_clean = str(ex_reason).strip().lower()
-                    exit_dt_str = str(tr.get('exit_date', '')).strip()
 
                     is_tr_short = (
                         str(tr.get('trade_type', '')).upper() in ['SHORT', 'SELL'] or
@@ -2628,15 +2650,6 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     )
                     trade_type_name = "Short" if is_tr_short else "Long"
                     trade_type_upper = "SHORT" if is_tr_short else "LONG"
-
-                    is_open_trade = bool(
-                        tr.get('is_open') is True or
-                        str(tr.get('is_open', '')).lower() == 'true' or
-                        ex_clean in ['still running', 'end of data', 'open', 'open_timeout', 'running'] or
-                        'still running' in ex_clean or
-                        'end of data' in ex_clean or
-                        exit_dt_str in ['', '-', 'None', 'nan']
-                    )
 
                     if is_tr_short:
                         eff_entry = entry_price * (1.0 - slippage_pct / 100.0)
