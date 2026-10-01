@@ -69,11 +69,11 @@ import pandas as pd
 # =========================================================================
 # CONFIGURABLE STRATEGY PARAMETERS
 # =========================================================================
-TP_PCT = 300.0                    # Target Profit % (+300.0% from entry price)
+TP_PCT = 300.0                     # Target Profit % (+40.0% from entry price)
 WEEKLY_EMA_PERIOD = 30            # Weekly EMA period for Stop Loss (30 EMA)
 DEFAULT_SL_PCT = 10.0             # Fallback Stop Loss % display indicator for generic UI consumers
 MAX_BREAKOUT_WAIT_DAYS = 1        # Max days to wait for breakout of qualifying high (1 = immediate next candle)
-MAX_HOLD_DAYS = 1500              # Max holding days safety cap
+MAX_HOLD_DAYS = 500               # Max holding days safety cap
 
 # Fundamental Pre-Filters (0.0 / False to disable)
 MIN_MARKET_CAP_CR = 0.0           # Minimum Market Cap in ₹ Crores (0 to disable)
@@ -346,21 +346,6 @@ def simulate_trades(df: pd.DataFrame):
                     state = "IDLE"
                     i += 1
                     continue
-                # Check 2: Same bar SL: Daily close below Yearly R2
-                elif not np.isnan(yearly_r2[i]) and close[i] < yearly_r2[i]:
-                    trades.append({
-                        "entry_date": dates[i],
-                        "entry_price": round(float(entry_price), 2),
-                        "exit_date": dates[i],
-                        "exit_price": round(float(close[i]), 2),
-                        "exit_reason": "Stop Loss (Daily Close Below Yearly R2)",
-                        "mae_pct": round(float(mae), 2),
-                        "mfe_pct": round(float(mfe), 2),
-                        "is_open": False,
-                    })
-                    state = "IDLE"
-                    i += 1
-                    continue
 
                 i += 1
                 continue
@@ -392,16 +377,16 @@ def simulate_trades(df: pd.DataFrame):
                     last_checked_w_idx = cur_w_idx
 
             active_tp_arr[i] = tp_price
-            active_sl_arr[i] = yearly_r2[i] if not np.isnan(yearly_r2[i]) else (armed_sl_low if armed_sl_low is not None else np.nan)
+            active_sl_arr[i] = armed_sl_low if armed_sl_low is not None else np.nan
 
             bars_in_trade = i - trade_entry_idx
             if bars_in_trade >= MAX_HOLD_DAYS:
                 trades.append({
                     "entry_date": dates[trade_entry_idx],
                     "entry_price": round(float(entry_price), 2),
-                    "exit_date": "-",
+                    "exit_date": dates[i],
                     "exit_price": round(float(close[i]), 2),
-                    "exit_reason": "Still Running",
+                    "exit_reason": "OPEN_TIMEOUT",
                     "mae_pct": round(float(mae), 2),
                     "mfe_pct": round(float(mfe), 2),
                     "is_open": True,
@@ -411,7 +396,7 @@ def simulate_trades(df: pd.DataFrame):
                 i += 1
                 continue
 
-            # 1. Target Profit check: +300%
+            # 1. Target Profit check: +40%
             if high[i] >= tp_price:
                 exit_p = tp_price if open_[i] <= tp_price else open_[i]
                 trades.append({
@@ -429,24 +414,7 @@ def simulate_trades(df: pd.DataFrame):
                 i += 1
                 continue
 
-            # 2. Stop Loss check: Daily candle close below Yearly R2
-            if not np.isnan(yearly_r2[i]) and close[i] < yearly_r2[i]:
-                trades.append({
-                    "entry_date": dates[trade_entry_idx],
-                    "entry_price": round(float(entry_price), 2),
-                    "exit_date": dates[i],
-                    "exit_price": round(float(close[i]), 2),
-                    "exit_reason": "Stop Loss (Daily Close Below Yearly R2)",
-                    "mae_pct": round(float(mae), 2),
-                    "mfe_pct": round(float(mfe), 2),
-                    "is_open": False,
-                })
-                state = "IDLE"
-                armed_sl_low = None
-                i += 1
-                continue
-
-            # 3. Stop Loss check: Weekly close below 30 EMA and low of that candle broken
+            # 2. Stop Loss check: Weekly close below 30 EMA and low of that candle broken
             if armed_sl_low is not None and low[i] < armed_sl_low:
                 exit_p = armed_sl_low if open_[i] >= armed_sl_low else open_[i]
                 trades.append({
@@ -472,9 +440,9 @@ def simulate_trades(df: pd.DataFrame):
         trades.append({
             "entry_date": dates[trade_entry_idx],
             "entry_price": round(float(entry_price), 2),
-            "exit_date": "-",
+            "exit_date": dates[-1],
             "exit_price": round(float(close[-1]), 2),
-            "exit_reason": "Still Running",
+            "exit_reason": "End of Data",
             "mae_pct": round(float(mae), 2),
             "mfe_pct": round(float(mfe), 2),
             "is_open": True,

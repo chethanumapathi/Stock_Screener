@@ -163,6 +163,7 @@ const elements = {
     metricWinPct: document.getElementById('metric-win-pct'),
     metricLossPct: document.getElementById('metric-loss-pct'),
     metricAvgWin: document.getElementById('metric-avg-win'),
+    metricStillRunningMtm: document.getElementById('metric-still-running-mtm'),
     metricAvgLoss: document.getElementById('metric-avg-loss'),
     metricMaxProfit: document.getElementById('metric-max-profit'),
     metricMaxLoss: document.getElementById('metric-max-loss'),
@@ -1311,14 +1312,13 @@ async function runBacktest() {
 
 function isEndOfDataTrade(t) {
     if (!t) return false;
-    const hasExit = Boolean(t.exit_date && String(t.exit_date).trim() !== '' && String(t.exit_date).trim() !== '-' && String(t.exit_date).trim() !== 'None' && String(t.exit_date).trim() !== 'nan' && t.exit_price !== null && t.exit_price !== undefined);
-    if (hasExit) return false;
     if (t.is_open === true || t.is_open === 'true') return true;
     const r = String(t.exit_reason || '').trim().toLowerCase();
-    if (r.includes('end of data') || (r.includes('end') && r.includes('data')) || r.includes('running')) return true;
+    if (r.includes('still running') || r.includes('end of data') || (r.includes('end') && r.includes('data')) || r.includes('running')) return true;
     const d = String(t.duration || '').trim().toLowerCase();
     if (d.includes('running')) return true;
-    if (t.net_pnl === null || t.net_pnl === undefined) return true;
+    const exDate = String(t.exit_date || '').trim();
+    if (exDate === '' || exDate === '-' || exDate === 'None' || exDate === 'nan') return true;
     return false;
 }
 
@@ -1332,7 +1332,7 @@ function renderBacktestResults(data) {
 
     if (elements.btTradesCount) {
         if (openTradesCount > 0) {
-            elements.btTradesCount.textContent = `${closedTradesCount} Closed Trades | ${openTradesCount} Running`;
+            elements.btTradesCount.textContent = `${closedTradesCount} Closed Trades | ${openTradesCount} Still Running`;
         } else {
             elements.btTradesCount.textContent = `${trades.length} Trades Executed`;
         }
@@ -1349,12 +1349,12 @@ function renderBacktestResults(data) {
                 const tr = document.createElement('tr');
 
                 let reasonBadge = '';
-                const isEndOfData = isEndOfDataTrade(t);
+                const isRunning = isEndOfDataTrade(t);
                 const exReason = String(t.exit_reason || '').trim();
                 const exLower = exReason.toLowerCase();
 
-                if (isEndOfData) {
-                    reasonBadge = `<span style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">⏳ End of Data (Running)</span>`;
+                if (isRunning || exLower.includes('still running')) {
+                    reasonBadge = `<span style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">🔄 Still Running</span>`;
                 } else if (exLower.includes('target') || exReason === 'Profit' || exLower.includes('profit')) {
                     reasonBadge = `<span class="badge-green">🎯 ${exReason}</span>`;
                 } else if (exLower.includes('stop') || exReason === 'Loss' || exLower.includes('loss')) {
@@ -1367,24 +1367,28 @@ function renderBacktestResults(data) {
                 let pnlPctDisplay = '-';
                 let pnlClass = 'text-neutral';
 
-                if (isEndOfData || t.net_pnl === null || t.net_pnl === undefined) {
-                    pnlDisplay = `<span style="color: var(--text-muted); font-weight: 500;">-</span>`;
-                    pnlPctDisplay = `<span style="color: var(--text-muted); font-weight: 500;">-</span>`;
-                } else {
-                    pnlClass = t.net_pnl > 0 ? 'text-green' : (t.net_pnl < 0 ? 'text-red' : 'text-neutral');
-                    let pnlSign = t.net_pnl > 0 ? '+' : '';
-                    let pnlPctSign = t.pnl_pct > 0 ? '+' : '';
-                    pnlDisplay = `${pnlSign}₹${Number(t.net_pnl).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    pnlPctDisplay = `${pnlPctSign}${Number(t.pnl_pct).toFixed(2)}%`;
+                const tradePnl = (t.net_pnl !== null && t.net_pnl !== undefined) ? t.net_pnl : t.mtm_pnl;
+                const tradePnlPct = (t.pnl_pct !== null && t.pnl_pct !== undefined) ? t.pnl_pct : t.mtm_pct;
+
+                if (tradePnl !== null && tradePnl !== undefined) {
+                    pnlClass = tradePnl > 0 ? 'text-green' : (tradePnl < 0 ? 'text-red' : 'text-neutral');
+                    let pnlSign = tradePnl > 0 ? '+' : '';
+                    let pnlPctSign = (tradePnlPct > 0) ? '+' : '';
+                    const mtmSuffix = isRunning ? ' <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 600;">(MTM)</span>' : '';
+                    pnlDisplay = `${pnlSign}₹${Number(tradePnl).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${mtmSuffix}`;
+                    pnlPctDisplay = `${pnlPctSign}${Number(tradePnlPct).toFixed(2)}%`;
                 }
 
-                const exitPriceDisplay = isEndOfData
-                    ? `<span style="color: var(--text-muted); font-size: 0.85rem;" title="Last Close Price (Still Running)">₹${Number(t.exit_price).toFixed(2)}</span>`
+                const exitDateDisplay = isRunning ? '-' : formatDateDDMMMYYYY(t.exit_date);
+                const exitPriceDisplay = isRunning
+                    ? `<span style="color: #94a3b8; font-size: 0.85rem;" title="Last Close Price / Current Market Price (Still Running)">₹${Number(t.exit_price).toFixed(2)} <span style="font-size: 0.72rem; color: #64748b;">(CMP)</span></span>`
                     : `₹${Number(t.exit_price).toFixed(2)}`;
 
                 let durDisplay = String(t.duration || '');
-                if (!isEndOfData && durDisplay.toLowerCase().includes('running')) {
+                if (!isRunning && durDisplay.toLowerCase().includes('running')) {
                     durDisplay = durDisplay.replace(/\s*\(running\)/i, '').trim();
+                } else if (isRunning && !durDisplay.toLowerCase().includes('running')) {
+                    durDisplay = durDisplay ? `${durDisplay} (Running)` : 'Running';
                 }
 
                 const isShortTrade = (t.type && String(t.type).toLowerCase().includes('short')) ||
@@ -1409,7 +1413,7 @@ function renderBacktestResults(data) {
                     <td style="font-family: var(--font-mono); color: #a5b4fc;">${formatDateDDMMMYYYY(t.trigger_date)}</td>
                     <td style="font-family: var(--font-mono); color: var(--text-muted);">${formatDateDDMMMYYYY(t.entry_date)}</td>
                     <td style="font-family: var(--font-mono); font-weight: 600;">₹${Number(t.entry_price).toFixed(2)}</td>
-                    <td style="font-family: var(--font-mono); color: var(--text-muted);">${formatDateDDMMMYYYY(t.exit_date)}</td>
+                    <td style="font-family: var(--font-mono); color: var(--text-muted);">${exitDateDisplay}</td>
                     <td style="font-family: var(--font-mono); font-weight: 600;">${exitPriceDisplay}</td>
                     <td>${reasonBadge}</td>
                     <td style="font-family: var(--font-mono); font-weight: 700;" class="${pnlClass}">${pnlDisplay}</td>
@@ -1678,6 +1682,19 @@ function renderOverallReport(rep) {
         elements.metricAvgProfitPerTrade.className = `cell-val ${rep.avg_profit_per_trade >= 0 ? 'text-green' : 'text-red'}`;
     }
     if (elements.metricAvgWin) elements.metricAvgWin.textContent = formatRupee(rep.avg_profit_on_winning);
+    if (elements.metricStillRunningMtm) {
+        const runningCnt = rep.still_running_trades !== undefined ? rep.still_running_trades : (rep.open_trades || 0);
+        const runningMtm = rep.still_running_mtm !== undefined ? Number(rep.still_running_mtm) : 0;
+        if (runningCnt > 0) {
+            const mtmSign = runningMtm > 0 ? '+' : (runningMtm < 0 ? '-' : '');
+            const mtmFormatted = `${mtmSign}₹ ${Math.abs(runningMtm).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            elements.metricStillRunningMtm.textContent = `${runningCnt} (MTM: ${mtmFormatted})`;
+            elements.metricStillRunningMtm.className = `cell-val ${runningMtm >= 0 ? 'text-green' : 'text-red'}`;
+        } else {
+            elements.metricStillRunningMtm.textContent = '0 (₹ 0.00)';
+            elements.metricStillRunningMtm.className = 'cell-val text-neutral';
+        }
+    }
 
     // Column 2: Risk-Adjusted Ratios
     if (elements.metricProfitFactor) {
@@ -1844,16 +1861,16 @@ async function exportBacktestTrades(format = 'excel') {
                 `"${formatDateDDMMMYYYY(t.trigger_date)}"`,
                 formatDateDDMMMYYYY(t.entry_date),
                 t.entry_price,
-                formatDateDDMMMYYYY(t.exit_date),
+                isEndOfData ? '-' : formatDateDDMMMYYYY(t.exit_date),
                 t.exit_price,
-                `"${isEndOfData ? 'End of Data (Running)' : (t.exit_reason || 'Exit')}"`,
+                `"${isEndOfData ? 'Still Running' : (t.exit_reason || 'Exit')}"`,
                 t.qty,
                 isEndOfData ? '-' : ((t.turnover !== undefined && t.turnover !== null) ? t.turnover : '-'),
                 isEndOfData ? '-' : ((t.gross_pnl !== undefined && t.gross_pnl !== null) ? t.gross_pnl : '-'),
                 isEndOfData ? '-' : ((t.brokerage !== undefined && t.brokerage !== null) ? t.brokerage : '-'),
                 isEndOfData ? '-' : ((t.taxes !== undefined && t.taxes !== null) ? t.taxes : '-'),
-                isEndOfData ? '-' : ((t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-'),
-                isEndOfData ? '-' : ((t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-'),
+                (t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-',
+                (t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-',
                 `"${durStr || (isEndOfData ? 'Running' : 'Same Day')}"`,
                 t.weekday || ''
             ];
@@ -1894,16 +1911,16 @@ async function exportBacktestTrades(format = 'excel') {
                             'Trigger Date': formatDateDDMMMYYYY(t.trigger_date),
                             'Entry Date': formatDateDDMMMYYYY(t.entry_date),
                             'Entry Price (₹)': t.entry_price,
-                            'Exit Date': formatDateDDMMMYYYY(t.exit_date),
+                            'Exit Date': isEndOfData ? '-' : formatDateDDMMMYYYY(t.exit_date),
                             'Exit Price (₹)': t.exit_price,
-                            'Exit Reason': isEndOfData ? 'End of Data (Running)' : (t.exit_reason || 'Exit'),
+                            'Exit Reason': isEndOfData ? 'Still Running' : (t.exit_reason || 'Exit'),
                             'Quantity': t.qty,
                             'Turnover (₹)': isEndOfData ? '-' : ((t.turnover !== undefined && t.turnover !== null) ? t.turnover : '-'),
                             'Gross PnL (₹)': isEndOfData ? '-' : ((t.gross_pnl !== undefined && t.gross_pnl !== null) ? t.gross_pnl : '-'),
                             'Brokerage (₹)': isEndOfData ? '-' : ((t.brokerage !== undefined && t.brokerage !== null) ? t.brokerage : '-'),
                             'Taxes (₹)': isEndOfData ? '-' : ((t.taxes !== undefined && t.taxes !== null) ? t.taxes : '-'),
-                            'Net PnL (₹)': isEndOfData ? '-' : ((t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-'),
-                            'PnL (%)': isEndOfData ? '-' : ((t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-'),
+                            'Net PnL (₹)': (t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-',
+                            'PnL (%)': (t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-',
                             'Duration': durStr || (isEndOfData ? 'Running' : 'Same Day'),
                             'Weekday': t.weekday || ''
                         };
