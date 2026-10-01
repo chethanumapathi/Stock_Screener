@@ -5,10 +5,10 @@
     "companyName": "The Federal Bank Limited",
     "sector": "Financial Services",
     "industry": "Banks - Regional",
-    "marketCapCr": 82838.65,
-    "pe": 18.0,
-    "forwardPE": 12.42,
-    "pb": 2.06,
+    "marketCapCr": 77813.76,
+    "pe": 16.85,
+    "forwardPE": 12.85,
+    "pb": 1.94,
     "roe": null,
     "roa": null,
     "debtToEquity": null,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 42.96,
     "profitMargin": 30.72,
-    "dividendYield": 35.0,
-    "trailingEps": 18.63,
-    "forwardEps": 26.99,
+    "dividendYield": 38.0,
+    "trailingEps": 18.69,
+    "forwardEps": 24.52,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 36.8,
     "quarterlyRevenueGrowth": 21.4,
     "bookValue": 162.44,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:19:41"
+    "lastUpdated": "2026-10-01 09:59:36"
   },
   "quarterly_pnl": {
     "dates": [
@@ -400,14 +400,14 @@
     ],
     "metrics": {
       "Tax Effect Of Unusual Items": {
-        "2026-03-31": 84.61,
+        "2026-03-31": 49.72,
         "2025-03-31": 40.97,
         "2024-03-31": 39.25,
         "2023-03-31": 0.21,
         "2022-03-31": null
       },
       "Tax Rate For Calcs": {
-        "2026-03-31": 0.4,
+        "2026-03-31": 0.24,
         "2025-03-31": 0.25,
         "2024-03-31": 0.25,
         "2023-03-31": 0.26,
@@ -463,7 +463,7 @@
         "2022-03-31": null
       },
       "Normalized Income": {
-        "2026-03-31": 4218.38,
+        "2026-03-31": 4183.49,
         "2025-03-31": 4033.73,
         "2024-03-31": 3763.74,
         "2023-03-31": 3164.1,
@@ -479,9 +479,9 @@
       "Diluted Average Shares": {
         "2026-03-31": 2486200000.0,
         "2025-03-31": 2475700000.0,
-        "2024-03-31": null,
+        "2024-03-31": 2344600000.0,
         "2023-03-31": 2131300000.0,
-        "2022-03-31": 2086641949.0
+        "2022-03-31": null
       },
       "Basic Average Shares": {
         "2026-03-31": 2459600000.0,
@@ -547,7 +547,7 @@
         "2022-03-31": null
       },
       "Net Income Continuous Operations": {
-        "2026-03-31": 44909421000.0,
+        "2026-03-31": 44909407000.0,
         "2025-03-31": 42340099000.0,
         "2024-03-31": 39640311000.0,
         "2023-03-31": 32098201000.0,
@@ -561,7 +561,7 @@
         "2022-03-31": null
       },
       "Pretax Income": {
-        "2026-03-31": 4490.94,
+        "2026-03-31": 5870.99,
         "2025-03-31": 5620.35,
         "2024-03-31": 5297.5,
         "2023-03-31": 4262.94,
@@ -659,14 +659,14 @@
         "2022-03-31": null
       },
       "Total Revenue": {
-        "2026-03-31": 16289.33,
+        "2026-03-31": 16297.58,
         "2025-03-31": 14247.89,
         "2024-03-31": 12130.07,
         "2023-03-31": 10278.63,
         "2022-03-31": null
       },
       "Operating Revenue": {
-        "2026-03-31": 16289.33,
+        "2026-03-31": 16297.58,
         "2025-03-31": 14247.89,
         "2024-03-31": 12130.07,
         "2023-03-31": 10278.63,
@@ -676,8 +676,8 @@
     "records": [
       {
         "date": "2026-03-31",
-        "Tax Effect Of Unusual Items": 84.61,
-        "Tax Rate For Calcs": 0.4,
+        "Tax Effect Of Unusual Items": 49.72,
+        "Tax Rate For Calcs": 0.24,
         "Total Unusual Items": 211.53,
         "Total Unusual Items Excluding Goodwill": 211.53,
         "Net Income From Continuing Operation Net Minority Interest": 43453023000.0,
@@ -685,7 +685,7 @@
         "Net Interest Income": 11902.55,
         "Interest Expense": 17771.56,
         "Interest Income": 29674.1,
-        "Normalized Income": 4218.38,
+        "Normalized Income": 4183.49,
         "Net Income From Continuing And Discontinued Operation": 43453023000.0,
         "Diluted Average Shares": 2486200000.0,
         "Basic Average Shares": 2459600000.0,
@@ -697,9 +697,9 @@
         "Minority Interests": -145.64,
         "Net Income Including Noncontrolling Interests": 4490.94,
         "Net Income Extraordinary": 0.0,
-        "Net Income Continuous Operations": 44909421000.0,
+        "Net Income Continuous Operations": 44909407000.0,
         "Tax Provision": 1380.05,
-        "Pretax Income": 4490.94,
+        "Pretax Income": 5870.99,
         "Special Income Charges": 211.53,
         "Other Special Charges": -20.58,
         "Write Off": -190.95,
@@ -713,8 +713,8 @@
         "General And Administrative Expense": 84.87,
         "Insurance And Claims": 382.81,
         "Rent And Landing Fees": 459.11,
-        "Total Revenue": 16289.33,
-        "Operating Revenue": 16289.33
+        "Total Revenue": 16297.58,
+        "Operating Revenue": 16297.58
       },
       {
         "date": "2025-03-31",
@@ -771,7 +771,7 @@
         "Interest Income": 23565.48,
         "Normalized Income": 3763.74,
         "Net Income From Continuing And Discontinued Operation": 38804276000.0,
-        "Diluted Average Shares": null,
+        "Diluted Average Shares": 2344600000.0,
         "Basic Average Shares": 2315800000.0,
         "Diluted EPS": 16.55,
         "Basic EPS": 16.76,
@@ -855,7 +855,7 @@
         "Interest Income": null,
         "Normalized Income": null,
         "Net Income From Continuing And Discontinued Operation": null,
-        "Diluted Average Shares": 2086641949.0,
+        "Diluted Average Shares": null,
         "Basic Average Shares": null,
         "Diluted EPS": null,
         "Basic EPS": null,
@@ -1059,8 +1059,8 @@
       "Accounts Payable": {
         "2026-03-31": 702.0,
         "2025-03-31": 899.1,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2024-03-31": 733.9,
+        "2023-03-31": 631.43,
         "2022-03-31": null
       },
       "Total Assets": {
@@ -1351,7 +1351,7 @@
         "Long Term Debt And Capital Lease Obligation": 22308.62,
         "Payables": 1387.47,
         "Other Payable": 653.58,
-        "Accounts Payable": null,
+        "Accounts Payable": 733.9,
         "Total Assets": 317838.95,
         "Investments And Advances": 49616.98,
         "Investmentin Financial Assets": 49145.62,
@@ -1401,7 +1401,7 @@
         "Long Term Debt And Capital Lease Obligation": 25861.98,
         "Payables": 1256.9,
         "Other Payable": 625.46,
-        "Accounts Payable": null,
+        "Accounts Payable": 631.43,
         "Total Assets": 268004.06,
         "Investments And Advances": 38956.93,
         "Investmentin Financial Assets": 38516.78,
@@ -2041,10 +2041,10 @@
         "2022-03-31": null
       },
       "Gain Loss On Sale Of Business": {
-        "2026-03-31": null,
+        "2026-03-31": 0.0,
         "2025-03-31": -36.68,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2024-03-31": -99.11,
+        "2023-03-31": 0.0,
         "2022-03-31": null
       },
       "Net Income From Continuing Operations": {
@@ -2097,7 +2097,7 @@
         "Depreciation": 305.85,
         "Gain Loss On Investment Securities": 251.72,
         "Gain Loss On Sale Of PPE": -20.58,
-        "Gain Loss On Sale Of Business": null,
+        "Gain Loss On Sale Of Business": 0.0,
         "Net Income From Continuing Operations": 57253536000.0
       },
       {
@@ -2185,7 +2185,7 @@
         "Depreciation": 233.95,
         "Gain Loss On Investment Securities": -28.89,
         "Gain Loss On Sale Of PPE": -8.43,
-        "Gain Loss On Sale Of Business": null,
+        "Gain Loss On Sale Of Business": -99.11,
         "Net Income From Continuing Operations": 52138979000.0
       },
       {
@@ -2229,7 +2229,7 @@
         "Depreciation": 182.18,
         "Gain Loss On Investment Securities": null,
         "Gain Loss On Sale Of PPE": -0.83,
-        "Gain Loss On Sale Of Business": null,
+        "Gain Loss On Sale Of Business": 0.0,
         "Net Income From Continuing Operations": 42518956000.0
       },
       {
@@ -2278,5 +2278,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:19:43"
+  "last_updated": "2026-10-01 09:59:38"
 }

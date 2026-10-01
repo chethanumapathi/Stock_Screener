@@ -5,10 +5,10 @@
     "companyName": "Shriram Finance Limited",
     "sector": "Financial Services",
     "industry": "Credit Services",
-    "marketCapCr": 234951.54,
-    "pe": 17.64,
-    "forwardPE": 11.25,
-    "pb": 2.85,
+    "marketCapCr": 226598.24,
+    "pe": 17.01,
+    "forwardPE": 13.46,
+    "pb": 2.75,
     "roe": 18.5,
     "roa": null,
     "debtToEquity": 2.76,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 68.52,
     "profitMargin": 50.01,
-    "dividendYield": 1.41,
-    "trailingEps": 56.63,
-    "forwardEps": 88.79,
+    "dividendYield": 1.4,
+    "trailingEps": 56.6,
+    "forwardEps": 71.55,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 59.9,
     "quarterlyRevenueGrowth": 42.8,
     "bookValue": 350.34,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:31:53"
+    "lastUpdated": "2026-10-01 10:47:19"
   },
   "quarterly_pnl": {
     "dates": [
@@ -986,9 +986,9 @@
       },
       "Retained Earnings": {
         "2026-03-31": 29779.48,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 24242.14,
+        "2024-03-31": 19279.73,
+        "2023-03-31": 15699.95,
         "2022-03-31": null
       },
       "Additional Paid In Capital": {
@@ -1321,7 +1321,7 @@
         "Minority Interest": 0.0,
         "Stockholders Equity": 56469.82,
         "Other Equity Interest": 42.92,
-        "Retained Earnings": null,
+        "Retained Earnings": 24242.14,
         "Additional Paid In Capital": 17596.89,
         "Capital Stock": 376.08,
         "Common Stock": 376.08,
@@ -1375,7 +1375,7 @@
         "Minority Interest": 729.52,
         "Stockholders Equity": 48947.12,
         "Other Equity Interest": 72.51,
-        "Retained Earnings": null,
+        "Retained Earnings": 19279.73,
         "Additional Paid In Capital": 17611.08,
         "Capital Stock": 375.79,
         "Common Stock": 375.79,
@@ -1429,7 +1429,7 @@
         "Minority Interest": 286.68,
         "Stockholders Equity": 43512.86,
         "Other Equity Interest": 199.84,
-        "Retained Earnings": null,
+        "Retained Earnings": 15699.95,
         "Additional Paid In Capital": 17450.15,
         "Capital Stock": 374.43,
         "Common Stock": 374.43,
@@ -1861,10 +1861,10 @@
         "2023-03-31": -17821.84
       },
       "Repayment Of Debt": {
-        "2026-03-31": null,
-        "2025-03-31": null,
+        "2026-03-31": -56259.87,
+        "2025-03-31": -76658.75,
         "2024-03-31": -80087.78,
-        "2023-03-31": null
+        "2023-03-31": -68616.49
       },
       "Issuance Of Debt": {
         "2026-03-31": 58488.78,
@@ -2165,7 +2165,7 @@
       {
         "date": "2026-03-31",
         "Free Cash Flow": -13477.67,
-        "Repayment Of Debt": null,
+        "Repayment Of Debt": -56259.87,
         "Issuance Of Debt": 58488.78,
         "Issuance Of Capital Stock": 4.57,
         "Capital Expenditure": -196.24,
@@ -2219,7 +2219,7 @@
       {
         "date": "2025-03-31",
         "Free Cash Flow": -43906.49,
-        "Repayment Of Debt": null,
+        "Repayment Of Debt": -76658.75,
         "Issuance Of Debt": 111010.07,
         "Issuance Of Capital Stock": 5.5,
         "Capital Expenditure": -254.59,
@@ -2327,7 +2327,7 @@
       {
         "date": "2023-03-31",
         "Free Cash Flow": -17821.84,
-        "Repayment Of Debt": null,
+        "Repayment Of Debt": -68616.49,
         "Issuance Of Debt": 74874.59,
         "Issuance Of Capital Stock": 12.93,
         "Capital Expenditure": -196.59,
@@ -2380,5 +2380,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:31:56"
+  "last_updated": "2026-10-01 10:47:20"
 }

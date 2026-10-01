@@ -5,10 +5,10 @@
     "companyName": "Hindalco Industries Limited",
     "sector": "Basic Materials",
     "industry": "Aluminum",
-    "marketCapCr": 218476.38,
-    "pe": 13.16,
-    "forwardPE": 8.86,
-    "pb": 1.6,
+    "marketCapCr": 207310.61,
+    "pe": 12.66,
+    "forwardPE": 8.4,
+    "pb": 1.52,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.73,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 13.67,
     "profitMargin": 5.55,
-    "dividendYield": 0.52,
-    "trailingEps": 74.8,
+    "dividendYield": 0.53,
+    "trailingEps": 73.74,
     "forwardEps": 111.14,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 75.2,
     "quarterlyRevenueGrowth": 32.1,
     "bookValue": 615.28,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:30:54"
+    "lastUpdated": "2026-10-01 10:07:31"
   },
   "quarterly_pnl": {
     "dates": [
@@ -872,6 +872,13 @@
         "2023-03-31": 208.0,
         "2022-03-31": null
       },
+      "Impairment Of Capital Assets": {
+        "2026-03-31": null,
+        "2025-03-31": 250.0,
+        "2024-03-31": 360.0,
+        "2023-03-31": 11.0,
+        "2022-03-31": 155.0
+      },
       "Restructuring And Mergern Acquisition": {
         "2026-03-31": null,
         "2025-03-31": 818.0,
@@ -1030,6 +1037,7 @@
         "Special Income Charges": -6660.0,
         "Other Special Charges": 6336.0,
         "Write Off": 324.0,
+        "Impairment Of Capital Assets": null,
         "Restructuring And Mergern Acquisition": null,
         "Net Non Operating Interest Income Expense": -2192.0,
         "Total Other Finance Cost": 42.0,
@@ -1085,6 +1093,7 @@
         "Special Income Charges": -1114.0,
         "Other Special Charges": 131.0,
         "Write Off": 983.0,
+        "Impairment Of Capital Assets": 250.0,
         "Restructuring And Mergern Acquisition": 818.0,
         "Net Non Operating Interest Income Expense": -2388.0,
         "Total Other Finance Cost": 30.0,
@@ -1140,6 +1149,7 @@
         "Special Income Charges": -270.0,
         "Other Special Charges": -90.0,
         "Write Off": 360.0,
+        "Impairment Of Capital Assets": 360.0,
         "Restructuring And Mergern Acquisition": null,
         "Net Non Operating Interest Income Expense": -3028.0,
         "Total Other Finance Cost": 31.0,
@@ -1195,6 +1205,7 @@
         "Special Income Charges": -249.0,
         "Other Special Charges": 41.0,
         "Write Off": 208.0,
+        "Impairment Of Capital Assets": 11.0,
         "Restructuring And Mergern Acquisition": 0.0,
         "Net Non Operating Interest Income Expense": -3087.0,
         "Total Other Finance Cost": 44.0,
@@ -1250,6 +1261,7 @@
         "Special Income Charges": null,
         "Other Special Charges": null,
         "Write Off": null,
+        "Impairment Of Capital Assets": 155.0,
         "Restructuring And Mergern Acquisition": -45.0,
         "Net Non Operating Interest Income Expense": null,
         "Total Other Finance Cost": null,
@@ -1724,7 +1736,7 @@
         "2026-03-31": 231373.0,
         "2025-03-31": 189688.0,
         "2024-03-31": 168359.0,
-        "2023-03-31": null,
+        "2023-03-31": 152313.0,
         "2022-03-31": null
       },
       "Construction In Progress": {
@@ -2265,7 +2277,7 @@
         "Goodwill": 25745.0,
         "Net PPE": 89357.0,
         "Accumulated Depreciation": -62956.0,
-        "Gross PPE": null,
+        "Gross PPE": 152313.0,
         "Construction In Progress": 10377.0,
         "Other Properties": 48.0,
         "Machinery Furniture Equipment": 107524.0,
@@ -2584,8 +2596,8 @@
       },
       "Current Capital Lease Obligation": {
         "2026-03-31": 431.0,
-        "2025-09-30": null,
-        "2025-03-31": null
+        "2025-09-30": 380.0,
+        "2025-03-31": 375.0
       },
       "Current Debt": {
         "2026-03-31": 21064.0,
@@ -2975,7 +2987,7 @@
         "Current Liabilities": 78954.0,
         "Other Current Liabilities": 2166.0,
         "Current Debt And Capital Lease Obligation": 10943.0,
-        "Current Capital Lease Obligation": null,
+        "Current Capital Lease Obligation": 380.0,
         "Current Debt": 10563.0,
         "Pensionand Other Post Retirement Benefit Plans Current": 1432.0,
         "Current Provisions": 2412.0,
@@ -3067,7 +3079,7 @@
         "Current Liabilities": 65516.0,
         "Other Current Liabilities": 502.0,
         "Current Debt And Capital Lease Obligation": 6089.0,
-        "Current Capital Lease Obligation": null,
+        "Current Capital Lease Obligation": 375.0,
         "Current Debt": 5714.0,
         "Pensionand Other Post Retirement Benefit Plans Current": 1417.0,
         "Current Provisions": 2190.0,
@@ -3786,5 +3798,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:30:56"
+  "last_updated": "2026-10-01 10:07:32"
 }

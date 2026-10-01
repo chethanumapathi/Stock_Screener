@@ -1863,15 +1863,9 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
     adjusted_trades = []
     for t in filtered_trades:
         t_copy = dict(t)
-        # Check if trade is still running / End of Data across any strategy
         reason_str = str(t_copy.get('exit_reason', '')).strip().lower()
-        is_running = (
-            ('end of data' in reason_str) or
-            ('end' in reason_str and 'data' in reason_str) or
-            ('running' in reason_str) or
-            bool(t_copy.get('is_open', False)) or
-            (t_copy.get('net_pnl') is None and 'target' not in reason_str and 'stop' not in reason_str)
-        )
+        exit_dt_val = str(t_copy.get('exit_date', '')).strip()
+        has_exit = bool(exit_dt_val and exit_dt_val not in ['', '-', 'None', 'nan']) and (t_copy.get('exit_price') is not None)
 
         is_short = (
             str(t_copy.get('trade_type', '')).upper() in ['SHORT', 'SELL'] or
@@ -1884,8 +1878,8 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
         t_copy['direction'] = 'SHORT' if is_short else 'LONG'
         t_copy['side'] = 'SHORT' if is_short else 'LONG'
 
-        if is_running:
-            t_copy['exit_reason'] = "End of Data"
+        if not has_exit:
+            t_copy['exit_reason'] = "End of Data (Running)"
             t_copy['turnover'] = None
             t_copy['gross_pnl'] = None
             t_copy['brokerage'] = None
@@ -1898,7 +1892,7 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
 
         entry_p = float(t_copy['entry_price'])
         exit_p = float(t_copy['exit_price'])
-        qty = int(t_copy['qty'])
+        qty = int(t_copy.get('qty') or max(1, int(capital_per_trade / entry_p)))
 
         if is_short:
             eff_entry = entry_p * (1.0 - slippage_pct / 100.0)
@@ -1917,6 +1911,15 @@ def compute_backtest_analytics(trades, slippage_pct=0.5, include_brokerage=True,
         tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
         net_pnl = round(gross_pnl - brok - tax, 2)
 
+        is_eod_reason = ('end of data' in reason_str) or ('end' in reason_str and 'data' in reason_str) or ('running' in reason_str)
+        if is_eod_reason or reason_str in ['exit', 'open_timeout', '']:
+            t_copy['exit_reason'] = "Profit" if net_pnl >= 0 else "Loss"
+
+        dur_str = str(t_copy.get('duration', ''))
+        if '(running)' in dur_str.lower():
+            t_copy['duration'] = dur_str.replace(' (Running)', '').replace('(Running)', '').strip()
+
+        t_copy['qty'] = qty
         t_copy['turnover'] = round(turnover, 2)
         t_copy['gross_pnl'] = round(gross_pnl, 2)
         t_copy['brokerage'] = round(brok, 2)
@@ -2594,12 +2597,8 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                         weekday_str = "Mon"
 
                     ex_clean = str(ex_reason).strip().lower()
-                    is_eod = (
-                        ('end of data' in ex_clean) or
-                        ('end' in ex_clean and 'data' in ex_clean) or
-                        ('running' in ex_clean) or
-                        bool(tr.get('is_open', False))
-                    )
+                    exit_dt_str = str(tr.get('exit_date', '')).strip()
+                    has_exit = bool(exit_dt_str and exit_dt_str not in ['', '-', 'None', 'nan']) and (exit_price is not None)
 
                     is_tr_short = (
                         str(tr.get('trade_type', '')).upper() in ['SHORT', 'SELL'] or
@@ -2610,7 +2609,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     trade_type_name = "Short" if is_tr_short else "Long"
                     trade_type_upper = "SHORT" if is_tr_short else "LONG"
 
-                    if is_eod:
+                    if not has_exit:
                         sym_trades.append({
                             "symbol": symbol,
                             "type": trade_type_name,
@@ -2620,9 +2619,9 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             "trigger_date": str(tr.get('trigger_date', '-')),
                             "entry_date": str(tr['entry_date']),
                             "entry_price": round(entry_price, 2),
-                            "exit_date": str(tr['exit_date']),
-                            "exit_price": round(exit_price, 2),
-                            "exit_reason": "End of Data",
+                            "exit_date": "-",
+                            "exit_price": None,
+                            "exit_reason": "End of Data (Running)",
                             "qty": qty,
                             "turnover": None,
                             "gross_pnl": None,
@@ -2657,6 +2656,12 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             net_pnl = gross_pnl - brok - tax
                             pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
+                        is_eod_reason = ('end of data' in ex_clean) or ('end' in ex_clean and 'data' in ex_clean) or ('running' in ex_clean)
+                        if is_eod_reason or ex_clean in ['exit', 'open_timeout', '']:
+                            final_reason = "Profit" if net_pnl >= 0 else "Loss"
+                        else:
+                            final_reason = ex_reason
+
                         sym_trades.append({
                             "symbol": symbol,
                             "type": trade_type_name,
@@ -2668,7 +2673,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             "entry_price": round(entry_price, 2),
                             "exit_date": str(tr['exit_date']),
                             "exit_price": round(exit_price, 2),
-                            "exit_reason": ex_reason,
+                            "exit_reason": final_reason,
                             "qty": qty,
                             "turnover": round(turnover, 2),
                             "gross_pnl": round(gross_pnl, 2),
@@ -2906,12 +2911,13 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                             weekday_str = "Mon"
 
                         reason_clean = str(exit_reason).strip().lower()
-                        is_eod = ('end of data' in reason_clean) or ('end' in reason_clean and 'data' in reason_clean) or ('running' in reason_clean)
+                        exit_dt_str = str(dates[i]).strip()
+                        has_exit = bool(exit_dt_str and exit_dt_str not in ['', '-', 'None', 'nan']) and (exit_price is not None)
 
                         fallback_type = "Short" if is_strategy_short else "Long"
                         fallback_upper = "SHORT" if is_strategy_short else "LONG"
 
-                        if is_eod:
+                        if not has_exit:
                             sym_trades.append({
                                 "symbol": symbol,
                                 "type": fallback_type,
@@ -2921,9 +2927,9 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "trigger_date": entry_trigger_dt,
                                 "entry_date": entry_dt,
                                 "entry_price": round(entry_price, 2),
-                                "exit_date": dates[i],
-                                "exit_price": round(exit_price, 2),
-                                "exit_reason": "End of Data",
+                                "exit_date": "-",
+                                "exit_price": None,
+                                "exit_reason": "End of Data (Running)",
                                 "qty": qty,
                                 "turnover": None,
                                 "gross_pnl": None,
@@ -2958,6 +2964,12 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 net_pnl = gross_pnl - brok - tax
                                 pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
 
+                            is_eod_reason = ('end of data' in reason_clean) or ('end' in reason_clean and 'data' in reason_clean) or ('running' in reason_clean)
+                            if is_eod_reason or reason_clean in ['exit', 'open_timeout', '']:
+                                final_reason = "Profit" if net_pnl >= 0 else "Loss"
+                            else:
+                                final_reason = exit_reason
+
                             sym_trades.append({
                                 "symbol": symbol,
                                 "type": fallback_type,
@@ -2969,7 +2981,7 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "entry_price": round(entry_price, 2),
                                 "exit_date": dates[i],
                                 "exit_price": round(exit_price, 2),
-                                "exit_reason": exit_reason,
+                                "exit_reason": final_reason,
                                 "qty": qty,
                                 "turnover": round(turnover, 2),
                                 "gross_pnl": round(gross_pnl, 2),
@@ -2979,8 +2991,8 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                                 "pnl_pct": round(pnl_pct, 2),
                                 "duration": f"{duration_days}d" if duration_days > 0 else "Same Day",
                                 "duration_days": duration_days,
-                                "mae_pct": round(mae_val, 2),
-                                "mfe_pct": round(mfe_val, 2),
+                                "mae_pct": round(mae_pct, 2),
+                                "mfe_pct": round(mfe_pct, 2),
                                 "weekday": weekday_str,
                                 "is_open": False
                             })
@@ -3012,6 +3024,27 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                 fallback_type = "Short" if is_strategy_short else "Long"
                 fallback_upper = "SHORT" if is_strategy_short else "LONG"
 
+                if is_strategy_short:
+                    eff_entry = entry_price * (1.0 - slippage_pct / 100.0)
+                    eff_exit = exit_price * (1.0 + slippage_pct / 100.0)
+                    turnover = (eff_entry + eff_exit) * qty
+                    gross_pnl = (eff_entry - eff_exit) * qty
+                    brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                    tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                    net_pnl = gross_pnl - brok - tax
+                    pnl_pct = ((eff_entry - eff_exit) / eff_entry) * 100.0
+                else:
+                    eff_entry = entry_price * (1.0 + slippage_pct / 100.0)
+                    eff_exit = exit_price * (1.0 - slippage_pct / 100.0)
+                    turnover = (eff_entry + eff_exit) * qty
+                    gross_pnl = (eff_exit - eff_entry) * qty
+                    brok = (brokerage_per_order * 2.0) if include_brokerage else 0.0
+                    tax = (turnover * 0.001 + (brok * 0.18)) if include_taxes else 0.0
+                    net_pnl = gross_pnl - brok - tax
+                    pnl_pct = ((eff_exit - eff_entry) / eff_entry) * 100.0
+
+                final_reason = "Profit" if net_pnl >= 0 else "Loss"
+
                 sym_trades.append({
                     "symbol": symbol,
                     "type": fallback_type,
@@ -3023,20 +3056,20 @@ def run_backtest_simulation(code_str, segment, timeframe='1d', watchlist_symbols
                     "entry_price": round(entry_price, 2),
                     "exit_date": dates[last_i],
                     "exit_price": round(exit_price, 2),
-                    "exit_reason": "End of Data",
+                    "exit_reason": final_reason,
                     "qty": qty,
-                    "turnover": None,
-                    "gross_pnl": None,
-                    "brokerage": None,
-                    "taxes": None,
-                    "net_pnl": None,
-                    "pnl_pct": None,
-                    "duration": f"{duration_days}d (Running)" if duration_days > 0 else "Running",
+                    "turnover": round(turnover, 2),
+                    "gross_pnl": round(gross_pnl, 2),
+                    "brokerage": round(brok, 2),
+                    "taxes": round(tax, 2),
+                    "net_pnl": round(net_pnl, 2),
+                    "pnl_pct": round(pnl_pct, 2),
+                    "duration": f"{duration_days}d" if duration_days > 0 else "Same Day",
                     "duration_days": duration_days,
                     "mae_pct": round(mae_pct, 2),
                     "mfe_pct": round(mfe_pct, 2),
                     "weekday": weekday_str,
-                    "is_open": True
+                    "is_open": False
                 })
 
             return symbol, sym_trades, None

@@ -5,10 +5,10 @@
     "companyName": "Fedbank Financial Services Limited",
     "sector": "Financial Services",
     "industry": "Credit Services",
-    "marketCapCr": 5651.51,
-    "pe": 14.84,
-    "forwardPE": 9.36,
-    "pb": 1.93,
+    "marketCapCr": 5634.63,
+    "pe": 14.81,
+    "forwardPE": 9.33,
+    "pb": 1.92,
     "roe": null,
     "roa": null,
     "debtToEquity": 4.67,
@@ -17,14 +17,14 @@
     "operatingMargin": 42.22,
     "profitMargin": 28.99,
     "dividendYield": null,
-    "trailingEps": 10.15,
+    "trailingEps": 10.14,
     "forwardEps": 16.1,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 52.5,
     "quarterlyRevenueGrowth": 32.4,
     "bookValue": 78.19,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:19:44"
+    "lastUpdated": "2026-10-01 09:59:39"
   },
   "quarterly_pnl": {
     "dates": [
@@ -586,7 +586,7 @@
     ],
     "metrics": {
       "Tax Effect Of Unusual Items": {
-        "2026-03-31": -29.31,
+        "2026-03-31": -29.32,
         "2025-03-31": -5.24,
         "2024-03-31": -10.32,
         "2023-03-31": -13.37,
@@ -677,7 +677,7 @@
         "2022-03-31": null
       },
       "Normalized Income": {
-        "2026-03-31": 429.39,
+        "2026-03-31": 429.38,
         "2025-03-31": 240.2,
         "2024-03-31": 275.0,
         "2023-03-31": 218.42,
@@ -939,7 +939,7 @@
     "records": [
       {
         "date": "2026-03-31",
-        "Tax Effect Of Unusual Items": -29.31,
+        "Tax Effect Of Unusual Items": -29.32,
         "Tax Rate For Calcs": 0.25,
         "Normalized EBITDA": 643.86,
         "Total Unusual Items": -115.1,
@@ -952,7 +952,7 @@
         "Net Interest Income": 26.26,
         "Interest Expense": 13.28,
         "Interest Income": 39.54,
-        "Normalized Income": 429.39,
+        "Normalized Income": 429.38,
         "Net Income From Continuing And Discontinued Operation": 3436000000.0,
         "Total Expenses": 1616.59,
         "Rent Expense Supplemental": 6.81,
@@ -3312,5 +3312,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:19:46"
+  "last_updated": "2026-10-01 09:59:40"
 }

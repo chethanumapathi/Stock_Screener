@@ -5,10 +5,10 @@
     "companyName": "Power Finance Corporation Limited",
     "sector": "Financial Services",
     "industry": "Credit Services",
-    "marketCapCr": 114150.51,
-    "pe": 4.36,
-    "forwardPE": 3.83,
-    "pb": 0.8,
+    "marketCapCr": 106626.29,
+    "pe": 4.09,
+    "forwardPE": 3.57,
+    "pb": 0.75,
     "roe": null,
     "roa": null,
     "debtToEquity": 5.37,
@@ -16,15 +16,15 @@
     "quickRatio": 36.62,
     "operatingMargin": 85.53,
     "profitMargin": 54.48,
-    "dividendYield": 4.53,
-    "trailingEps": 79.37,
+    "dividendYield": 4.79,
+    "trailingEps": 78.93,
     "forwardEps": 90.4,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 2.1,
     "quarterlyRevenueGrowth": 0.8,
     "bookValue": 433.11,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:44:10"
+    "lastUpdated": "2026-10-01 10:34:36"
   },
   "quarterly_pnl": {
     "dates": [
@@ -2404,9 +2404,9 @@
       "Provisionand Write Offof Assets": {
         "2026-03-31": -1135.77,
         "2025-03-31": 1503.74,
-        "2024-03-31": null,
-        "2023-03-31": null,
-        "2022-03-31": 5861.03
+        "2024-03-31": -1363.49,
+        "2023-03-31": -78.07,
+        "2022-03-31": null
       },
       "Depreciation And Amortization": {
         "2026-03-31": 62.99,
@@ -2579,7 +2579,7 @@
         "Change In Working Capital": -122134.05,
         "Change In Other Current Assets": 99.46,
         "Other Non Cash Items": -177.77,
-        "Provisionand Write Offof Assets": null,
+        "Provisionand Write Offof Assets": -1363.49,
         "Depreciation And Amortization": 53.39,
         "Depreciation": 53.39,
         "Pension And Employee Benefit Expense": null,
@@ -2622,7 +2622,7 @@
         "Change In Working Capital": -101090.95,
         "Change In Other Current Assets": -1306.2,
         "Other Non Cash Items": -39.1,
-        "Provisionand Write Offof Assets": null,
+        "Provisionand Write Offof Assets": -78.07,
         "Depreciation And Amortization": 51.78,
         "Depreciation": 51.78,
         "Pension And Employee Benefit Expense": null,
@@ -2665,7 +2665,7 @@
         "Change In Working Capital": null,
         "Change In Other Current Assets": null,
         "Other Non Cash Items": null,
-        "Provisionand Write Offof Assets": 5861.03,
+        "Provisionand Write Offof Assets": null,
         "Depreciation And Amortization": null,
         "Depreciation": null,
         "Pension And Employee Benefit Expense": 112.49,
@@ -2676,5 +2676,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:44:12"
+  "last_updated": "2026-10-01 10:34:38"
 }

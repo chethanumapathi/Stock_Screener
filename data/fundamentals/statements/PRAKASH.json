@@ -5,10 +5,10 @@
     "companyName": "Prakash Industries Limited",
     "sector": "Basic Materials",
     "industry": "Steel",
-    "marketCapCr": 2093.47,
-    "pe": 6.75,
-    "forwardPE": 3.61,
-    "pb": 0.58,
+    "marketCapCr": 2189.28,
+    "pe": 6.99,
+    "forwardPE": 3.77,
+    "pb": 0.61,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.14,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 10.12,
     "profitMargin": 9.01,
-    "dividendYield": 1.51,
-    "trailingEps": 17.33,
+    "dividendYield": 1.45,
+    "trailingEps": 17.48,
     "forwardEps": 32.4,
     "pegRatio": null,
     "quarterlyEarningsGrowth": -22.0,
     "quarterlyRevenueGrowth": -0.5,
     "bookValue": 200.38,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:45:48"
+    "lastUpdated": "2026-10-01 10:36:45"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1067,6 +1067,13 @@
       "2022-03-31"
     ],
     "metrics": {
+      "Treasury Shares Number": {
+        "2026-03-31": 0.0,
+        "2025-03-31": null,
+        "2024-03-31": null,
+        "2023-03-31": null,
+        "2022-03-31": null
+      },
       "Ordinary Shares Number": {
         "2026-03-31": 179081839.0,
         "2025-03-31": 179081839.0,
@@ -1589,6 +1596,7 @@
     "records": [
       {
         "date": "2026-03-31",
+        "Treasury Shares Number": 0.0,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 499.22,
@@ -1666,6 +1674,7 @@
       },
       {
         "date": "2025-03-31",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 398.8,
@@ -1743,6 +1752,7 @@
       },
       {
         "date": "2024-03-31",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 356.43,
@@ -1820,6 +1830,7 @@
       },
       {
         "date": "2023-03-31",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 587.01,
@@ -1897,6 +1908,7 @@
       },
       {
         "date": "2022-03-31",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": null,
         "Share Issued": null,
         "Net Debt": null,
@@ -1981,6 +1993,11 @@
       "2025-03-31"
     ],
     "metrics": {
+      "Treasury Shares Number": {
+        "2026-03-31": 0.0,
+        "2025-09-30": null,
+        "2025-03-31": null
+      },
       "Ordinary Shares Number": {
         "2026-03-31": 179081839.0,
         "2025-09-30": 179081839.0,
@@ -2340,6 +2357,7 @@
     "records": [
       {
         "date": "2026-03-31",
+        "Treasury Shares Number": 0.0,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 499.22,
@@ -2414,6 +2432,7 @@
       },
       {
         "date": "2025-09-30",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 317.82,
@@ -2488,6 +2507,7 @@
       },
       {
         "date": "2025-03-31",
+        "Treasury Shares Number": null,
         "Ordinary Shares Number": 179081839.0,
         "Share Issued": 17.91,
         "Net Debt": 398.8,
@@ -3094,5 +3114,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:45:52"
+  "last_updated": "2026-10-01 10:36:46"
 }

@@ -5,10 +5,10 @@
     "companyName": "Oil India Limited",
     "sector": "Energy",
     "industry": "Oil & Gas Integrated",
-    "marketCapCr": 78012.11,
-    "pe": 9.3,
-    "forwardPE": 7.28,
-    "pb": 1.34,
+    "marketCapCr": 71790.34,
+    "pe": 8.59,
+    "forwardPE": 6.68,
+    "pb": 1.24,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.59,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 40.75,
     "profitMargin": 21.68,
-    "dividendYield": 2.68,
-    "trailingEps": 51.59,
-    "forwardEps": 65.87,
+    "dividendYield": 2.9,
+    "trailingEps": 51.37,
+    "forwardEps": 66.1,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 91.4,
     "quarterlyRevenueGrowth": 57.7,
     "bookValue": 356.62,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:42:25"
+    "lastUpdated": "2026-10-01 10:31:40"
   },
   "quarterly_pnl": {
     "dates": [
@@ -556,8 +556,8 @@
         "2026-03-31": -3251.69,
         "2025-03-31": -1914.33,
         "2024-03-31": -3678.11,
-        "2023-03-31": null,
-        "2022-03-31": -764.9
+        "2023-03-31": -751.89,
+        "2022-03-31": null
       },
       "Total Unusual Items Excluding Goodwill": {
         "2026-03-31": -3251.69,
@@ -744,9 +744,9 @@
       "Other Non Operating Income Expenses": {
         "2026-03-31": 453.08,
         "2025-03-31": 299.86,
-        "2024-03-31": null,
+        "2024-03-31": 172.45,
         "2023-03-31": 134.79,
-        "2022-03-31": 180.18
+        "2022-03-31": null
       },
       "Special Income Charges": {
         "2026-03-31": -3299.9,
@@ -1003,7 +1003,7 @@
         "Net Income Continuous Operations": 69804500000.0,
         "Tax Provision": 1865.46,
         "Pretax Income": 8845.91,
-        "Other Non Operating Income Expenses": null,
+        "Other Non Operating Income Expenses": 172.45,
         "Special Income Charges": -3719.38,
         "Other Special Charges": 2365.56,
         "Write Off": 876.02,
@@ -1027,7 +1027,7 @@
         "Tax Effect Of Unusual Items": -188.17,
         "Tax Rate For Calcs": 0.25,
         "Normalized EBITDA": 16656.54,
-        "Total Unusual Items": null,
+        "Total Unusual Items": -751.89,
         "Total Unusual Items Excluding Goodwill": -751.89,
         "Net Income From Continuing Operation Net Minority Interest": 87285900000.0,
         "Reconciled Depreciation": 1946.94,
@@ -1078,7 +1078,7 @@
         "Tax Effect Of Unusual Items": null,
         "Tax Rate For Calcs": null,
         "Normalized EBITDA": null,
-        "Total Unusual Items": -764.9,
+        "Total Unusual Items": null,
         "Total Unusual Items Excluding Goodwill": null,
         "Net Income From Continuing Operation Net Minority Interest": null,
         "Reconciled Depreciation": null,
@@ -1105,7 +1105,7 @@
         "Net Income Continuous Operations": null,
         "Tax Provision": null,
         "Pretax Income": null,
-        "Other Non Operating Income Expenses": 180.18,
+        "Other Non Operating Income Expenses": null,
         "Special Income Charges": null,
         "Other Special Charges": -149.68,
         "Write Off": null,
@@ -2479,8 +2479,8 @@
       },
       "Goodwill And Other Intangible Assets": {
         "2026-03-31": 1014.23,
-        "2025-09-30": null,
-        "2025-03-31": null
+        "2025-09-30": 945.14,
+        "2025-03-31": 929.97
       },
       "Other Intangible Assets": {
         "2026-03-31": 1014.23,
@@ -2774,7 +2774,7 @@
         "Available For Sale Securities": 12657.98,
         "Long Term Equity Investment": 23566.97,
         "Investment Properties": 61.27,
-        "Goodwill And Other Intangible Assets": null,
+        "Goodwill And Other Intangible Assets": 945.14,
         "Other Intangible Assets": 945.14,
         "Net PPE": 56394.77,
         "Accumulated Depreciation": null,
@@ -2860,7 +2860,7 @@
         "Available For Sale Securities": 10918.65,
         "Long Term Equity Investment": 20236.68,
         "Investment Properties": 61.82,
-        "Goodwill And Other Intangible Assets": null,
+        "Goodwill And Other Intangible Assets": 929.97,
         "Other Intangible Assets": 929.97,
         "Net PPE": 52735.77,
         "Accumulated Depreciation": -20541.11,
@@ -3426,5 +3426,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:42:28"
+  "last_updated": "2026-10-01 10:31:41"
 }

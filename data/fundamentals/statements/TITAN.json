@@ -5,10 +5,10 @@
     "companyName": "Titan Company Limited",
     "sector": "Consumer Cyclical",
     "industry": "Luxury Goods",
-    "marketCapCr": 432165.46,
-    "pe": 74.85,
-    "forwardPE": 54.77,
-    "pb": 27.54,
+    "marketCapCr": 406255.93,
+    "pe": 70.79,
+    "forwardPE": 51.49,
+    "pb": 25.89,
     "roe": null,
     "roa": null,
     "debtToEquity": 1.95,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 12.33,
     "profitMargin": 6.23,
-    "dividendYield": 31.0,
-    "trailingEps": 65.07,
-    "forwardEps": 88.93,
+    "dividendYield": 33.0,
+    "trailingEps": 64.68,
+    "forwardEps": 88.92,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 62.9,
     "quarterlyRevenueGrowth": 29.3,
     "bookValue": 176.88,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:32:20"
+    "lastUpdated": "2026-10-01 10:56:24"
   },
   "quarterly_pnl": {
     "dates": [
@@ -2514,7 +2514,7 @@
       },
       "Raw Materials": {
         "2026-03-31": 6683.0,
-        "2025-03-31": null
+        "2025-03-31": 4140.0
       },
       "Other Receivables": {
         "2026-03-31": 401.0,
@@ -2723,7 +2723,7 @@
         "Other Inventories": 4.0,
         "Finished Goods": 23189.0,
         "Work In Process": 851.0,
-        "Raw Materials": null,
+        "Raw Materials": 4140.0,
         "Other Receivables": 176.0,
         "Accounts Receivable": 1068.0,
         "Allowance For Doubtful Accounts Receivable": -17.0,
@@ -3424,5 +3424,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:32:22"
+  "last_updated": "2026-10-01 10:56:26"
 }

@@ -5,10 +5,10 @@
     "companyName": "Power Grid Corporation of India Limited",
     "sector": "Utilities",
     "industry": "Utilities - Regulated Electric",
-    "marketCapCr": 246559.01,
-    "pe": 12.98,
-    "forwardPE": 13.69,
-    "pb": 2.45,
+    "marketCapCr": 239118.53,
+    "pe": 12.59,
+    "forwardPE": 13.28,
+    "pb": 2.38,
     "roe": null,
     "roa": null,
     "debtToEquity": 1.51,
@@ -16,7 +16,7 @@
     "quickRatio": null,
     "operatingMargin": 55.74,
     "profitMargin": 33.8,
-    "dividendYield": 4.66,
+    "dividendYield": 3.93,
     "trailingEps": 20.42,
     "forwardEps": 19.36,
     "pegRatio": null,
@@ -24,7 +24,7 @@
     "quarterlyRevenueGrowth": 2.7,
     "bookValue": 108.05,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 12:31:43"
+    "lastUpdated": "2026-10-01 10:36:25"
   },
   "quarterly_pnl": {
     "dates": [
@@ -772,9 +772,9 @@
       },
       "Depreciation And Amortization In Income Statement": {
         "2026-03-31": 13029.68,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 12904.15,
+        "2024-03-31": 13095.27,
+        "2023-03-31": 13333.38,
         "2022-03-31": null
       },
       "Amortization": {
@@ -955,7 +955,7 @@
         "Operating Income": 25762.32,
         "Operating Expense": 16693.47,
         "Other Operating Expenses": 1469.89,
-        "Depreciation And Amortization In Income Statement": null,
+        "Depreciation And Amortization In Income Statement": 12904.15,
         "Amortization": 125.96,
         "Depreciation Income Statement": 12778.19,
         "Research And Development": null,
@@ -1011,7 +1011,7 @@
         "Operating Income": 26807.62,
         "Operating Expense": 16671.99,
         "Other Operating Expenses": 1300.67,
-        "Depreciation And Amortization In Income Statement": null,
+        "Depreciation And Amortization In Income Statement": 13095.27,
         "Amortization": 132.07,
         "Depreciation Income Statement": 12963.2,
         "Research And Development": null,
@@ -1067,7 +1067,7 @@
         "Operating Income": 25520.66,
         "Operating Expense": 17158.68,
         "Other Operating Expenses": 1300.55,
-        "Depreciation And Amortization In Income Statement": null,
+        "Depreciation And Amortization In Income Statement": 13333.38,
         "Amortization": 132.36,
         "Depreciation Income Statement": 13201.02,
         "Research And Development": null,
@@ -2314,7 +2314,7 @@
       },
       "Current Debt": {
         "2026-03-31": 26937.21,
-        "2025-03-31": null
+        "2025-03-31": 21107.01
       },
       "Pensionand Other Post Retirement Benefit Plans Current": {
         "2026-03-31": 112.43,
@@ -2635,7 +2635,7 @@
         "Other Current Liabilities": 471.5,
         "Current Debt And Capital Lease Obligation": 21120.17,
         "Current Capital Lease Obligation": 13.16,
-        "Current Debt": null,
+        "Current Debt": 21107.01,
         "Pensionand Other Post Retirement Benefit Plans Current": 77.24,
         "Current Provisions": 631.37,
         "Payables": 786.22,
@@ -3292,5 +3292,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 12:31:46"
+  "last_updated": "2026-10-01 10:36:27"
 }

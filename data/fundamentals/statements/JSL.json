@@ -5,10 +5,10 @@
     "companyName": "Jindal Stainless Limited",
     "sector": "Basic Materials",
     "industry": "Steel",
-    "marketCapCr": 59691.05,
-    "pe": 18.41,
-    "forwardPE": 13.96,
-    "pb": 13.26,
+    "marketCapCr": 60898.13,
+    "pe": 18.76,
+    "forwardPE": 14.24,
+    "pb": 13.53,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.38,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 9.1,
     "profitMargin": 7.38,
-    "dividendYield": 0.55,
-    "trailingEps": 39.36,
+    "dividendYield": 0.54,
+    "trailingEps": 39.39,
     "forwardEps": 51.91,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 7.7,
     "quarterlyRevenueGrowth": 10.5,
     "bookValue": 54.63,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:32:23"
+    "lastUpdated": "2026-10-01 10:15:03"
   },
   "quarterly_pnl": {
     "dates": [
@@ -3358,14 +3358,14 @@
         "2022-03-31": null
       },
       "Amortization Cash Flow": {
-        "2026-03-31": null,
+        "2026-03-31": 116.4,
         "2025-03-31": null,
         "2024-03-31": null,
         "2023-03-31": 91.66,
         "2022-03-31": 96.19
       },
       "Depreciation": {
-        "2026-03-31": 1060.3,
+        "2026-03-31": 943.9,
         "2025-03-31": 956.12,
         "2024-03-31": 878.83,
         "2023-03-31": 723.75,
@@ -3456,8 +3456,8 @@
         "Stock Based Compensation": 46.69,
         "Provisionand Write Offof Assets": null,
         "Depreciation And Amortization": 1060.3,
-        "Amortization Cash Flow": null,
-        "Depreciation": 1060.3,
+        "Amortization Cash Flow": 116.4,
+        "Depreciation": 943.9,
         "Gain Loss On Investment Securities": -7.16,
         "Net Foreign Currency Exchange Gain Loss": 87.15,
         "Gain Loss On Sale Of PPE": 9.89,
@@ -3690,5 +3690,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:32:25"
+  "last_updated": "2026-10-01 10:15:05"
 }

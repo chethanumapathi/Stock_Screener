@@ -5,10 +5,10 @@
     "companyName": "The India Cements Limited",
     "sector": "Basic Materials",
     "industry": "Building Materials",
-    "marketCapCr": 16218.45,
-    "pe": 116.69,
-    "forwardPE": 20.77,
-    "pb": 1.07,
+    "marketCapCr": 13877.95,
+    "pe": 99.85,
+    "forwardPE": 17.77,
+    "pb": 0.91,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.13,
@@ -24,7 +24,7 @@
     "quarterlyRevenueGrowth": -0.5,
     "bookValue": 326.7,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:27:33"
+    "lastUpdated": "2026-10-01 10:10:08"
   },
   "quarterly_pnl": {
     "dates": [
@@ -939,7 +939,7 @@
         "2026-03-31": 299.12,
         "2025-03-31": 239.44,
         "2024-03-31": 219.79,
-        "2023-03-31": null,
+        "2023-03-31": 219.27,
         "2022-03-31": null
       },
       "Amortization": {
@@ -1234,7 +1234,7 @@
         "Operating Income": -360.43,
         "Operating Expense": 2259.46,
         "Other Operating Expenses": 37.72,
-        "Depreciation And Amortization In Income Statement": null,
+        "Depreciation And Amortization In Income Statement": 219.27,
         "Amortization": null,
         "Depreciation Income Statement": 219.27,
         "Selling General And Administration": 16437158000.0,
@@ -3238,9 +3238,9 @@
       "Purchase Of Investment": {
         "2026-03-31": -42.2,
         "2025-03-31": -1.07,
-        "2024-03-31": null,
-        "2023-03-31": null,
-        "2022-03-31": -3.67
+        "2024-03-31": -1.14,
+        "2023-03-31": -44.23,
+        "2022-03-31": null
       },
       "Net PPE Purchase And Sale": {
         "2026-03-31": -87.94,
@@ -3518,7 +3518,7 @@
         "Dividends Received Cfi": 10.58,
         "Net Investment Purchase And Sale": 3.06,
         "Sale Of Investment": 4.2,
-        "Purchase Of Investment": null,
+        "Purchase Of Investment": -1.14,
         "Net PPE Purchase And Sale": -89.31,
         "Sale Of PPE": 38.02,
         "Purchase Of PPE": -127.33,
@@ -3570,7 +3570,7 @@
         "Dividends Received Cfi": 0.11,
         "Net Investment Purchase And Sale": 256.19,
         "Sale Of Investment": 300.42,
-        "Purchase Of Investment": null,
+        "Purchase Of Investment": -44.23,
         "Net PPE Purchase And Sale": 161.59,
         "Sale Of PPE": 219.27,
         "Purchase Of PPE": -57.68,
@@ -3622,7 +3622,7 @@
         "Dividends Received Cfi": null,
         "Net Investment Purchase And Sale": null,
         "Sale Of Investment": null,
-        "Purchase Of Investment": -3.67,
+        "Purchase Of Investment": null,
         "Net PPE Purchase And Sale": null,
         "Sale Of PPE": null,
         "Purchase Of PPE": null,
@@ -3646,5 +3646,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:27:35"
+  "last_updated": "2026-10-01 10:10:10"
 }

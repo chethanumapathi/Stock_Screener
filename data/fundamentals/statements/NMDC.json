@@ -5,10 +5,10 @@
     "companyName": "NMDC Limited",
     "sector": "Basic Materials",
     "industry": "Steel",
-    "marketCapCr": 71187.35,
-    "pe": 9.57,
-    "forwardPE": 7.83,
-    "pb": 2.09,
+    "marketCapCr": 67160.69,
+    "pe": 9.14,
+    "forwardPE": 7.39,
+    "pb": 1.97,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.19,
@@ -16,15 +16,15 @@
     "quickRatio": null,
     "operatingMargin": 34.81,
     "profitMargin": 23.22,
-    "dividendYield": 2.48,
-    "trailingEps": 8.46,
+    "dividendYield": 2.61,
+    "trailingEps": 8.36,
     "forwardEps": 10.34,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 0.4,
     "quarterlyRevenueGrowth": 0.8,
     "bookValue": 38.81,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:41:46"
+    "lastUpdated": "2026-10-01 10:30:46"
   },
   "quarterly_pnl": {
     "dates": [
@@ -45,9 +45,9 @@
       "Tax Rate For Calcs": {
         "2026-06-30": 0.25,
         "2026-03-31": 0.3,
-        "2025-12-31": null,
-        "2025-06-30": null,
-        "2025-03-31": null
+        "2025-12-31": 0.26,
+        "2025-06-30": 0.26,
+        "2025-03-31": 0.37
       },
       "Normalized EBITDA": {
         "2026-06-30": 2815.72,
@@ -442,7 +442,7 @@
       {
         "date": "2025-12-31",
         "Tax Effect Of Unusual Items": 0.0,
-        "Tax Rate For Calcs": null,
+        "Tax Rate For Calcs": 0.26,
         "Normalized EBITDA": 2516.77,
         "Total Unusual Items": 0.0,
         "Total Unusual Items Excluding Goodwill": 0.0,
@@ -489,7 +489,7 @@
       {
         "date": "2025-06-30",
         "Tax Effect Of Unusual Items": 0.0,
-        "Tax Rate For Calcs": null,
+        "Tax Rate For Calcs": 0.26,
         "Normalized EBITDA": 2778.6,
         "Total Unusual Items": 0.0,
         "Total Unusual Items Excluding Goodwill": 0.0,
@@ -536,7 +536,7 @@
       {
         "date": "2025-03-31",
         "Tax Effect Of Unusual Items": 0.0,
-        "Tax Rate For Calcs": null,
+        "Tax Rate For Calcs": 0.37,
         "Normalized EBITDA": 2543.69,
         "Total Unusual Items": 0.0,
         "Total Unusual Items Excluding Goodwill": 0.0,
@@ -3274,5 +3274,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:41:47"
+  "last_updated": "2026-10-01 10:30:47"
 }

@@ -1311,6 +1311,8 @@ async function runBacktest() {
 
 function isEndOfDataTrade(t) {
     if (!t) return false;
+    const hasExit = Boolean(t.exit_date && String(t.exit_date).trim() !== '' && String(t.exit_date).trim() !== '-' && String(t.exit_date).trim() !== 'None' && String(t.exit_date).trim() !== 'nan' && t.exit_price !== null && t.exit_price !== undefined);
+    if (hasExit) return false;
     if (t.is_open === true || t.is_open === 'true') return true;
     const r = String(t.exit_reason || '').trim().toLowerCase();
     if (r.includes('end of data') || (r.includes('end') && r.includes('data')) || r.includes('running')) return true;
@@ -1348,14 +1350,17 @@ function renderBacktestResults(data) {
 
                 let reasonBadge = '';
                 const isEndOfData = isEndOfDataTrade(t);
+                const exReason = String(t.exit_reason || '').trim();
+                const exLower = exReason.toLowerCase();
+
                 if (isEndOfData) {
                     reasonBadge = `<span style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">⏳ End of Data (Running)</span>`;
-                } else if (t.exit_reason && t.exit_reason.includes('Target')) {
-                    reasonBadge = `<span class="badge-green">🎯 ${t.exit_reason}</span>`;
-                } else if (t.exit_reason && t.exit_reason.includes('Stop')) {
-                    reasonBadge = `<span class="badge-red">🛑 ${t.exit_reason}</span>`;
+                } else if (exLower.includes('target') || exReason === 'Profit' || exLower.includes('profit')) {
+                    reasonBadge = `<span class="badge-green">🎯 ${exReason}</span>`;
+                } else if (exLower.includes('stop') || exReason === 'Loss' || exLower.includes('loss')) {
+                    reasonBadge = `<span class="badge-red">🛑 ${exReason}</span>`;
                 } else {
-                    reasonBadge = `<span style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${t.exit_reason || 'Exit'}</span>`;
+                    reasonBadge = `<span style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${exReason || 'Exit'}</span>`;
                 }
 
                 let pnlDisplay = '-';
@@ -1376,6 +1381,11 @@ function renderBacktestResults(data) {
                 const exitPriceDisplay = isEndOfData
                     ? `<span style="color: var(--text-muted); font-size: 0.85rem;" title="Last Close Price (Still Running)">₹${Number(t.exit_price).toFixed(2)}</span>`
                     : `₹${Number(t.exit_price).toFixed(2)}`;
+
+                let durDisplay = String(t.duration || '');
+                if (!isEndOfData && durDisplay.toLowerCase().includes('running')) {
+                    durDisplay = durDisplay.replace(/\s*\(running\)/i, '').trim();
+                }
 
                 const isShortTrade = (t.type && String(t.type).toLowerCase().includes('short')) ||
                                      (t.trade_type && String(t.trade_type).toLowerCase().includes('short')) ||
@@ -1404,7 +1414,7 @@ function renderBacktestResults(data) {
                     <td>${reasonBadge}</td>
                     <td style="font-family: var(--font-mono); font-weight: 700;" class="${pnlClass}">${pnlDisplay}</td>
                     <td style="font-family: var(--font-mono); font-weight: 600;" class="${pnlClass}">${pnlPctDisplay}</td>
-                    <td style="font-family: var(--font-mono); color: #c7d2fe;">${t.duration}</td>
+                    <td style="font-family: var(--font-mono); color: #c7d2fe;">${durDisplay}</td>
                 `;
                 elements.btTradesTableBody.appendChild(tr);
             });
@@ -1823,6 +1833,10 @@ async function exportBacktestTrades(format = 'excel') {
                                  (t.side && String(t.side).toLowerCase().includes('short')) ||
                                  (t.direction && String(t.direction).toLowerCase().includes('short'));
             const typeStr = isShortTrade ? 'Short' : (t.type || 'Long');
+            let durStr = String(t.duration || '');
+            if (!isEndOfData && durStr.toLowerCase().includes('running')) {
+                durStr = durStr.replace(/\s*\(running\)/i, '').trim();
+            }
             return [
                 t.trade_id,
                 t.symbol,
@@ -1832,7 +1846,7 @@ async function exportBacktestTrades(format = 'excel') {
                 t.entry_price,
                 formatDateDDMMMYYYY(t.exit_date),
                 t.exit_price,
-                `"${isEndOfData ? 'End of Data' : (t.exit_reason || 'End of Data')}"`,
+                `"${isEndOfData ? 'End of Data (Running)' : (t.exit_reason || 'Exit')}"`,
                 t.qty,
                 isEndOfData ? '-' : ((t.turnover !== undefined && t.turnover !== null) ? t.turnover : '-'),
                 isEndOfData ? '-' : ((t.gross_pnl !== undefined && t.gross_pnl !== null) ? t.gross_pnl : '-'),
@@ -1840,7 +1854,7 @@ async function exportBacktestTrades(format = 'excel') {
                 isEndOfData ? '-' : ((t.taxes !== undefined && t.taxes !== null) ? t.taxes : '-'),
                 isEndOfData ? '-' : ((t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-'),
                 isEndOfData ? '-' : ((t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-'),
-                `"${t.duration || 'Running'}"`,
+                `"${durStr || (isEndOfData ? 'Running' : 'Same Day')}"`,
                 t.weekday || ''
             ];
         });
@@ -1869,6 +1883,10 @@ async function exportBacktestTrades(format = 'excel') {
                                              (t.side && String(t.side).toLowerCase().includes('short')) ||
                                              (t.direction && String(t.direction).toLowerCase().includes('short'));
                         const typeStr = isShortTrade ? 'Short' : (t.type || 'Long');
+                        let durStr = String(t.duration || '');
+                        if (!isEndOfData && durStr.toLowerCase().includes('running')) {
+                            durStr = durStr.replace(/\s*\(running\)/i, '').trim();
+                        }
                         return {
                             'Trade #': t.trade_id,
                             'Symbol': t.symbol,
@@ -1878,7 +1896,7 @@ async function exportBacktestTrades(format = 'excel') {
                             'Entry Price (₹)': t.entry_price,
                             'Exit Date': formatDateDDMMMYYYY(t.exit_date),
                             'Exit Price (₹)': t.exit_price,
-                            'Exit Reason': isEndOfData ? 'End of Data' : (t.exit_reason || 'End of Data'),
+                            'Exit Reason': isEndOfData ? 'End of Data (Running)' : (t.exit_reason || 'Exit'),
                             'Quantity': t.qty,
                             'Turnover (₹)': isEndOfData ? '-' : ((t.turnover !== undefined && t.turnover !== null) ? t.turnover : '-'),
                             'Gross PnL (₹)': isEndOfData ? '-' : ((t.gross_pnl !== undefined && t.gross_pnl !== null) ? t.gross_pnl : '-'),
@@ -1886,7 +1904,7 @@ async function exportBacktestTrades(format = 'excel') {
                             'Taxes (₹)': isEndOfData ? '-' : ((t.taxes !== undefined && t.taxes !== null) ? t.taxes : '-'),
                             'Net PnL (₹)': isEndOfData ? '-' : ((t.net_pnl !== undefined && t.net_pnl !== null) ? t.net_pnl : '-'),
                             'PnL (%)': isEndOfData ? '-' : ((t.pnl_pct !== undefined && t.pnl_pct !== null) ? t.pnl_pct : '-'),
-                            'Duration': t.duration || 'Running',
+                            'Duration': durStr || (isEndOfData ? 'Running' : 'Same Day'),
                             'Weekday': t.weekday || ''
                         };
                     }),

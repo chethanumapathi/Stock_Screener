@@ -5,10 +5,10 @@
     "companyName": "Jaiprakash Power Ventures Limited",
     "sector": "Utilities",
     "industry": "Utilities - Independent Power Producers",
-    "marketCapCr": 10492.65,
-    "pe": 22.19,
-    "forwardPE": -9.01,
-    "pb": 1.18,
+    "marketCapCr": 10335.02,
+    "pe": 21.54,
+    "forwardPE": -8.87,
+    "pb": 1.16,
     "roe": null,
     "roa": null,
     "debtToEquity": 0.27,
@@ -17,14 +17,14 @@
     "operatingMargin": 36.14,
     "profitMargin": 11.14,
     "dividendYield": null,
-    "trailingEps": 0.69,
+    "trailingEps": 0.7,
     "forwardEps": -1.7,
     "pegRatio": null,
     "quarterlyEarningsGrowth": 68.6,
     "quarterlyRevenueGrowth": 12.2,
     "bookValue": 13.03,
     "currency": "INR",
-    "lastUpdated": "2026-09-17 14:32:16"
+    "lastUpdated": "2026-10-01 10:14:56"
   },
   "quarterly_pnl": {
     "dates": [
@@ -1285,9 +1285,9 @@
       },
       "Tangible Book Value": {
         "2026-03-31": 8834.23,
-        "2025-03-31": null,
-        "2024-03-31": null,
-        "2023-03-31": null,
+        "2025-03-31": 8409.23,
+        "2024-03-31": 7616.61,
+        "2023-03-31": 6601.15,
         "2022-03-31": null
       },
       "Invested Capital": {
@@ -1946,7 +1946,7 @@
         "Share Issued": 685.35,
         "Net Debt": 2873.08,
         "Total Debt": 3778.25,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 8409.23,
         "Invested Capital": 12241.29,
         "Working Capital": 2234.94,
         "Net Tangible Assets": 12214.76,
@@ -2034,7 +2034,7 @@
         "Share Issued": 685.35,
         "Net Debt": 4210.75,
         "Total Debt": 4246.04,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 7616.61,
         "Invested Capital": 11903.89,
         "Working Capital": 1466.69,
         "Net Tangible Assets": 11422.14,
@@ -2122,7 +2122,7 @@
         "Share Issued": 685.35,
         "Net Debt": 4695.88,
         "Total Debt": 4760.58,
-        "Tangible Book Value": null,
+        "Tangible Book Value": 6601.15,
         "Invested Capital": 11394.49,
         "Working Capital": 484.34,
         "Net Tangible Assets": 10406.68,
@@ -2375,6 +2375,11 @@
         "2026-03-31": 12732.25,
         "2025-09-30": null,
         "2025-03-31": 12281.2
+      },
+      "Other Equity Interest": {
+        "2026-03-31": 2073.27,
+        "2025-09-30": null,
+        "2025-03-31": 1622.21
       },
       "Retained Earnings": {
         "2026-03-31": -1038.37,
@@ -2725,6 +2730,7 @@
         "Total Equity Gross Minority Interest": 12732.25,
         "Minority Interest": 0.0,
         "Stockholders Equity": 12732.25,
+        "Other Equity Interest": 2073.27,
         "Retained Earnings": -1038.37,
         "Additional Paid In Capital": 220.83,
         "Capital Stock": 10658.99,
@@ -2809,6 +2815,7 @@
         "Total Equity Gross Minority Interest": null,
         "Minority Interest": null,
         "Stockholders Equity": null,
+        "Other Equity Interest": null,
         "Retained Earnings": null,
         "Additional Paid In Capital": null,
         "Capital Stock": null,
@@ -2893,6 +2900,7 @@
         "Total Equity Gross Minority Interest": 12281.2,
         "Minority Interest": 0.0,
         "Stockholders Equity": 12281.2,
+        "Other Equity Interest": 1622.21,
         "Retained Earnings": -1489.0,
         "Additional Paid In Capital": 220.83,
         "Capital Stock": 10658.99,
@@ -3434,5 +3442,5 @@
       }
     ]
   },
-  "last_updated": "2026-09-17 14:32:19"
+  "last_updated": "2026-10-01 10:15:00"
 }
